@@ -10,9 +10,15 @@ requires-python = ">=3.13,<4.0"
 dependencies = [
     "supabase (>=2.15.0,<3.0.0)",
     "dotenv (>=0.9.9,<0.10.0)",
-    "fastapi (>=0.115.12,<0.116.0)"
+    "fastapi (>=0.115.12,<0.116.0)",
+    "uvicorn (>=0.34.0,<0.35.0)"
 ]
 
+[tool.poetry.scripts]
+start = "uvicorn app.main:app --reload --host 0.0.0.0 --port ${APP_PORT}"
+
+[[tool.poetry.packages]]
+include = "app"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
