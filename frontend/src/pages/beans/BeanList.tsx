@@ -139,15 +139,15 @@ const BeanList = () => {
                     {bean.country_of_origin || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link to={`/beans/${bean.id}`} className="text-blue-600 hover:text-blue-900 mr-4">
+                    <Link to={`/beans/${bean.id}`} className="btn btn-secondary mr-2">
                       View
                     </Link>
-                    <Link to={`/beans/${bean.id}/edit`} className="text-indigo-600 hover:text-indigo-900 mr-4">
+                    <Link to={`/beans/${bean.id}/edit`} className="btn btn-primary mr-2">
                       Edit
                     </Link>
                     <button
                       onClick={() => handleDelete(bean.id)}
-                      className="text-red-600 hover:text-red-900"
+                      className="btn btn-danger"
                       disabled={deleteMutation.isPending}
                     >
                       {deleteMutation.isPending && deleteId === bean.id ? 'Deleting...' : 'Delete'}
