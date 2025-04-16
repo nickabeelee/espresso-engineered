@@ -10,11 +10,11 @@ const Navbar = () => {
   }
   
   return (
-    <nav className="bg-white shadow">
+    <nav className="bg-white shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
+            <div className="shrink-0 flex items-center">
               <Link to="/" className="text-xl font-bold text-brown-600">
                 Espresso Engineered
               </Link>

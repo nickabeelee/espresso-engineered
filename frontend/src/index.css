@@ -1,46 +1,75 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+@theme {
+  --color-brown-50: #faf5f0;
+  --color-brown-100: #f5eae0;
+  --color-brown-200: #e6d5c1;
+  --color-brown-300: #d7bfa3;
+  --color-brown-400: #c8aa84;
+  --color-brown-500: #b99465;
+  --color-brown-600: #9a7f56;
+  --color-brown-700: #7b6544;
+  --color-brown-800: #5c4c33;
+  --color-brown-900: #3d3222;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility btn {
+  @apply px-4 py-2 rounded-xs font-medium transition-colors;
+}
+
+@utility btn-primary {
+  @apply bg-brown-600 text-white hover:bg-brown-700;
+}
+
+@utility btn-secondary {
+  @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+}
+
+@utility btn-danger {
+  @apply bg-red-600 text-white hover:bg-red-700;
+}
+
+@utility input {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-xs shadow-2xs focus:outline-hidden focus:ring-3 focus:ring-brown-500 focus:border-brown-500;
+}
+
+@utility select {
+  @apply block w-full px-3 py-2 border border-gray-300 rounded-xs shadow-2xs focus:outline-hidden focus:ring-3 focus:ring-brown-500 focus:border-brown-500;
+}
+
+@utility form-label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+@utility form-error {
+  @apply mt-1 text-sm text-red-600;
+}
+
+@utility card {
+  @apply bg-white rounded-xs shadow-2xs p-6;
+}
 
 body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-@layer components {
-  .btn {
-    @apply px-4 py-2 rounded-sm font-medium transition-colors;
-  }
-  
-  .btn-primary {
-    @apply bg-brown-600 text-white hover:bg-brown-700;
-  }
-  
-  .btn-secondary {
-    @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
-  }
-  
-  .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700;
-  }
-  
-  .input {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-sm shadow-xs focus:outline-hidden focus:ring-3 focus:ring-brown-500 focus:border-brown-500;
-  }
-  
-  .select {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-sm shadow-xs focus:outline-hidden focus:ring-3 focus:ring-brown-500 focus:border-brown-500;
-  }
-  
-  .form-label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
-  }
-  
-  .form-error {
-    @apply mt-1 text-sm text-red-600;
-  }
-  
-  .card {
-    @apply bg-white rounded-sm shadow-xs p-6;
-  }
 }

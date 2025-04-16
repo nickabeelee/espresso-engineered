@@ -48,7 +48,7 @@ const RoasterCreate = () => {
         </button>
       </div>
       
-      <div className="bg-white shadow overflow-hidden rounded-lg p-6">
+      <div className="bg-white shadow-sm overflow-hidden rounded-lg p-6">
         {error && (
           <div className="mb-4 p-4 text-red-700 bg-red-100 rounded-md">
             {error}

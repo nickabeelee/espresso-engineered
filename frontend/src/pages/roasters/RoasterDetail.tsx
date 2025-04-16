@@ -64,7 +64,7 @@ const RoasterDetail = () => {
         </div>
       </div>
       
-      <div className="bg-white shadow overflow-hidden rounded-lg">
+      <div className="bg-white shadow-sm overflow-hidden rounded-lg">
         <div className="px-4 py-5 sm:px-6">
           <h3 className="text-lg leading-6 font-medium text-gray-900">
             Roaster Information
@@ -90,7 +90,7 @@ const RoasterDetail = () => {
                         <div className="w-0 flex-1 flex items-center">
                           <span className="ml-2 flex-1 w-0 truncate">{bean.name}</span>
                         </div>
-                        <div className="ml-4 flex-shrink-0">
+                        <div className="ml-4 shrink-0">
                           <Link 
                             to={`/beans/${bean.id}`} 
                             className="font-medium text-blue-600 hover:text-blue-500"

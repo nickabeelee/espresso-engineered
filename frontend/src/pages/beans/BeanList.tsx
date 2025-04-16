@@ -53,11 +53,11 @@ const BeanList = () => {
       </div>
       
       {beans?.length === 0 ? (
-        <div className="text-center py-10 bg-white rounded-lg shadow">
+        <div className="text-center py-10 bg-white rounded-lg shadow-sm">
           <p className="text-gray-600">No beans found. Add your first coffee bean!</p>
         </div>
       ) : (
-        <div className="bg-white shadow overflow-hidden rounded-lg">
+        <div className="bg-white shadow-sm overflow-hidden rounded-lg">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
