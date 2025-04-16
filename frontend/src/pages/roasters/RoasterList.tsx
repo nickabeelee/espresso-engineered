@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getRoasters, deleteRoaster } from '../../api/roasterService'
@@ -8,28 +8,66 @@ const RoasterList = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const queryClient = useQueryClient()
   
-  const { data: roasters, isLoading, error } = useQuery({
+  const { data: roasters, isLoading, error, refetch } = useQuery({
     queryKey: ['roasters'],
-    queryFn: getRoasters
+    queryFn: getRoasters,
+    retry: 2,
+    retryDelay: 1000,
   })
+  
+  // Log when component mounts
+  useEffect(() => {
+    console.log('RoasterList component mounted')
+  }, [])
+
+  // Log when data or error changes
+  useEffect(() => {
+    if (roasters) {
+      console.log('Roasters data loaded:', roasters)
+    }
+    if (error) {
+      console.error('React Query error:', error)
+    }
+  }, [roasters, error])
   
   const deleteMutation = useMutation({
     mutationFn: deleteRoaster,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roasters'] })
       setDeleteId(null)
+    },
+    onError: (error) => {
+      console.error('Error deleting roaster:', error)
     }
   })
   
   const handleDelete = (id: number) => {
     if (confirm('Are you sure you want to delete this roaster?')) {
+      setDeleteId(id)
       deleteMutation.mutate(id)
     }
   }
   
-  if (isLoading) return <div className="text-center py-10">Loading...</div>
+  const handleRetry = () => {
+    console.log('Retrying roaster fetch...')
+    refetch()
+  }
   
-  if (error) return <div className="text-center py-10 text-red-600">Error loading roasters</div>
+  if (isLoading) return <div className="text-center py-10">Loading coffee roasters...</div>
+  
+  if (error) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-red-600 mb-4">Error loading roasters</p>
+        <button 
+          onClick={handleRetry}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
   
   return (
     <div className="py-6">
@@ -40,7 +78,7 @@ const RoasterList = () => {
         </Link>
       </div>
       
-      {roasters?.length === 0 ? (
+      {!roasters || roasters.length === 0 ? (
         <div className="text-center py-10 bg-white rounded-lg shadow-sm">
           <p className="text-gray-600">No roasters found. Add your first roaster!</p>
         </div>
@@ -58,7 +96,7 @@ const RoasterList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {roasters?.map((roaster) => (
+              {roasters.map((roaster) => (
                 <tr key={roaster.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {roaster.name}

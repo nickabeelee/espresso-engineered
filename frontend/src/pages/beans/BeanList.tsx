@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getBeans, deleteBean } from '../../api/beanService'
@@ -9,21 +9,49 @@ const BeanList = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const queryClient = useQueryClient()
   
-  const { data: beans, isLoading: beansLoading, error: beansError } = useQuery({
+  const { data: beans, isLoading: beansLoading, error: beansError, refetch: refetchBeans } = useQuery({
     queryKey: ['beans'],
-    queryFn: getBeans
+    queryFn: getBeans,
+    retry: 2,
+    retryDelay: 1000,
   })
   
-  const { data: roasters } = useQuery({
+  const { data: roasters, isLoading: roastersLoading, error: roastersError } = useQuery({
     queryKey: ['roasters'],
-    queryFn: getRoasters
+    queryFn: getRoasters,
+    retry: 2,
+    retryDelay: 1000,
   })
+  
+  // Log when component mounts
+  useEffect(() => {
+    console.log('BeanList component mounted')
+  }, [])
+
+  // Log when data or errors change
+  useEffect(() => {
+    if (beans) {
+      console.log('Beans data loaded:', beans)
+    }
+    if (beansError) {
+      console.error('React Query beans error:', beansError)
+    }
+    if (roasters) {
+      console.log('Roasters data loaded in BeanList:', roasters)
+    }
+    if (roastersError) {
+      console.error('React Query roasters error in BeanList:', roastersError)
+    }
+  }, [beans, beansError, roasters, roastersError])
   
   const deleteMutation = useMutation({
     mutationFn: deleteBean,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['beans'] })
       setDeleteId(null)
+    },
+    onError: (error) => {
+      console.error('Error deleting bean:', error)
     }
   })
   
@@ -39,9 +67,26 @@ const BeanList = () => {
     return roaster ? roaster.name : 'Unknown'
   }
   
-  if (beansLoading) return <div className="text-center py-10">Loading...</div>
+  const handleRetry = () => {
+    console.log('Retrying bean fetch...')
+    refetchBeans()
+  }
   
-  if (beansError) return <div className="text-center py-10 text-red-600">Error loading beans</div>
+  if (beansLoading) return <div className="text-center py-10">Loading coffee beans...</div>
+  
+  if (beansError) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-red-600 mb-4">Error loading beans</p>
+        <button 
+          onClick={handleRetry}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
   
   return (
     <div className="py-6">
@@ -52,7 +97,7 @@ const BeanList = () => {
         </Link>
       </div>
       
-      {beans?.length === 0 ? (
+      {!beans || beans.length === 0 ? (
         <div className="text-center py-10 bg-white rounded-lg shadow-sm">
           <p className="text-gray-600">No beans found. Add your first coffee bean!</p>
         </div>
@@ -79,7 +124,7 @@ const BeanList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {beans?.map((bean) => (
+              {beans.map((bean) => (
                 <tr key={bean.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {bean.name}
