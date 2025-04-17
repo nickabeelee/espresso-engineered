@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 const Header: React.FC = () => {
   return (
-    <header className="bg-brown-700 text-white px-4 py-3 shadow-md fixed top-0 left-0 right-0 z-50">
+    <header className="bg-brown-700 text-white px-4 py-3 shadow-md sticky top-0 left-0 right-0 z-50">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-bold hover:text-brown-200">
           Espresso Engineered
@@ -12,7 +12,7 @@ const Header: React.FC = () => {
           {/* Placeholder for future user controls */}
           <div className="bg-brown-600 hover:bg-brown-500 p-2 rounded-full cursor-pointer">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>

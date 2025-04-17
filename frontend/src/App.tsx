@@ -51,58 +51,58 @@ function App() {
       <Header />
 
       {/* Content area with sidebar and main content */}
-      <div className="flex flex-1 mt-12"> {/* Add margin top to account for fixed header */}
+      <div className="flex flex-1">
         <Navbar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Breadcrumbs />
           <main className="flex-1 overflow-y-auto p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
-            <Routes>
-              <Route path="/" element={<Home />} />
-            
-            {/* Roaster Routes */}
-            <Route path="/roasters" element={<RoasterList />} />
-            <Route path="/roasters/new" element={<RoasterCreate />} />
-            <Route path="/roasters/:id" element={<RoasterDetail />} />
-            <Route path="/roasters/:id/edit" element={<RoasterEdit />} />
-            
-            {/* Bean Routes */}
-            <Route path="/beans" element={<BeanList />} />
-            <Route path="/beans/new" element={<BeanCreate />} />
-            <Route path="/beans/:id" element={<BeanDetail />} />
-            <Route path="/beans/:id/edit" element={<BeanEdit />} />
+              <Routes>
+                <Route path="/" element={<Home />} />
 
-            {/* Bag Routes */}
-            <Route path="/bags" element={<BagList />} />
-            <Route path="/bags/new" element={<BagCreate />} />
-            <Route path="/bags/:id" element={<BagDetail />} />
-            <Route path="/bags/:id/edit" element={<BagEdit />} />
-            
-            {/* Barista Routes */}
-            <Route path="/baristas" element={<BaristaList />} />
-            <Route path="/baristas/new" element={<BaristaCreate />} />
-            <Route path="/baristas/:id" element={<BaristaDetail />} />
-            <Route path="/baristas/:id/edit" element={<BaristaEdit />} />
-            
-            {/* Grinder Routes */}
-            <Route path="/grinders" element={<GrinderList />} />
-            <Route path="/grinders/new" element={<GrinderCreate />} />
-            <Route path="/grinders/:id" element={<GrinderDetail />} />
-            <Route path="/grinders/:id/edit" element={<GrinderEdit />} />
-            
-            {/* Machine Routes */}
-            <Route path="/machines" element={<MachineList />} />
-            <Route path="/machines/new" element={<MachineCreate />} />
-            <Route path="/machines/:id" element={<MachineDetail />} />
-            <Route path="/machines/:id/edit" element={<MachineEdit />} />
-            
-            {/* Brew Routes */}
-            <Route path="/brews" element={<BrewList />} />
-            <Route path="/brews/new" element={<BrewCreate />} />
-            <Route path="/brews/:id" element={<BrewDetail />} />
-            <Route path="/brews/:id/edit" element={<BrewEdit />} />
-          </Routes>
-        </div>
+                {/* Roaster Routes */}
+                <Route path="/roasters" element={<RoasterList />} />
+                <Route path="/roasters/new" element={<RoasterCreate />} />
+                <Route path="/roasters/:id" element={<RoasterDetail />} />
+                <Route path="/roasters/:id/edit" element={<RoasterEdit />} />
+
+                {/* Bean Routes */}
+                <Route path="/beans" element={<BeanList />} />
+                <Route path="/beans/new" element={<BeanCreate />} />
+                <Route path="/beans/:id" element={<BeanDetail />} />
+                <Route path="/beans/:id/edit" element={<BeanEdit />} />
+
+                {/* Bag Routes */}
+                <Route path="/bags" element={<BagList />} />
+                <Route path="/bags/new" element={<BagCreate />} />
+                <Route path="/bags/:id" element={<BagDetail />} />
+                <Route path="/bags/:id/edit" element={<BagEdit />} />
+
+                {/* Barista Routes */}
+                <Route path="/baristas" element={<BaristaList />} />
+                <Route path="/baristas/new" element={<BaristaCreate />} />
+                <Route path="/baristas/:id" element={<BaristaDetail />} />
+                <Route path="/baristas/:id/edit" element={<BaristaEdit />} />
+
+                {/* Grinder Routes */}
+                <Route path="/grinders" element={<GrinderList />} />
+                <Route path="/grinders/new" element={<GrinderCreate />} />
+                <Route path="/grinders/:id" element={<GrinderDetail />} />
+                <Route path="/grinders/:id/edit" element={<GrinderEdit />} />
+
+                {/* Machine Routes */}
+                <Route path="/machines" element={<MachineList />} />
+                <Route path="/machines/new" element={<MachineCreate />} />
+                <Route path="/machines/:id" element={<MachineDetail />} />
+                <Route path="/machines/:id/edit" element={<MachineEdit />} />
+
+                {/* Brew Routes */}
+                <Route path="/brews" element={<BrewList />} />
+                <Route path="/brews/new" element={<BrewCreate />} />
+                <Route path="/brews/:id" element={<BrewDetail />} />
+                <Route path="/brews/:id/edit" element={<BrewEdit />} />
+              </Routes>
+            </div>
           </main>
         </div>
       </div>
