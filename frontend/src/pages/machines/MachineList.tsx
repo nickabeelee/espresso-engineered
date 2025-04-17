@@ -1,83 +1,64 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getBeans, deleteBean } from '../../api/beanService'
-import { getRoasters } from '../../api/roasterService'
-import { Bean, Roaster } from '../../types'
+import { getMachines, deleteMachine } from '../../api/machineService'
+import { Machine } from '../../types'
 
-const BeanList = () => {
+const MachineList = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const queryClient = useQueryClient()
   
-  const { data: beans, isLoading: beansLoading, error: beansError, refetch: refetchBeans } = useQuery({
-    queryKey: ['beans'],
-    queryFn: getBeans,
-    retry: 2,
-    retryDelay: 1000,
-  })
-  
-  const { data: roasters, isLoading: roastersLoading, error: roastersError } = useQuery({
-    queryKey: ['roasters'],
-    queryFn: getRoasters,
+  const { data: machines, isLoading, error, refetch } = useQuery({
+    queryKey: ['machines'],
+    queryFn: getMachines,
     retry: 2,
     retryDelay: 1000,
   })
   
   // Log when component mounts
   useEffect(() => {
-    console.log('BeanList component mounted')
+    console.log('MachineList component mounted')
   }, [])
 
   // Log when data or errors change
   useEffect(() => {
-    if (beans) {
-      console.log('Beans data loaded:', beans)
+    if (machines) {
+      console.log('Machines data loaded:', machines)
     }
-    if (beansError) {
-      console.error('React Query beans error:', beansError)
+    if (error) {
+      console.error('React Query machines error:', error)
     }
-    if (roasters) {
-      console.log('Roasters data loaded in BeanList:', roasters)
-    }
-    if (roastersError) {
-      console.error('React Query roasters error in BeanList:', roastersError)
-    }
-  }, [beans, beansError, roasters, roastersError])
+  }, [machines, error])
   
   const deleteMutation = useMutation({
-    mutationFn: deleteBean,
+    mutationFn: deleteMachine,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['beans'] })
+      queryClient.invalidateQueries({ queryKey: ['machines'] })
       setDeleteId(null)
     },
     onError: (error) => {
-      console.error('Error deleting bean:', error)
+      console.error('Error deleting machine:', error)
     }
   })
   
   const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this bean?')) {
+    if (confirm('Are you sure you want to delete this machine?')) {
       setDeleteId(id)
       deleteMutation.mutate(id)
     }
   }
   
-  const getRoasterName = (roasterId: number): string => {
-    const roaster = roasters?.find(r => r.id === roasterId)
-    return roaster ? roaster.name : 'Unknown'
-  }
-  
   const handleRetry = () => {
-    console.log('Retrying bean fetch...')
-    refetchBeans()
+    console.log('Retrying machines fetch...')
+    refetch()
   }
   
-  if (beansLoading) return <div className="text-center py-10">Loading coffee beans...</div>
+  if (isLoading) return <div className="text-center py-10">Loading espresso machines...</div>
   
-  if (beansError) {
+  if (error) {
     return (
       <div className="text-center py-10">
-        <p className="text-red-600 mb-4">Error loading beans</p>
+        <p className="text-red-600 mb-4">Error loading machines</p>
         <button 
           onClick={handleRetry}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -91,15 +72,15 @@ const BeanList = () => {
   return (
     <div className="py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Coffee Beans</h1>
-        <Link to="/beans/new" className="btn btn-primary">
-          Add New Bean
+        <h1 className="text-2xl font-bold text-gray-900">Espresso Machines</h1>
+        <Link to="/machines/new" className="btn btn-primary">
+          Add New Machine
         </Link>
       </div>
       
-      {!beans || beans.length === 0 ? (
+      {!machines || machines.length === 0 ? (
         <div className="text-center py-10 bg-white rounded-lg shadow-sm">
-          <p className="text-gray-600">No beans found. Add your first coffee bean!</p>
+          <p className="text-gray-600">No machines found. Add your first espresso machine!</p>
         </div>
       ) : (
         <div className="bg-white shadow-sm overflow-hidden rounded-lg">
@@ -110,13 +91,10 @@ const BeanList = () => {
                   Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Roaster
+                  Manufacturer
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Roast Level
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Origin
+                  Manual Link
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -124,37 +102,40 @@ const BeanList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {beans.map((bean) => (
-                <tr key={bean.id}>
+              {machines.map((machine) => (
+                <tr key={machine.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {bean.name}
+                    {machine.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {getRoasterName(bean.roaster_id)}
+                    {machine.manufacturer || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {bean.roast_level}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {bean.country_of_origin || 'N/A'}
+                    {machine.user_manual_link ? (
+                      <a href={machine.user_manual_link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                        User Manual
+                      </a>
+                    ) : (
+                      'N/A'
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link to={`/beans/${bean.id}`} className="btn btn-secondary mr-2">
+                    <Link to={`/machines/${machine.id}`} className="btn btn-secondary mr-2">
                       View
                     </Link>
-                    <Link to={`/beans/${bean.id}/edit`} className="btn btn-primary mr-2">
+                    <Link to={`/machines/${machine.id}/edit`} className="btn btn-primary mr-2">
                       Edit
                     </Link>
                     <Link
                       to="#"
                       onClick={(e) => {
                         e.preventDefault();
-                        handleDelete(bean.id);
+                        handleDelete(machine.id);
                       }}
                       className="btn btn-danger"
                       aria-disabled={deleteMutation.isPending}
                     >
-                      {deleteMutation.isPending && deleteId === bean.id ? 'Deleting...' : 'Delete'}
+                      {deleteMutation.isPending && deleteId === machine.id ? 'Deleting...' : 'Delete'}
                     </Link>
                   </td>
                 </tr>
@@ -167,4 +148,4 @@ const BeanList = () => {
   )
 }
 
-export default BeanList
+export default MachineList

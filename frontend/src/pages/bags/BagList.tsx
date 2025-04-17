@@ -1,83 +1,83 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getBeans, deleteBean } from '../../api/beanService'
-import { getRoasters } from '../../api/roasterService'
-import { Bean, Roaster } from '../../types'
+import { getBags, deleteBag } from '../../api/bagService'
+import { getBeans } from '../../api/beanService'
+import { Bag, Bean } from '../../types'
 
-const BeanList = () => {
+const BagList = () => {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const queryClient = useQueryClient()
   
-  const { data: beans, isLoading: beansLoading, error: beansError, refetch: refetchBeans } = useQuery({
+  const { data: bags, isLoading: bagsLoading, error: bagsError, refetch: refetchBags } = useQuery({
+    queryKey: ['bags'],
+    queryFn: getBags,
+    retry: 2,
+    retryDelay: 1000,
+  })
+  
+  const { data: beans, isLoading: beansLoading, error: beansError } = useQuery({
     queryKey: ['beans'],
     queryFn: getBeans,
     retry: 2,
     retryDelay: 1000,
   })
   
-  const { data: roasters, isLoading: roastersLoading, error: roastersError } = useQuery({
-    queryKey: ['roasters'],
-    queryFn: getRoasters,
-    retry: 2,
-    retryDelay: 1000,
-  })
-  
   // Log when component mounts
   useEffect(() => {
-    console.log('BeanList component mounted')
+    console.log('BagList component mounted')
   }, [])
 
   // Log when data or errors change
   useEffect(() => {
+    if (bags) {
+      console.log('Bags data loaded:', bags)
+    }
+    if (bagsError) {
+      console.error('React Query bags error:', bagsError)
+    }
     if (beans) {
-      console.log('Beans data loaded:', beans)
+      console.log('Beans data loaded in BagList:', beans)
     }
     if (beansError) {
-      console.error('React Query beans error:', beansError)
+      console.error('React Query beans error in BagList:', beansError)
     }
-    if (roasters) {
-      console.log('Roasters data loaded in BeanList:', roasters)
-    }
-    if (roastersError) {
-      console.error('React Query roasters error in BeanList:', roastersError)
-    }
-  }, [beans, beansError, roasters, roastersError])
+  }, [bags, bagsError, beans, beansError])
   
   const deleteMutation = useMutation({
-    mutationFn: deleteBean,
+    mutationFn: deleteBag,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['beans'] })
+      queryClient.invalidateQueries({ queryKey: ['bags'] })
       setDeleteId(null)
     },
     onError: (error) => {
-      console.error('Error deleting bean:', error)
+      console.error('Error deleting bag:', error)
     }
   })
   
   const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this bean?')) {
+    if (confirm('Are you sure you want to delete this bag?')) {
       setDeleteId(id)
       deleteMutation.mutate(id)
     }
   }
   
-  const getRoasterName = (roasterId: number): string => {
-    const roaster = roasters?.find(r => r.id === roasterId)
-    return roaster ? roaster.name : 'Unknown'
+  const getBeanName = (beanId: number): string => {
+    const bean = beans?.find(b => b.id === beanId)
+    return bean ? bean.name : 'Unknown'
   }
   
   const handleRetry = () => {
-    console.log('Retrying bean fetch...')
-    refetchBeans()
+    console.log('Retrying bag fetch...')
+    refetchBags()
   }
   
-  if (beansLoading) return <div className="text-center py-10">Loading coffee beans...</div>
+  if (bagsLoading) return <div className="text-center py-10">Loading coffee bags...</div>
   
-  if (beansError) {
+  if (bagsError) {
     return (
       <div className="text-center py-10">
-        <p className="text-red-600 mb-4">Error loading beans</p>
+        <p className="text-red-600 mb-4">Error loading bags</p>
         <button 
           onClick={handleRetry}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -91,15 +91,15 @@ const BeanList = () => {
   return (
     <div className="py-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Coffee Beans</h1>
-        <Link to="/beans/new" className="btn btn-primary">
-          Add New Bean
+        <h1 className="text-2xl font-bold text-gray-900">Coffee Bags</h1>
+        <Link to="/bags/new" className="btn btn-primary">
+          Add New Bag
         </Link>
       </div>
       
-      {!beans || beans.length === 0 ? (
+      {!bags || bags.length === 0 ? (
         <div className="text-center py-10 bg-white rounded-lg shadow-sm">
-          <p className="text-gray-600">No beans found. Add your first coffee bean!</p>
+          <p className="text-gray-600">No bags found. Add your first coffee bag!</p>
         </div>
       ) : (
         <div className="bg-white shadow-sm overflow-hidden rounded-lg">
@@ -110,13 +110,13 @@ const BeanList = () => {
                   Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Roaster
+                  Bean
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Roast Level
+                  Roast Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Origin
+                  Weight (g)
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -124,37 +124,37 @@ const BeanList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {beans.map((bean) => (
-                <tr key={bean.id}>
+              {bags.map((bag) => (
+                <tr key={bag.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {bean.name}
+                    {bag.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {getRoasterName(bean.roaster_id)}
+                    {getBeanName(bag.bean_id)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {bean.roast_level}
+                    {bag.roast_date || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {bean.country_of_origin || 'N/A'}
+                    {bag.weight || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link to={`/beans/${bean.id}`} className="btn btn-secondary mr-2">
+                    <Link to={`/bags/${bag.id}`} className="btn btn-secondary mr-2">
                       View
                     </Link>
-                    <Link to={`/beans/${bean.id}/edit`} className="btn btn-primary mr-2">
+                    <Link to={`/bags/${bag.id}/edit`} className="btn btn-primary mr-2">
                       Edit
                     </Link>
                     <Link
                       to="#"
                       onClick={(e) => {
                         e.preventDefault();
-                        handleDelete(bean.id);
+                        handleDelete(bag.id);
                       }}
                       className="btn btn-danger"
                       aria-disabled={deleteMutation.isPending}
                     >
-                      {deleteMutation.isPending && deleteId === bean.id ? 'Deleting...' : 'Delete'}
+                      {deleteMutation.isPending && deleteId === bag.id ? 'Deleting...' : 'Delete'}
                     </Link>
                   </td>
                 </tr>
@@ -167,4 +167,4 @@ const BeanList = () => {
   )
 }
 
-export default BeanList
+export default BagList

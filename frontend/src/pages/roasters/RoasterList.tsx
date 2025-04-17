@@ -108,13 +108,17 @@ const RoasterList = () => {
                     <Link to={`/roasters/${roaster.id}/edit`} className="btn btn-primary mr-2">
                       Edit
                     </Link>
-                    <button
-                      onClick={() => handleDelete(roaster.id)}
-                      className="btn btn-danger"
-                      disabled={deleteMutation.isPending}
-                    >
-                      {deleteMutation.isPending && deleteId === roaster.id ? 'Deleting...' : 'Delete'}
-                    </button>
+                     <Link
+                       to="#"
+                       onClick={(e) => {
+                         e.preventDefault();
+                         handleDelete(roaster.id);
+                       }}
+                       className="btn btn-danger"
+                       aria-disabled={deleteMutation.isPending}
+                     >
+                       Delete
+                     </Link>
                   </td>
                 </tr>
               ))}
