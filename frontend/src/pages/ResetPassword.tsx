@@ -8,52 +8,64 @@ export default function ResetPassword() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Extract token from URL
+  // Check if we're in a recovery flow and establish the session
   useEffect(() => {
     console.log('ResetPassword page loaded');
     console.log('Current URL:', window.location.href);
-    console.log('Hash:', window.location.hash);
-    console.log('Search params:', window.location.search);
     
-    // Try to extract from hash (SPA format)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    const type = hashParams.get('type');
+    const processRecoveryFlow = async () => {
+      try {
+        // Check if we're in a recovery flow
+        const searchParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        const searchType = searchParams.get('type');
+        const hashType = hashParams.get('type');
+        
+        // Log for debugging
+        console.log('Recovery detection - Search type:', searchType, 'Hash type:', hashType);
+        
+        if (searchType === 'recovery' || hashType === 'recovery') {
+          console.log('Recovery flow detected!');
+          setIsRecoveryFlow(true);
+          
+          // Get the current user to see if we're authenticated
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          
+          if (userError) {
+            console.error('Error getting user:', userError);
+            setError('Authentication error. Please try clicking the reset link again.');
+          } else if (!user) {
+            console.log('No authenticated user found, trying to exchange token...');
+            
+            // If redirected with a token but not authenticated yet, try to exchange the token
+            const { error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError) {
+              console.error('Error establishing session:', sessionError);
+              setError('Unable to verify your identity. Please try clicking the reset link again.');
+            }
+          } else {
+            console.log('Successfully authenticated as:', user.email);
+          }
+        } else {
+          // Not a recovery flow, redirect to request reset
+          console.log('Not a recovery flow - redirecting');
+          navigate('/request-password-reset');
+        }
+      } catch (err) {
+        console.error('Unexpected error in recovery flow:', err);
+        setError('An unexpected error occurred. Please try again.');
+      }
+    };
     
-    // Log extracted values
-    console.log('Hash params:', { 
-      accessToken: accessToken ? 'present' : 'not found',
-      refreshToken: refreshToken ? 'present' : 'not found',
-      type
-    });
-    
-    // Check if we have a recovery token in the hash
-    if (type === 'recovery') {
-      console.log('Recovery flow detected in hash params');
-    }
-    
-    // Also try to get from search params (non-SPA format)
-    const searchParams = new URLSearchParams(window.location.search);
-    const token = searchParams.get('token');
-    const searchType = searchParams.get('type');
-    
-    // Log search params
-    console.log('Search params:', { 
-      token: token ? 'present' : 'not found',
-      type: searchType
-    });
-    
-    if (searchType === 'recovery') {
-      console.log('Recovery flow detected in search params');
-    }
-    
-    // No need to do anything else - Supabase's auth state change will handle the session
-  }, [location]);
+    processRecoveryFlow();
+  }, [navigate, location]);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();

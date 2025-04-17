@@ -23,10 +23,14 @@ export default function SupabaseAuth() {
         } else {
           console.log('Auth redirect processed successfully');
           // Redirect to reset password page if this is a recovery flow
+          // Check both hash params and search params for recovery type
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const type = hashParams.get('type');
+          const searchParams = new URLSearchParams(window.location.search);
           
-          if (type === 'recovery') {
+          const hashType = hashParams.get('type');
+          const searchType = searchParams.get('type');
+          
+          if (hashType === 'recovery' || searchType === 'recovery') {
             console.log('Redirecting to reset password page');
             window.location.href = '/reset-password';
           } else {

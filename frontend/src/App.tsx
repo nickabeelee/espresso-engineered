@@ -61,17 +61,28 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/request-password-reset" element={<RequestPasswordReset />} />
-      <Route path="/auth/callback" element={<SupabaseAuth />} />
+      
+      {/* Protected routes */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Home />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/*"
         element={
           <ProtectedRoute>
             <Layout>
               <Routes>
-                <Route path="/" element={<Home />} />
                 <Route path="roasters" element={<RoasterList />} />
                 <Route path="roasters/new" element={<RoasterCreate />} />
                 <Route path="roasters/:id" element={<RoasterDetail />} />
