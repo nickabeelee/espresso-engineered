@@ -12,29 +12,47 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Extract token and email from URL
+  // Extract token from URL
   useEffect(() => {
+    console.log('ResetPassword page loaded');
+    console.log('Current URL:', window.location.href);
+    console.log('Hash:', window.location.hash);
+    console.log('Search params:', window.location.search);
+    
+    // Try to extract from hash (SPA format)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get('access_token');
     const refreshToken = hashParams.get('refresh_token');
-    const expiresIn = hashParams.get('expires_in');
-    const tokenType = hashParams.get('token_type');
+    const type = hashParams.get('type');
     
-    // If we have tokens, set the session
-    if (accessToken && refreshToken && expiresIn && tokenType) {
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_in: parseInt(expiresIn),
-        token_type: tokenType,
-      }).then(({ error }) => {
-        if (error) {
-          setError('Invalid or expired password reset link. Please request a new one.');
-        }
-      });
-    } else {
-      setError('No valid reset token found. Please request a password reset again.');
+    // Log extracted values
+    console.log('Hash params:', { 
+      accessToken: accessToken ? 'present' : 'not found',
+      refreshToken: refreshToken ? 'present' : 'not found',
+      type
+    });
+    
+    // Check if we have a recovery token in the hash
+    if (type === 'recovery') {
+      console.log('Recovery flow detected in hash params');
     }
+    
+    // Also try to get from search params (non-SPA format)
+    const searchParams = new URLSearchParams(window.location.search);
+    const token = searchParams.get('token');
+    const searchType = searchParams.get('type');
+    
+    // Log search params
+    console.log('Search params:', { 
+      token: token ? 'present' : 'not found',
+      type: searchType
+    });
+    
+    if (searchType === 'recovery') {
+      console.log('Recovery flow detected in search params');
+    }
+    
+    // No need to do anything else - Supabase's auth state change will handle the session
   }, [location]);
 
   const handleReset = async (e: React.FormEvent) => {
@@ -56,11 +74,14 @@ export default function ResetPassword() {
     }
     
     try {
+      console.log('Attempting to update password');
       const { error } = await supabase.auth.updateUser({ password });
       
       if (error) {
+        console.error('Password update error:', error);
         setError(error.message);
       } else {
+        console.log('Password updated successfully');
         setSuccess(true);
         // Redirect to login after 3 seconds
         setTimeout(() => {
@@ -68,8 +89,8 @@ export default function ResetPassword() {
         }, 3000);
       }
     } catch (err) {
+      console.error('Unexpected error during password update:', err);
       setError('An unexpected error occurred. Please try again.');
-      console.error(err);
     } finally {
       setLoading(false);
     }

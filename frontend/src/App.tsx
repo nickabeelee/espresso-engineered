@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
 import './App.css'
 import { useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
@@ -6,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import RequestPasswordReset from './pages/RequestPasswordReset'
+import SupabaseAuth from './pages/SupabaseAuth'
 import Home from './pages/Home'
 // Roaster
 import RoasterList from './pages/roasters/RoasterList'
@@ -45,6 +47,14 @@ import BrewEdit from './pages/brews/BrewEdit'
 
 export default function App() {
   const { loading } = useAuth()
+  
+  // Log the current path for debugging
+  useEffect(() => {
+    console.log('Current location:', window.location.href);
+    console.log('Hash:', window.location.hash);
+    console.log('Path:', window.location.pathname);
+  }, []);
+  
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
@@ -54,6 +64,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/request-password-reset" element={<RequestPasswordReset />} />
+      <Route path="/auth/callback" element={<SupabaseAuth />} />
       <Route
         path="/*"
         element={
