@@ -4,6 +4,8 @@ import { useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
+import RequestPasswordReset from './pages/RequestPasswordReset'
 import Home from './pages/Home'
 // Roaster
 import RoasterList from './pages/roasters/RoasterList'
@@ -50,6 +52,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/request-password-reset" element={<RequestPasswordReset />} />
       <Route
         path="/*"
         element={
