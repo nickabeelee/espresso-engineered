@@ -1,65 +1,68 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../api/supabase';
 
-type AuthContextType = {
+interface AuthContextType {
   session: Session | null;
   user: User | null;
   userId: string | null;
   signOut: () => Promise<void>;
   loading: boolean;
-};
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // derive these from session
+  const user = session?.user ?? null;
+  const userId = session?.user?.id ?? null;
+
   useEffect(() => {
-    const fetchSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // 1) fetch initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
-      setUserId(session?.user?.id ?? null);
       setLoading(false);
-    };
+    });
 
-    fetchSession();
-
+    // 2) subscribe to future changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
-        setUserId(session?.user?.id ?? null);
       }
     );
 
+    // cleanup
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
+    setSession(null);
+    setLoading(false);
   };
 
-  const value = {
-    session,
-    user,
-    userId,
-    signOut,
-    loading,
-  };
+  return (
+    <AuthContext.Provider value={{ session, user, userId, signOut, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
