@@ -1,11 +1,15 @@
+import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import FocusTrap from 'focus-trap-react'
 
-const Navbar = () => {
+interface NavbarProps {
+  isSmallScreen: boolean
+  isExpanded: boolean
+  toggleSidebar: () => void
+}
+const Navbar: React.FC<NavbarProps> = ({ isSmallScreen, isExpanded, toggleSidebar }) => {
   const location = useLocation()
-  const [isExpanded, setIsExpanded] = useState(true)
-  const [isSmallScreen, setIsSmallScreen] = useState(false)
 
   // Lock body scroll when sidebar open on small screens
   useEffect(() => {
@@ -13,25 +17,17 @@ const Navbar = () => {
     return () => { document.body.style.overflow = '' }
   }, [isExpanded, isSmallScreen])
 
-  // Check screen size on mount and when window resizes
-  useEffect(() => {
-    const checkScreenSize = () => {
-      const small = window.innerWidth < 1024
-      setIsSmallScreen(small)
-      if (small) setIsExpanded(false)
-    }
 
-    checkScreenSize()
-    window.addEventListener('resize', checkScreenSize)
-    return () => window.removeEventListener('resize', checkScreenSize)
-  }, [])
-
-  const isActive = (path: string) =>
-    location.pathname.startsWith(path)
+  const isActive = (path: string) => {
+    // Special case for root path: active only on exact match
+    const active = path === '/'
+      ? location.pathname === '/'
+      : location.pathname.startsWith(path)
+    return active
       ? 'bg-brown-100 text-brown-800 font-medium'
       : 'text-gray-600 hover:bg-gray-100'
+  }
 
-  const toggleSidebar = () => setIsExpanded(prev => !prev)
 
   const navItems = [
     { path: '/', label: 'Home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -46,27 +42,11 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Always-visible toggle on small screens */}
-      {isSmallScreen && (
-        <button
-          onClick={toggleSidebar}
-          className="fixed top-[var(--header-h)] left-2 z-30 p-2 bg-white rounded-md shadow"
-          aria-label={isExpanded ? 'Close menu' : 'Open menu'}
-        >
-          <svg className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            {isExpanded ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            )}
-          </svg>
-        </button>
-      )}
 
       {/* Overlay */}
       {isExpanded && isSmallScreen && (
         <div
-          className="fixed inset-0 top-[var(--header-h)] bg-black bg-opacity-30 z-10"
+          className="sticky inset-0 top-[var(--header-h)] bg-black bg-opacity-30 z-10"
           onClick={toggleSidebar}
         />
       )}
@@ -75,12 +55,11 @@ const Navbar = () => {
       {isSmallScreen ? (
         <FocusTrap active={isExpanded} focusTrapOptions={{ clickOutsideDeactivates: true }}>
           <nav
-            className={`
-              fixed top-[var(--header-h)] left-0 h-full bg-white shadow-md z-20
-              transform transition-transform duration-300
-              ${isExpanded ? 'translate-x-0' : '-translate-x-full'}
-              w-64
-            `}
+            className={
+              `sticky top-[var(--header-h)] left-0 h-full bg-white shadow-md z-20
+               transition-all duration-300 flex-shrink-0 overflow-hidden
+               ${isExpanded ? 'w-64' : 'w-0'}`
+            }
           >
             <div className="flex items-center justify-end h-12 px-4 border-b">
               {/* Inner close button (optional duplicate) */}

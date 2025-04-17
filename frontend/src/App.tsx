@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 // Pages
@@ -45,14 +46,37 @@ import Header from './components/Header'
 import Breadcrumbs from './components/Breadcrumbs'
 
 function App() {
+  const [isSmallScreen, setIsSmallScreen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(true)
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const small = window.innerWidth < 1024
+      setIsSmallScreen(small)
+      setIsMenuOpen(!small)
+    }
+
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Fixed header */}
-      <Header />
+      <Header
+        isSmallScreen={isSmallScreen}
+        isMenuOpen={isMenuOpen}
+        toggleMenu={() => setIsMenuOpen(prev => !prev)}
+      />
 
       {/* Content area with sidebar and main content */}
       <div className="flex flex-1">
-        <Navbar />
+        <Navbar
+          isSmallScreen={isSmallScreen}
+          isExpanded={isMenuOpen}
+          toggleSidebar={() => setIsMenuOpen(prev => !prev)}
+        />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Breadcrumbs />
           <main className="flex-1 overflow-y-auto p-6 lg:p-8">

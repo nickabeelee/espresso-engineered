@@ -1,1 +1,5 @@
+/* Define header height variable for positioning overlays and sidebars */
+:root {
+  --header-h: 3rem;
+}
 /* Custom CSS can go here if needed beyond Tailwind utility classes */
