@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { supabase } from './supabase'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -12,9 +13,17 @@ const api = axios.create({
   timeout: 10000, // 10 second timeout
 })
 
-// Add request interceptor for debugging
+// Add request interceptor for auth token and debugging
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Add auth token to request header if user is logged in
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
+    
+    if (session) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
+    }
+    
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
     return config
   },
