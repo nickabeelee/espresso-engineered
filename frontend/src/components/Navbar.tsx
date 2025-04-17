@@ -43,29 +43,31 @@ const Navbar = () => {
   ]
   
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
+    <>
+      {/* Mobile overlay when sidebar is open on small screens */}
+      {isExpanded && isSmallScreen && (
+        <div 
+          className="fixed inset-0 top-12 bg-black bg-opacity-30 z-10"
+          onClick={toggleSidebar}
+        ></div>
+      )}
+    
       <nav className={`
-        fixed lg:static 
+        ${isSmallScreen ? 'fixed left-0 top-12' : 'relative'} 
         h-full
-        bg-white shadow-lg 
+        bg-white shadow-md
         transition-all duration-300 ease-in-out
-        z-10
         ${isExpanded ? 'w-64' : 'w-16'}
+        z-20
       `}>
-        {/* Top header with toggle button */}
-        <div className="flex items-center justify-between h-16 px-4 border-b">
-          {isExpanded && (
-            <Link to="/" className="text-xl font-bold text-brown-800 truncate">
-              Espresso Engineered
-            </Link>
-          )}
+        {/* Toggle button */}
+        <div className="flex items-center justify-end h-12 px-4 border-b">
           <button 
             onClick={toggleSidebar}
             className="p-1 rounded-md text-gray-500 hover:text-brown-800 hover:bg-gray-100"
             aria-label={isExpanded ? "Collapse menu" : "Expand menu"}
           >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {isExpanded ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
               ) : (
@@ -74,7 +76,7 @@ const Navbar = () => {
             </svg>
           </button>
         </div>
-        
+          
         {/* Navigation Links */}
         <div className="py-4 overflow-y-auto">
           <ul className="space-y-1">
@@ -104,15 +106,7 @@ const Navbar = () => {
           </ul>
         </div>
       </nav>
-      
-      {/* Mobile overlay when sidebar is open on small screens */}
-      {isExpanded && isSmallScreen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-30 z-0"
-          onClick={toggleSidebar}
-        ></div>
-      )}
-    </div>
+    </>
   )
 }
 

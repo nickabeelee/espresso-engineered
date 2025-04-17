@@ -41,15 +41,24 @@ import BrewEdit from './pages/brews/BrewEdit'
 
 // Components
 import Navbar from './components/Navbar'
+import Header from './components/Header'
+import Breadcrumbs from './components/Breadcrumbs'
 
 function App() {
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Navbar />
-      <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-          <Routes>
-            <Route path="/" element={<Home />} />
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Fixed header */}
+      <Header />
+
+      {/* Content area with sidebar and main content */}
+      <div className="flex flex-1 mt-12"> {/* Add margin top to account for fixed header */}
+        <Navbar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Breadcrumbs />
+          <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto">
+            <Routes>
+              <Route path="/" element={<Home />} />
             
             {/* Roaster Routes */}
             <Route path="/roasters" element={<RoasterList />} />
@@ -94,7 +103,9 @@ function App() {
             <Route path="/brews/:id/edit" element={<BrewEdit />} />
           </Routes>
         </div>
-      </main>
+          </main>
+        </div>
+      </div>
     </div>
   )
 }
