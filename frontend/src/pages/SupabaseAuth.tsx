@@ -8,27 +8,31 @@ export default function SupabaseAuth() {
   useEffect(() => {
     const processAuth = async () => {
       try {
-        // Handle the auth redirect
+        // Check URL for auth action type first
+        const url = new URL(window.location.href);
+        const fragment = new URLSearchParams(url.hash.substring(1));
+        const actionType = fragment.get('type');
+        
+        if (actionType === 'recovery') {
+          // This is a password recovery flow, redirect directly to reset password
+          window.location.href = '/reset-password' + url.hash;
+          return;
+        }
+        
+        // For other auth flows, check the session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Auth error:', error);
           setError(error.message);
+        } else if (data.session) {
+          // Successfully signed in, go to home
+          window.location.href = '/';
         } else {
-          // Check if this is a password recovery flow
-          const url = new URL(window.location.href);
-          const fragment = new URLSearchParams(url.hash.substring(1));
-          
-          if (fragment.get('type') === 'recovery') {
-            // Redirect to reset password page
-            window.location.href = '/reset-password';
-          } else {
-            // Normal sign-in, redirect to home
-            window.location.href = '/';
-          }
+          // No session but no error either - unusual case
+          // Could be a sign-up confirmation without auto-login
+          setError('Authentication completed, but no session was created. Please sign in again.');
         }
       } catch (err) {
-        console.error('Unexpected auth error:', err);
         setError('An unexpected error occurred');
       } finally {
         setLoading(false);
