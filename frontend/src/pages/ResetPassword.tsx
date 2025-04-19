@@ -8,64 +8,29 @@ export default function ResetPassword() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check if we're in a recovery flow and establish the session
+  // Check authentication state when component loads
   useEffect(() => {
-    console.log('ResetPassword page loaded');
-    console.log('Current URL:', window.location.href);
-    
-    const processRecoveryFlow = async () => {
+    const checkAuthState = async () => {
       try {
-        // Check if we're in a recovery flow
-        const searchParams = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        // Get the current user to see if we're authenticated
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
         
-        const searchType = searchParams.get('type');
-        const hashType = hashParams.get('type');
-        
-        // Log for debugging
-        console.log('Recovery detection - Search type:', searchType, 'Hash type:', hashType);
-        
-        if (searchType === 'recovery' || hashType === 'recovery') {
-          console.log('Recovery flow detected!');
-          setIsRecoveryFlow(true);
-          
-          // Get the current user to see if we're authenticated
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
-          
-          if (userError) {
-            console.error('Error getting user:', userError);
-            setError('Authentication error. Please try clicking the reset link again.');
-          } else if (!user) {
-            console.log('No authenticated user found, trying to exchange token...');
-            
-            // If redirected with a token but not authenticated yet, try to exchange the token
-            const { error: sessionError } = await supabase.auth.getSession();
-            
-            if (sessionError) {
-              console.error('Error establishing session:', sessionError);
-              setError('Unable to verify your identity. Please try clicking the reset link again.');
-            }
-          } else {
-            console.log('Successfully authenticated as:', user.email);
-          }
-        } else {
-          // Not a recovery flow, redirect to request reset
-          console.log('Not a recovery flow - redirecting');
+        if (userError || !user) {
+          // If there's no authenticated user, redirect to request reset
           navigate('/request-password-reset');
         }
       } catch (err) {
-        console.error('Unexpected error in recovery flow:', err);
-        setError('An unexpected error occurred. Please try again.');
+        console.error('Error checking auth state:', err);
+        setError('Authentication error. Please try the reset link again.');
       }
     };
     
-    processRecoveryFlow();
-  }, [navigate, location]);
+    checkAuthState();
+  }, [navigate]);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();

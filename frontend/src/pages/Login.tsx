@@ -21,7 +21,7 @@ export default function Login() {
       <Auth
         supabaseClient={supabase}
         appearance={{ theme: ThemeSupa }}
-        redirectTo={`${window.location.origin}/`}
+        redirectTo={`${window.location.origin}/auth`}
       />
     </div>
   );
