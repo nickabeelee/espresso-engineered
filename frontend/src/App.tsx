@@ -65,6 +65,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/request-password-reset" element={<RequestPasswordReset />} />
+      <Route path="/auth" element={<SupabaseAuth />} />
       
       {/* Protected routes */}
       <Route

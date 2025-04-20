@@ -12,6 +12,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   userId: string | null;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   loading: boolean;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
@@ -54,11 +55,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(false);
   };
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      return { error };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
   const resetPassword = async (email: string) => {
     try {
-      // Direct redirectTo to reset-password to simplify flow
+      // Using PKCE flow for password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/auth#type=recovery`,
       });
       return { error };
     } catch (error) {
@@ -67,7 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, userId, signOut, loading, resetPassword }}>
+    <AuthContext.Provider value={{ session, user, userId, signIn, signOut, loading, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
