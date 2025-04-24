@@ -4,9 +4,6 @@ import './App.css'
 import { useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import Login from './pages/Login'
-import ResetPassword from './pages/ResetPassword'
-import RequestPasswordReset from './pages/RequestPasswordReset'
 import SupabaseAuth from './pages/SupabaseAuth'
 import Home from './pages/Home'
 // Roaster
@@ -61,10 +58,9 @@ export default function App() {
 
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/request-password-reset" element={<RequestPasswordReset />} />
+      {/* Public login page */}
+      <Route path="/login" element={<SupabaseAuth />} />
+      {/* Supabase’s confirm, recovery, etc. */}
       <Route path="/auth/*" element={<SupabaseAuth />} />
 
       {/* Protected routes */}
