@@ -7,6 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Your existing brown scale
         brown: {
           50: '#FAF6F2',
           100: '#F3EAE2',
@@ -19,6 +20,16 @@ export default {
           800: '#7C5735',
           900: '#5F4327',
         },
+
+        // Semantic mappings:
+        primary: '#B68150', // brown.600
+        'primary-dark': '#996C42', // brown.700
+
+        secondary: '#DAC0A8', // brown.300
+        'secondary-dark': '#CEAB8B',// brown.400
+
+        danger: '#DC2626', // red.600 (error)
+        'danger-dark': '#B91C1C', // red.700
       },
     },
   },
