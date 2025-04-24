@@ -23,21 +23,36 @@ export const getMachine = async (id: number): Promise<Machine> => {
 
 export const createMachine = async (machine: MachineCreate): Promise<Machine> => {
   try {
-    const response = await api.post('/machines/', machine)
-    return response.data
+    // Convert blank strings to null for specific fields
+    const sanitizedMachine = {
+      ...machine,
+      image: machine.image === '' ? null : machine.image,
+      user_manual_link: machine.user_manual_link === '' ? null : machine.user_manual_link,
+    };
+
+    console.log('Payload being sent:', sanitizedMachine);
+    const response = await api.post('/machines/', sanitizedMachine);
+    return response.data;
   } catch (error) {
-    console.error('Error creating machine:', error)
-    throw error
+    console.error('Error creating machine:', error);
+    throw error;
   }
 }
 
 export const updateMachine = async (id: number, machine: MachineCreate): Promise<Machine> => {
   try {
-    const response = await api.put(`/machines/${id}/`, machine)
-    return response.data
+    // Convert blank strings to null for specific fields
+    const sanitizedMachine = {
+      ...machine,
+      image: machine.image === '' ? null : machine.image,
+      user_manual_link: machine.user_manual_link === '' ? null : machine.user_manual_link,
+    };
+
+    const response = await api.put(`/machines/${id}/`, sanitizedMachine);
+    return response.data;
   } catch (error) {
-    console.error(`Error updating machine ${id}:`, error)
-    throw error
+    console.error(`Error updating machine ${id}:`, error);
+    throw error;
   }
 }
 
