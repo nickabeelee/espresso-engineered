@@ -47,14 +47,14 @@ import BrewEdit from './pages/brews/BrewEdit'
 
 export default function App() {
   const { loading } = useAuth()
-  
+
   // Log the current path for debugging
   useEffect(() => {
     console.log('Current location:', window.location.href);
     console.log('Hash:', window.location.hash);
     console.log('Path:', window.location.pathname);
   }, []);
-  
+
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
@@ -65,8 +65,8 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/request-password-reset" element={<RequestPasswordReset />} />
-      <Route path="/auth" element={<SupabaseAuth />} />
-      
+      <Route path="/auth/*" element={<SupabaseAuth />} />
+
       {/* Protected routes */}
       <Route
         path="/"

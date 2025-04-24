@@ -1,3 +1,4 @@
+// src/pages/SupabaseAuth.tsx
 import { useEffect, useState } from 'react';
 import { supabase } from '../api/supabase';
 
@@ -8,32 +9,34 @@ export default function SupabaseAuth() {
   useEffect(() => {
     const processAuth = async () => {
       try {
-        // Check URL for auth action type first
+        // 1. Pull params from both query and hash (some flows use one or the other)
         const url = new URL(window.location.href);
-        const fragment = new URLSearchParams(url.hash.substring(1));
-        const actionType = fragment.get('type');
+        const query = new URLSearchParams(url.search);
+        const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+        // merge them, with query taking precedence
+        const params = new URLSearchParams([...hashParams, ...query]);
         
-        if (actionType === 'recovery') {
-          // This is a password recovery flow, redirect directly to reset password
-          window.location.href = '/reset-password' + url.hash;
+        const actionType = params.get('type');
+        const token = params.get('token_hash');
+
+        if (actionType === 'recovery' && token) {
+          // 2. Redirect to your ResetPassword page, preserving the token in query
+          window.location.replace(`/reset-password?token_hash=${encodeURIComponent(token)}`);
           return;
         }
-        
-        // For other auth flows, check the session
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          setError(error.message);
-        } else if (data.session) {
-          // Successfully signed in, go to home
-          window.location.href = '/';
-        } else {
-          // No session but no error either - unusual case
-          // Could be a sign-up confirmation without auto-login
-          setError('Authentication completed, but no session was created. Please sign in again.');
+
+        // 3. Otherwise, see if the user is now signed in
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Signed in → go home
+          window.location.replace('/');
+          return;
         }
-      } catch (err) {
-        setError('An unexpected error occurred');
+
+        // No session & not a recovery flow → show an error or fallback
+        setError('Authentication completed, but no active session was found. Please sign in again.');
+      } catch (err: any) {
+        setError(err.message || 'An unexpected error occurred during authentication.');
       } finally {
         setLoading(false);
       }
@@ -47,7 +50,7 @@ export default function SupabaseAuth() {
       <div className="flex justify-center items-center h-screen">
         <div className="text-center">
           <p className="mb-4">Processing authentication...</p>
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
       </div>
     );
@@ -73,7 +76,7 @@ export default function SupabaseAuth() {
     <div className="flex justify-center items-center h-screen">
       <div className="text-center">
         <p className="mb-4">Redirecting...</p>
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
       </div>
     </div>
   );

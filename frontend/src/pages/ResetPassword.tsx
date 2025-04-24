@@ -1,169 +1,132 @@
+// src/pages/ResetPassword.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../api/supabase';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isValidResetLink, setIsValidResetLink] = useState(false);
-  
+  const [error, setError] = useState<string | null>(null);
+  const [valid, setValid] = useState(false);
   const navigate = useNavigate();
-  
-  // Check authentication state when component loads
-  useEffect(() => {
-    const processResetRequest = async () => {
-      try {
-        // Get the current session and check if we're in recovery mode
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        if (sessionError) {
-          setError('Authentication error. Please try again using the reset link from your email.');
-          setIsValidResetLink(false);
+  useEffect(() => {
+    const processResetLink = async () => {
+      try {
+        // 1) Grab the token from the query string
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token_hash');
+        if (!token) {
+          setError('Missing reset token.');
+          setLoading(false);
+          setTimeout(() => navigate('/request-password-reset'), 2000);
           return;
         }
 
-        if (session) {
-          // We have a valid session
-          setIsValidResetLink(true);
-        } else {
-          // Check if there's a recovery flow in progress via URL parameters
-          const url = new URL(window.location.href);
-          const params = new URLSearchParams(url.hash.substring(1));
-          
-          if (params.get('type') === 'recovery') {
-            // Valid recovery flow detected
-            setIsValidResetLink(true);
-          } else {
-            // Not a valid reset flow
-            setError('Invalid or expired password reset link. Please request a new one.');
-            setIsValidResetLink(false);
-            setTimeout(() => {
-              navigate('/request-password-reset');
-            }, 2000);
-          }
+        // 2) Verify the recovery token with Supabase
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          type: 'recovery',
+          token_hash: token,
+        });
+
+        if (verifyError || !data.session) {
+          setError('Invalid or expired password reset link. Please request a new one.');
+          setLoading(false);
+          setTimeout(() => navigate('/request-password-reset'), 2000);
+          return;
         }
-      } catch (err) {
-        setError('Authentication error. Please try again using the reset link from your email.');
-        setIsValidResetLink(false);
+
+        // 3) Token is valid → show the reset form
+        setValid(true);
+      } catch (err: any) {
+        setError(err.message || 'An unexpected error occurred.');
+        setTimeout(() => navigate('/request-password-reset'), 2000);
       } finally {
         setLoading(false);
       }
     };
-    
-    processResetRequest();
+
+    processResetLink();
   }, [navigate]);
 
-  const handleReset = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
-    
-    // Validate passwords
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    setError(null);
+
+    // 4) Update the user’s password
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+
+    if (updateError) {
+      setError(updateError.message);
       setLoading(false);
       return;
     }
-    
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-    
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      
-      if (error) {
-        setError(error.message);
-      } else {
-        setSuccess(true);
-        setTimeout(() => {
-          navigate('/login');
-        }, 3000);
-      }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+
+    // 5) Success → redirect to login
+    navigate('/login', { replace: true });
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="text-center">
-          <p className="mb-4">Processing reset request...</p>
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mb-4 text-lg">Verifying reset link…</p>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
-      <h1 className="text-2xl font-bold mb-6 text-center">Reset Your Password</h1>
-      
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-      
-      {success ? (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-          Password updated successfully! Redirecting to login...
-        </div>
-      ) : (
-        isValidResetLink && (
-          <form onSubmit={handleReset}>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-                New Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            >
-              {loading ? 'Processing...' : 'Reset Password'}
-            </button>
-          </form>
-        )
-      )}
-      
-      <div className="mt-4 text-center">
-        <a href="/login" className="text-blue-500 hover:text-blue-700">
-          Back to Login
-        </a>
+  // Error state
+  if (error) {
+    return (
+      <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md text-center">
+        <h1 className="text-2xl font-bold mb-4">Reset Error</h1>
+        <p className="mb-4 text-red-600">{error}</p>
+        <button
+          onClick={() => navigate('/request-password-reset')}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Request New Link
+        </button>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Valid token → show form
+  if (valid) {
+    return (
+      <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold mb-6 text-center">Set New Password</h1>
+        <form onSubmit={handleSubmit}>
+          <label className="block mb-4">
+            <span className="block text-sm font-medium text-gray-700">New Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              minLength={6}
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={!password || loading}
+            className={`w-full py-2 text-white rounded ${password
+                ? 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-gray-400 cursor-not-allowed'
+              }`}
+          >
+            {loading ? 'Updating…' : 'Reset Password'}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // Fallback (shouldn't hit)
+  return null;
 }
