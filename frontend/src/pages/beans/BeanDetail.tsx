@@ -9,19 +9,19 @@ const BeanDetail = () => {
   const beanId = parseInt(id || '0', 10)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  
+
   const { data: bean, isLoading: beanLoading, error: beanError } = useQuery({
     queryKey: ['bean', beanId],
     queryFn: () => getBean(beanId),
     enabled: !!beanId
   })
-  
+
   const { data: roaster, isLoading: roasterLoading } = useQuery({
     queryKey: ['roaster', bean?.roaster_id],
     queryFn: () => getRoaster(bean?.roaster_id || 0),
     enabled: !!bean?.roaster_id
   })
-  
+
   const deleteMutation = useMutation({
     mutationFn: deleteBean,
     onSuccess: () => {
@@ -29,31 +29,31 @@ const BeanDetail = () => {
       navigate('/beans')
     }
   })
-  
+
   const handleDelete = () => {
     if (confirm('Are you sure you want to delete this bean?')) {
       deleteMutation.mutate(beanId)
     }
   }
-  
+
   const renderStars = (rating?: number) => {
     if (!rating) return 'Not rated'
-    
+
     return Array(5).fill(0).map((_, index) => (
       <span key={index} className={`text-xl ${index < rating ? 'text-yellow-500' : 'text-gray-300'}`}>
         ★
       </span>
     ))
   }
-  
+
   if (beanLoading) return <div className="text-center py-10">Loading...</div>
-  
+
   if (beanError || !bean) return (
     <div className="text-center py-10 text-red-600">
       Error loading bean details
     </div>
   )
-  
+
   return (
     <div className="py-6">
       <div className="flex justify-between items-center mb-6">
@@ -65,16 +65,19 @@ const BeanDetail = () => {
           <Link to={`/beans/${beanId}/edit`} className="btn btn-primary">
             Edit
           </Link>
-          <button
-            onClick={handleDelete}
+          <Link
+            to="#"
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
             className="btn btn-danger"
-            disabled={deleteMutation.isPending}
           >
             {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-          </button>
+          </Link>
         </div>
       </div>
-      
+
       <div className="bg-white shadow-sm overflow-hidden rounded-lg">
         <div className="px-4 py-5 sm:px-6">
           <h3 className="text-lg leading-6 font-medium text-gray-900">

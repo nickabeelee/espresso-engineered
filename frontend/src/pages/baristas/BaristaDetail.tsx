@@ -7,13 +7,13 @@ const BaristaDetail = () => {
   const baristaId = parseInt(id || '0', 10)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  
+
   const { data: barista, isLoading, error } = useQuery({
     queryKey: ['barista', baristaId],
     queryFn: () => getBarista(baristaId),
     enabled: !!baristaId
   })
-  
+
   const deleteMutation = useMutation({
     mutationFn: deleteBarista,
     onSuccess: () => {
@@ -21,21 +21,21 @@ const BaristaDetail = () => {
       navigate('/baristas')
     }
   })
-  
+
   const handleDelete = () => {
     if (confirm('Are you sure you want to delete this barista?')) {
       deleteMutation.mutate(baristaId)
     }
   }
-  
+
   if (isLoading) return <div className="text-center py-10">Loading...</div>
-  
+
   if (error || !barista) return (
     <div className="text-center py-10 text-red-600">
       Error loading barista details
     </div>
   )
-  
+
   return (
     <div className="py-6">
       <div className="flex justify-between items-center mb-6">
@@ -47,16 +47,19 @@ const BaristaDetail = () => {
           <Link to={`/baristas/${baristaId}/edit`} className="btn btn-primary">
             Edit
           </Link>
-          <button
-            onClick={handleDelete}
+          <Link
+            to="#"
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
             className="btn btn-danger"
-            disabled={deleteMutation.isPending}
           >
             {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-          </button>
+          </Link>
         </div>
       </div>
-      
+
       <div className="bg-white shadow-sm overflow-hidden rounded-lg">
         <div className="px-4 py-5 sm:px-6">
           <h3 className="text-lg leading-6 font-medium text-gray-900">

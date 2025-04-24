@@ -8,19 +8,19 @@ const RoasterDetail = () => {
   const roasterId = parseInt(id || '0', 10)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  
+
   const { data: roaster, isLoading: roasterLoading, error: roasterError } = useQuery({
     queryKey: ['roaster', roasterId],
     queryFn: () => getRoaster(roasterId),
     enabled: !!roasterId
   })
-  
+
   const { data: beans, isLoading: beansLoading } = useQuery({
     queryKey: ['beans'],
     queryFn: getBeans,
     select: (allBeans) => allBeans.filter(bean => bean.roaster_id === roasterId)
   })
-  
+
   const deleteMutation = useMutation({
     mutationFn: deleteRoaster,
     onSuccess: () => {
@@ -28,21 +28,21 @@ const RoasterDetail = () => {
       navigate('/roasters')
     }
   })
-  
+
   const handleDelete = () => {
     if (confirm('Are you sure you want to delete this roaster?')) {
       deleteMutation.mutate(roasterId)
     }
   }
-  
+
   if (roasterLoading) return <div className="text-center py-10">Loading...</div>
-  
+
   if (roasterError || !roaster) return (
     <div className="text-center py-10 text-red-600">
       Error loading roaster details
     </div>
   )
-  
+
   return (
     <div className="py-6">
       <div className="flex justify-between items-center mb-6">
@@ -54,16 +54,19 @@ const RoasterDetail = () => {
           <Link to={`/roasters/${roasterId}/edit`} className="btn btn-primary">
             Edit
           </Link>
-          <button
-            onClick={handleDelete}
+          <Link
+            to="#"
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
             className="btn btn-danger"
-            disabled={deleteMutation.isPending}
           >
             {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-          </button>
+          </Link>
         </div>
       </div>
-      
+
       <div className="bg-white shadow-sm overflow-hidden rounded-lg">
         <div className="px-4 py-5 sm:px-6">
           <h3 className="text-lg leading-6 font-medium text-gray-900">
@@ -91,8 +94,8 @@ const RoasterDetail = () => {
                           <span className="ml-2 flex-1 w-0 truncate">{bean.name}</span>
                         </div>
                         <div className="ml-4 shrink-0">
-                          <Link 
-                            to={`/beans/${bean.id}`} 
+                          <Link
+                            to={`/beans/${bean.id}`}
                             className="font-medium text-blue-600 hover:text-blue-500"
                           >
                             View
