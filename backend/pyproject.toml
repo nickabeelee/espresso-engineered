@@ -6,7 +6,7 @@ authors = [
     {name = "nickabee",email = "nickabeelee@icloud.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13,<4.0"
+requires-python = ">=3.12,<4.0"
 dependencies = [
     "supabase (>=2.15.0,<3.0.0)",
     "dotenv (>=0.9.9,<0.10.0)",
