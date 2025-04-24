@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // Using PKCE flow for password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth#type=recovery`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       return { error };
     } catch (error) {
