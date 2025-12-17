@@ -139,7 +139,6 @@ No private feeds or notifications in v1.
 * Supabase-based auth  
 * Supported login methods:  
     * Username + password  
-    * Apple Sign-In  
   
 ## 9. Administration  
   
