@@ -180,19 +180,3 @@ Explicitly avoids:
 ⸻  
   
 END OF ARCHITECTURE SPEC  
-  
-⸻  
-  
-**Final confirmation**  
-  
-Your instinct here is **correct and well-calibrated**:  
-	•	Netlify maximizes Kiro’s usefulness on the frontend  
-	•	Fly.io preserves Fastify’s strengths  
-	•	Supabase remains the authoritative backend  
-	•	You avoid both serverless pain *and* over-engineering  
-  
-If you want next, I can:  
-	•	reduce this to a **Kiro “system prompt”**  
-	•	generate a **repo layout** matching this spec  
-	•	define **API boundaries** between SvelteKit and Fastify  
-## 	•	or help you plan Phase 1 vs Phase 2 implementation  
