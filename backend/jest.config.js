@@ -20,7 +20,8 @@ export default {
   ],
   moduleNameMapper: {
     '^@shared/(.*)$': '<rootDir>/../shared/$1',
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1'
   },
   setupFilesAfterEnv: ['<rootDir>/src/test/setup.ts'],
   testTimeout: 10000

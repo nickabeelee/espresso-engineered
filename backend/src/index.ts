@@ -71,12 +71,14 @@ const start = async () => {
     const { grinderRoutes } = await import('./routes/grinders.js');
     const { machineRoutes } = await import('./routes/machines.js');
     const { bagRoutes } = await import('./routes/bags.js');
+    const { brewRoutes } = await import('./routes/brews.js');
 
     await fastify.register(roasterRoutes);
     await fastify.register(beanRoutes);
     await fastify.register(grinderRoutes);
     await fastify.register(machineRoutes);
     await fastify.register(bagRoutes);
+    await fastify.register(brewRoutes);
 
     const port = parseInt(process.env.PORT || '8080');
     const host = process.env.HOST || '0.0.0.0';

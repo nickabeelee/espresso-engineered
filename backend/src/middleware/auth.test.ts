@@ -1,9 +1,9 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { authenticateRequest, optionalAuthentication, AuthenticatedRequest } from './auth.js';
+import { authenticateRequest, optionalAuthentication, AuthenticatedRequest } from './auth';
 
 // Mock Supabase
-jest.mock('../config/supabase.js', () => ({
+jest.mock('../config/supabase', () => ({
   supabase: {
     auth: {
       getUser: jest.fn()
@@ -63,7 +63,7 @@ describe('Authentication Middleware', () => {
     });
 
     it('should handle valid token with existing barista', async () => {
-      const { supabase } = await import('../config/supabase.js');
+      const { supabase } = await import('../config/supabase');
       
       mockRequest.headers = { authorization: 'Bearer valid-token' };
 
@@ -74,21 +74,28 @@ describe('Authentication Middleware', () => {
       });
 
       // Mock successful barista lookup
-      const mockSelect = jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn().mockResolvedValue({
-            data: {
-              id: 'user-123',
-              first_name: 'Test',
-              last_name: 'User',
-              display_name: 'testuser'
-            },
-            error: null
-          })
-        }))
-      }));
+      const mockSingle = jest.fn() as jest.MockedFunction<any>;
+      mockSingle.mockResolvedValue({
+        data: {
+          id: 'user-123',
+          first_name: 'Test',
+          last_name: 'User',
+          display_name: 'testuser'
+        },
+        error: null
+      });
 
-      (supabase.from as any).mockReturnValue({
+      const mockEq = jest.fn();
+      mockEq.mockReturnValue({
+        single: mockSingle
+      });
+
+      const mockSelect = jest.fn();
+      mockSelect.mockReturnValue({
+        eq: mockEq
+      });
+
+      (supabase.from as jest.Mock).mockReturnValue({
         select: mockSelect
       });
 
@@ -119,7 +126,7 @@ describe('Authentication Middleware', () => {
     });
 
     it('should continue without error when invalid token provided', async () => {
-      const { supabase } = await import('../config/supabase.js');
+      const { supabase } = await import('../config/supabase');
       
       mockRequest.headers = { authorization: 'Bearer invalid-token' };
 

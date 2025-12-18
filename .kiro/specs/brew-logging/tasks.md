@@ -43,7 +43,7 @@
   - **Property 9: Referential Integrity Maintenance**
   - **Validates: Requirements 6.3, 6.5, 9.4**
 
-- [ ] 4. Implement brew management APIs
+- [x] 4. Implement brew management APIs
   - Create brew CRUD endpoints (POST /api/brews, GET /api/brews, GET /api/brews/:id, PUT /api/brews/:id, DELETE /api/brews/:id)
   - Implement calculated field logic (flow_rate_mg/s and ratio_dec)
   - Create pre-fill endpoint (GET /api/brews/prefill) to get data from most recent brew
@@ -68,10 +68,10 @@
   - **Property 5: Calculated Field Accuracy**
   - **Validates: Requirements 2.4**
 
-- [ ] 5. Checkpoint - Ensure all backend tests pass
+- [x] 5. Checkpoint - Ensure all backend tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Set up frontend project structure
+- [-] 6. Set up frontend project structure
   - Initialize SvelteKit project with TypeScript configuration
   - Set up Supabase client for frontend authentication and data access
   - Create shared TypeScript interfaces matching backend models

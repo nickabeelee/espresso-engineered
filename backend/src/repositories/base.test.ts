@@ -1,15 +1,16 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { BaseRepository } from './base.js';
-import { NotFoundError, ValidationError } from '../middleware/error.js';
 
-// Mock Supabase
+// Mock Supabase - must be defined before the mock
 const mockSupabase = {
   from: jest.fn()
 };
 
-jest.mock('../config/supabase.js', () => ({
+jest.mock('../config/supabase', () => ({
   supabase: mockSupabase
 }));
+
+import { BaseRepository } from './base';
+import { NotFoundError, ValidationError } from '../middleware/error';
 
 // Test implementation of BaseRepository
 class TestRepository extends BaseRepository<{ id: string; name: string; owner_id?: string }> {
@@ -36,7 +37,7 @@ describe('BaseRepository', () => {
       single: jest.fn(),
       insert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
-      delete: jest.fn()
+      delete: jest.fn().mockReturnThis()
     };
 
     mockSupabase.from.mockReturnValue(mockQuery);
@@ -111,8 +112,10 @@ describe('BaseRepository', () => {
         { id: '2', name: 'Item 2', owner_id: 'barista-123' }
       ];
       
-      mockQuery.single = undefined; // findMany doesn't use single()
-      (mockQuery as any).mockResolvedValue({ data: mockData, error: null });
+      // For findMany, the query chain ends with the query object itself being awaited
+      Object.assign(mockQuery, {
+        then: jest.fn((resolve: any) => resolve({ data: mockData, error: null }))
+      });
 
       const result = await repository.findMany({ name: 'Item' }, 'barista-123');
 
@@ -141,7 +144,10 @@ describe('BaseRepository', () => {
 
   describe('delete', () => {
     it('should delete record with barista constraint', async () => {
-      mockQuery.mockResolvedValue({ error: null });
+      // For delete, the query chain ends with the query object itself being awaited
+      Object.assign(mockQuery, {
+        then: jest.fn((resolve: any) => resolve({ error: null }))
+      });
 
       await repository.delete('test-id', 'barista-123');
 
@@ -151,8 +157,10 @@ describe('BaseRepository', () => {
     });
 
     it('should throw ValidationError for foreign key constraint violation', async () => {
-      mockQuery.mockResolvedValue({ 
-        error: { code: '23503', message: 'Foreign key constraint' } 
+      Object.assign(mockQuery, {
+        then: jest.fn((resolve: any) => resolve({ 
+          error: { code: '23503', message: 'Foreign key constraint' } 
+        }))
       });
 
       await expect(repository.delete('test-id', 'barista-123'))
