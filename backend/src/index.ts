@@ -1,40 +1,76 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import jwt from '@fastify/jwt';
+import { errorHandler } from './middleware/error.js';
+import { authenticateRequest, optionalAuthentication } from './middleware/auth.js';
+import { initializeDatabase } from './config/database.js';
 
 const fastify = Fastify({
-  logger: true
+  logger: {
+    level: process.env.LOG_LEVEL || 'info'
+  }
 });
 
 // Start server
 const start = async () => {
   try {
+    // Initialize database connection
+    await initializeDatabase();
+
     // Register CORS
     await fastify.register(cors, {
       origin: process.env.FRONTEND_URL || 'http://localhost:5173',
       credentials: true
     });
 
-    // Register JWT
-    await fastify.register(jwt, {
-      secret: process.env.JWT_SECRET || 'your-secret-key'
+    // Register global error handler
+    fastify.setErrorHandler(errorHandler);
+
+    // Health check endpoint (no auth required)
+    fastify.get('/health', async (request, reply) => {
+      return { 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+      };
     });
 
-    // Basic health check endpoint
-    fastify.get('/health', async (request, reply) => {
-      return { status: 'ok', timestamp: new Date().toISOString() };
+    // API info endpoint (no auth required)
+    fastify.get('/api', async (request, reply) => {
+      return { 
+        message: 'Espresso Engineered API', 
+        version: '1.0.0',
+        endpoints: {
+          health: '/health',
+          brews: '/api/brews',
+          beans: '/api/beans',
+          bags: '/api/bags',
+          grinders: '/api/grinders',
+          machines: '/api/machines',
+          roasters: '/api/roasters'
+        }
+      };
+    });
+
+    // Test authentication endpoint
+    fastify.get('/api/me', {
+      preHandler: authenticateRequest
+    }, async (request, reply) => {
+      const authRequest = request as any;
+      return {
+        barista: authRequest.barista,
+        authUserId: authRequest.authUserId
+      };
     });
 
     // API routes will be added in later tasks
-    fastify.get('/api', async (request, reply) => {
-      return { message: 'Espresso Engineered API', version: '1.0.0' };
-    });
+    // For now, just placeholder endpoints to test the foundation
 
     const port = parseInt(process.env.PORT || '8080');
     const host = process.env.HOST || '0.0.0.0';
     
     await fastify.listen({ port, host });
     console.log(`Server listening on ${host}:${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
