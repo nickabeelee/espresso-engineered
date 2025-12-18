@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { errorHandler } from './middleware/error.js';
@@ -62,8 +65,18 @@ const start = async () => {
       };
     });
 
-    // API routes will be added in later tasks
-    // For now, just placeholder endpoints to test the foundation
+    // Register entity management routes
+    const { roasterRoutes } = await import('./routes/roasters.js');
+    const { beanRoutes } = await import('./routes/beans.js');
+    const { grinderRoutes } = await import('./routes/grinders.js');
+    const { machineRoutes } = await import('./routes/machines.js');
+    const { bagRoutes } = await import('./routes/bags.js');
+
+    await fastify.register(roasterRoutes);
+    await fastify.register(beanRoutes);
+    await fastify.register(grinderRoutes);
+    await fastify.register(machineRoutes);
+    await fastify.register(bagRoutes);
 
     const port = parseInt(process.env.PORT || '8080');
     const host = process.env.HOST || '0.0.0.0';

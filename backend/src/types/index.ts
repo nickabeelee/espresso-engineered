@@ -14,6 +14,7 @@ export interface Barista {
 export interface Roaster {
   id: string;
   created_at: string;
+  modified_at: string;
   name: string;
   website_url?: string;
 }
@@ -21,9 +22,10 @@ export interface Roaster {
 export interface Bean {
   id: string;
   created_at: string;
-  roaster_id: string;
+  modified_at: string;
+  roaster_id?: string;
   name: string;
-  roast_level: RoastLevel;
+  roast_level?: RoastLevel;
   country_of_origin?: string;
   tasting_notes?: string;
 }
@@ -31,6 +33,7 @@ export interface Bean {
 export interface Bag {
   id: string;
   created_at: string;
+  modified_at: string;
   bean_id: string;
   owner_id: string; // References barista.id, NOT auth.users.id
   roast_date?: string;
@@ -42,17 +45,19 @@ export interface Bag {
 export interface Grinder {
   id: string;
   created_at: string;
-  manufacturer: string;
-  model: string;
-  setting_guide_chart_url?: string;
+  modified_at?: string;
+  name: string;
+  manufacturer?: string;
   image_path?: string;
+  setting_guide_chart_url?: string;
 }
 
 export interface Machine {
   id: string;
   created_at: string;
-  manufacturer: string;
-  model: string;
+  modified_at: string;
+  name: string;
+  manufacturer?: string;
   user_manual_link?: string;
   image_path?: string;
 }
@@ -117,7 +122,7 @@ export interface PrefillData {
 export interface CreateBeanRequest {
   roaster_id: string;
   name: string;
-  roast_level: RoastLevel;
+  roast_level?: RoastLevel;
   country_of_origin?: string;
   tasting_notes?: string;
 }
@@ -131,15 +136,15 @@ export interface CreateBagRequest {
 }
 
 export interface CreateGrinderRequest {
-  manufacturer: string;
-  model: string;
-  setting_guide_chart_url?: string;
+  name: string;
+  manufacturer?: string;
   image_path?: string;
+  setting_guide_chart_url?: string;
 }
 
 export interface CreateMachineRequest {
-  manufacturer: string;
-  model: string;
+  name: string;
+  manufacturer?: string;
   user_manual_link?: string;
   image_path?: string;
 }

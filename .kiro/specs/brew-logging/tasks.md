@@ -27,7 +27,7 @@
   - **Property 7: Access Control Enforcement**
   - **Validates: Requirements 4.3, 4.4, 6.1, 9.2, 9.3**
 
-- [ ] 3. Implement core entity management APIs
+- [x] 3. Implement core entity management APIs
   - Create CRUD endpoints for roasters (GET /api/roasters, POST /api/roasters)
   - Create CRUD endpoints for beans with roaster association (GET /api/beans, POST /api/beans)
   - Create CRUD endpoints for grinders and machines (GET /api/grinders, POST /api/grinders, GET /api/machines, POST /api/machines)

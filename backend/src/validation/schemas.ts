@@ -39,7 +39,7 @@ export const completeDraftSchema = z.object({
 export const createBeanSchema = z.object({
   roaster_id: uuidSchema,
   name: z.string().min(1).max(255),
-  roast_level: roastLevelSchema,
+  roast_level: roastLevelSchema.optional(),
   country_of_origin: z.string().max(100).optional(),
   tasting_notes: z.string().max(1000).optional()
 });
@@ -53,15 +53,15 @@ export const createBagSchema = z.object({
 });
 
 export const createGrinderSchema = z.object({
-  manufacturer: z.string().min(1).max(100),
-  model: z.string().min(1).max(100),
-  setting_guide_chart_url: z.string().url().optional(),
-  image_path: z.string().max(500).optional()
+  name: z.string().min(1).max(255),
+  manufacturer: z.string().max(100).optional(),
+  image_path: z.string().max(500).optional(),
+  setting_guide_chart_url: z.string().url().optional()
 });
 
 export const createMachineSchema = z.object({
-  manufacturer: z.string().min(1).max(100),
-  model: z.string().min(1).max(100),
+  name: z.string().min(1).max(255),
+  manufacturer: z.string().max(100).optional(),
   user_manual_link: z.string().url().optional(),
   image_path: z.string().max(500).optional()
 });
