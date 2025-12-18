@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import type { Brew } from '@shared/types';
+
 
   export let barista_id: string;
 

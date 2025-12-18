@@ -131,7 +131,7 @@
   - Implement proper admin access control validation
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 12. Add image upload and management
+- [x] 12. Add image upload and management
   - Implement image upload functionality for grinders and machines
   - Create image validation and processing utilities
   - Add image display components with proper fallbacks
@@ -139,7 +139,7 @@
   - Add image deletion and replacement capabilities
   - _Requirements: 3.5_
 
-- [ ] 13. Final integration and testing
+- [x] 13. Final integration and testing
   - Integrate all frontend and backend components
   - Test complete user workflows end-to-end
   - Validate all API endpoints with proper authentication

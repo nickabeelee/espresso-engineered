@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import type { Grinder } from '@shared/types';
+
   import InlineGrinderCreator from './InlineGrinderCreator.svelte';
+  import { getImageUrl } from '$lib/utils/image-utils';
 
   export let value: string = '';
   export let disabled = false;
@@ -182,9 +183,10 @@
                 {#if selectedGrinder.image_path}
                   <div class="grinder-image">
                     <img 
-                      src={selectedGrinder.image_path} 
+                      src={getImageUrl(selectedGrinder.image_path, 'grinder')} 
                       alt={formatGrinderDisplay(selectedGrinder)}
                       loading="lazy"
+                      on:error={(e) => e.currentTarget.style.display = 'none'}
                     />
                   </div>
                 {/if}

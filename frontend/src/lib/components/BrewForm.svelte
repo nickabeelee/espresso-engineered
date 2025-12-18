@@ -3,15 +3,7 @@
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import type { 
-    Brew, 
-    CreateBrewRequest, 
-    PrefillData,
-    Bean,
-    Bag,
-    Grinder,
-    Machine
-  } from '@shared/types';
+
   import BeanSelector from './BeanSelector.svelte';
   import BagSelector from './BagSelector.svelte';
   import GrinderSelector from './GrinderSelector.svelte';

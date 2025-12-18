@@ -1,14 +1,13 @@
 <script lang="ts">
   import { authService, barista } from '$lib/auth';
-  import type { Barista } from '@shared/types';
 
   export let showEditForm = false;
   export let compact = false;
 
   let editMode = false;
   let loading = false;
-  let error: string | null = null;
-  let success: string | null = null;
+  let error = null;
+  let success = null;
 
   // Form fields
   let firstName = '';

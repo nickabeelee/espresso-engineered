@@ -1,15 +1,19 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { MultipartFile } from '@fastify/multipart';
 import { MachineRepository } from '../repositories/index.js';
 import { authenticateRequest, AuthenticatedRequest } from '../middleware/auth.js';
 import { validateSchema, createMachineSchema } from '../validation/schemas.js';
 import { CreateMachineRequest } from '../types/index.js';
 import { handleRouteError, isConflictError } from '../utils/error-helpers.js';
+import { uploadImage, deleteImage, replaceImage } from '../utils/image-upload.js';
 
 const machineRepository = new MachineRepository();
 
 export async function machineRoutes(fastify: FastifyInstance) {
-  // GET /api/machines - List all machines (public access)
-  fastify.get('/api/machines', async (request: FastifyRequest, reply: FastifyReply) => {
+  // GET /api/machines - List all machines (authenticated access)
+  fastify.get('/api/machines', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { manufacturer, search } = request.query as { 
         manufacturer?: string;
@@ -38,8 +42,10 @@ export async function machineRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /api/machines/:id - Get specific machine (public access)
-  fastify.get('/api/machines/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  // GET /api/machines/:id - Get specific machine (authenticated access)
+  fastify.get('/api/machines/:id', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
       
@@ -113,7 +119,21 @@ export async function machineRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as { id: string };
       
+      // Get machine to check for existing image
+      const machine = await machineRepository.findById(id);
+      
+      // Delete the machine record
       await machineRepository.delete(id);
+      
+      // Delete associated image if it exists
+      if (machine.image_path) {
+        try {
+          await deleteImage(machine.image_path, 'machine');
+        } catch (error) {
+          // Log error but don't fail the operation
+          request.log.warn(`Failed to delete machine image ${machine.image_path}: ${String(error)}`);
+        }
+      }
       
       return reply.status(204).send();
     } catch (error) {
@@ -126,6 +146,83 @@ export async function machineRoutes(fastify: FastifyInstance) {
       
       request.log.error(error);
       return handleRouteError(error, reply, 'delete machine');
+    }
+  });
+
+  // POST /api/machines/:id/image - Upload machine image (authenticated)
+  fastify.post('/api/machines/:id/image', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      
+      // Get the uploaded file
+      const data: MultipartFile | undefined = await (request as any).file();
+      if (!data) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'No file uploaded'
+        });
+      }
+
+      // Convert file stream to buffer
+      const buffer = await data.toBuffer();
+      
+      // Get current machine to check for existing image
+      const machine = await machineRepository.findById(id);
+      
+      // Upload new image (and delete old one if it exists)
+      const uploadResult = await replaceImage(
+        machine.image_path || null,
+        buffer,
+        data.filename,
+        'machine'
+      );
+
+      // Update machine with new image path
+      const updatedMachine = await machineRepository.update(id, {
+        image_path: uploadResult.path
+      });
+
+      return {
+        data: updatedMachine,
+        image_url: uploadResult.publicUrl
+      };
+    } catch (error) {
+      request.log.error(error);
+      return handleRouteError(error, reply, 'upload machine image');
+    }
+  });
+
+  // DELETE /api/machines/:id/image - Delete machine image (authenticated)
+  fastify.delete('/api/machines/:id/image', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      
+      // Get current machine
+      const machine = await machineRepository.findById(id);
+      
+      if (!machine.image_path) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'No image found for this machine'
+        });
+      }
+
+      // Delete image from storage
+      await deleteImage(machine.image_path, 'machine');
+
+      // Update machine to remove image path
+      const updatedMachine = await machineRepository.update(id, {
+        image_path: undefined
+      });
+
+      return { data: updatedMachine };
+    } catch (error) {
+      request.log.error(error);
+      return handleRouteError(error, reply, 'delete machine image');
     }
   });
 }

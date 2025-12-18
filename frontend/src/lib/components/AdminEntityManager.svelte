@@ -1,15 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { adminService } from '../admin-service.js';
-  import type { 
-    Brew, 
-    Bean, 
-    Bag, 
-    Grinder, 
-    Machine, 
-    Roaster, 
-    Barista 
-  } from '../../../../shared/types/index.js';
+
 
   export let entityType: 'brews' | 'beans' | 'bags' | 'grinders' | 'machines' | 'roasters' | 'baristas';
 

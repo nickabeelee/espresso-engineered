@@ -8,8 +8,10 @@ import { handleRouteError, isConflictError } from '../utils/error-helpers.js';
 const roasterRepository = new RoasterRepository();
 
 export async function roasterRoutes(fastify: FastifyInstance) {
-  // GET /api/roasters - List all roasters (public access)
-  fastify.get('/api/roasters', async (request: FastifyRequest, reply: FastifyReply) => {
+  // GET /api/roasters - List all roasters (authenticated access)
+  fastify.get('/api/roasters', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { search } = request.query as { search?: string };
       
@@ -33,8 +35,10 @@ export async function roasterRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /api/roasters/:id - Get specific roaster (public access)
-  fastify.get('/api/roasters/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  // GET /api/roasters/:id - Get specific roaster (authenticated access)
+  fastify.get('/api/roasters/:id', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
       

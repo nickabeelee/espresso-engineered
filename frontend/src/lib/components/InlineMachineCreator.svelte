@@ -1,7 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import type { Machine, CreateMachineRequest } from '@shared/types';
+
+  import ImageUpload from './ImageUpload.svelte';
 
   const dispatch = createEventDispatcher<{
     created: Machine;
@@ -18,6 +19,7 @@
   let loading = false;
   let error: string | null = null;
   let validationErrors: Record<string, string> = {};
+  let createdMachineId = '';
 
   function validateForm(): boolean {
     validationErrors = {};
@@ -67,6 +69,7 @@
       const response = await apiClient.createMachine(machineData);
       
       if (response.data) {
+        createdMachineId = response.data.id;
         dispatch('created', response.data);
       } else {
         throw new Error('Failed to create machine');
@@ -81,6 +84,22 @@
 
   function handleCancel() {
     dispatch('cancel');
+  }
+
+  function handleImageUpload(event: CustomEvent<{ file: File; imageUrl: string }>) {
+    image_path = event.detail.imageUrl;
+    // Clear any previous image validation errors
+    delete validationErrors.image_path;
+    validationErrors = { ...validationErrors };
+  }
+
+  function handleImageDelete() {
+    image_path = '';
+  }
+
+  function handleImageError(event: CustomEvent<{ message: string }>) {
+    validationErrors.image_path = event.detail.message;
+    validationErrors = { ...validationErrors };
   }
 
   // Common espresso machine manufacturers for quick selection
@@ -183,20 +202,19 @@
     </div>
 
     <div class="form-group">
-      <label for="image">Image URL</label>
-      <input
-        id="image"
-        type="url"
-        bind:value={image_path}
-        placeholder="https://example.com/machine-image.jpg"
+      <label>Machine Image (optional)</label>
+      <ImageUpload
+        entityType="machine"
+        entityId={createdMachineId}
+        currentImageUrl={image_path}
         disabled={loading}
+        on:upload={handleImageUpload}
+        on:delete={handleImageDelete}
+        on:error={handleImageError}
       />
       {#if validationErrors.image_path}
         <span class="error-text">{validationErrors.image_path}</span>
       {/if}
-      <small class="help-text">
-        Link to an image of the machine (optional)
-      </small>
     </div>
 
     <!-- Preview -->

@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { syncService } from '$lib/sync-service';
   import { ConnectivityManager } from '$lib/offline-storage';
-  import type { SyncStatus } from '$lib/sync-service';
+
 
   let isOnline = true;
   let syncInProgress = false;

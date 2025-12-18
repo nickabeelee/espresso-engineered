@@ -3,6 +3,7 @@ dotenv.config();
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import { errorHandler } from './middleware/error.js';
 import { authenticateRequest, optionalAuthentication } from './middleware/auth.js';
 import { initializeDatabase } from './config/database.js';
@@ -23,6 +24,14 @@ const start = async () => {
     await fastify.register(cors, {
       origin: process.env.FRONTEND_URL || 'http://localhost:5173',
       credentials: true
+    });
+
+    // Register multipart support for file uploads
+    await fastify.register(multipart, {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+        files: 1 // Only allow 1 file per request
+      }
     });
 
     // Register global error handler

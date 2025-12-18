@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import type { Roaster, CreateRoasterRequest } from '@shared/types';
+
 
   const dispatch = createEventDispatcher<{
     created: Roaster;

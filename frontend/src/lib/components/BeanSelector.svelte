@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import type { Bean, Roaster } from '@shared/types';
+
   import InlineBeanCreator from './InlineBeanCreator.svelte';
 
   export let value: string = '';

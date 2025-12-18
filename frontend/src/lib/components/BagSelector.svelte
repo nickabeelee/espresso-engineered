@@ -2,17 +2,17 @@
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import type { Bag, Bean, Roaster } from '@shared/types';
+
   import InlineBagCreator from './InlineBagCreator.svelte';
 
-  export let value: string = '';
+  export let value = '';
   export let disabled = false;
 
-  let bags: Bag[] = [];
-  let beans: Bean[] = [];
-  let roasters: Roaster[] = [];
+  let bags = [];
+  let beans = [];
+  let roasters = [];
   let loading = true;
-  let error: string | null = null;
+  let error = null;
   let showCreateForm = false;
 
   // Search and filter

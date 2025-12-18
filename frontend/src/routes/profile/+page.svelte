@@ -9,8 +9,8 @@
   let newPassword = '';
   let confirmNewPassword = '';
   let passwordLoading = false;
-  let passwordError: string | null = null;
-  let passwordSuccess: string | null = null;
+  let passwordError = null;
+  let passwordSuccess = null;
 
   function startPasswordChange() {
     passwordChangeMode = true;

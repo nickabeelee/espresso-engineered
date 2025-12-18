@@ -9,8 +9,10 @@ const beanRepository = new BeanRepository();
 const roasterRepository = new RoasterRepository();
 
 export async function beanRoutes(fastify: FastifyInstance) {
-  // GET /api/beans - List all beans (public access)
-  fastify.get('/api/beans', async (request: FastifyRequest, reply: FastifyReply) => {
+  // GET /api/beans - List all beans (authenticated access)
+  fastify.get('/api/beans', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { roaster_id, roast_level, search } = request.query as { 
         roaster_id?: string;
@@ -41,8 +43,10 @@ export async function beanRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /api/beans/:id - Get specific bean (public access)
-  fastify.get('/api/beans/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  // GET /api/beans/:id - Get specific bean (authenticated access)
+  fastify.get('/api/beans/:id', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
       

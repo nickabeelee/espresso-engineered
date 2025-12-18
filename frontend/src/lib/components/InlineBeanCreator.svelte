@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import type { Bean, Roaster, CreateBeanRequest, RoastLevel } from '@shared/types';
+
   import InlineRoasterCreator from './InlineRoasterCreator.svelte';
 
   export let roasters: Roaster[] = [];

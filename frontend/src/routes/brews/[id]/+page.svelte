@@ -6,11 +6,11 @@
   import BrewForm from '$lib/components/BrewForm.svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import type { Brew, CreateBrewRequest } from '../../../../shared/types/index.js';
+
   
-  let brew: Brew | null = null;
+  let brew = null;
   let loading = true;
-  let error: string | null = null;
+  let error = null;
   let editing = false;
   let canEdit = false;
   let deleting = false;

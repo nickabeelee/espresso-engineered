@@ -25,6 +25,7 @@
   "dependencies": {
     "@fastify/cors": "^8.4.0",
     "@fastify/jwt": "^7.2.4",
+    "@fastify/multipart": "^8.3.1",
     "@supabase/supabase-js": "^2.38.4",
     "dotenv": "^17.2.3",
     "fastify": "^4.24.3",

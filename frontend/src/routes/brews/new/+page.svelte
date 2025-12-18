@@ -7,11 +7,11 @@
   import { OfflineStorage, ConnectivityManager } from '$lib/offline-storage';
   import { syncService } from '$lib/sync-service';
   import { barista } from '$lib/auth';
-  import type { CreateBrewRequest, BrewDraft } from '@shared/types';
+
   
   let prefillFromLast = false;
   let loading = false;
-  let error: string | null = null;
+  let error = null;
   let isOnline = true;
 
   onMount(() => {

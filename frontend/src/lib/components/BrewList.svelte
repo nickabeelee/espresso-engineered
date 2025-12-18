@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import type { Brew, BrewFilters, PaginationParams } from '@shared/types';
+
 
   export let barista_id: string | undefined = undefined;
   export let showDrafts = false;

@@ -5,7 +5,7 @@
   import { authService, isAuthenticated } from '$lib/auth';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   
-  let mode: 'login' | 'signup' | 'forgot' = 'login';
+  let mode = 'login';
   let email = '';
   let password = '';
   let confirmPassword = '';
@@ -13,8 +13,8 @@
   let lastName = '';
   let displayName = '';
   let loading = false;
-  let error: string | null = null;
-  let success: string | null = null;
+  let error = null;
+  let success = null;
 
   // Get return URL from query params
   $: returnTo = $page.url.searchParams.get('returnTo') || '/brews';
@@ -28,7 +28,7 @@
     goto(returnTo);
   }
 
-  async function handleSubmit(event: Event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     loading = true;
     error = null;
@@ -62,7 +62,7 @@
     }
   }
 
-  function setMode(newMode: 'login' | 'signup' | 'forgot') {
+  function setMode(newMode) {
     mode = newMode;
     error = null;
     success = null;

@@ -4,11 +4,11 @@
   
   import { onMount } from 'svelte';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
-  import type { Brew } from '@shared/types';
+
   
-  let brews: Brew[] = [];
+  let brews = [];
   let loading = true;
-  let error: string | null = null;
+  let error = null;
 
   onMount(async () => {
     // Placeholder for brew loading logic

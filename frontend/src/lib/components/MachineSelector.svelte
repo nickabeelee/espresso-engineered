@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import type { Machine } from '@shared/types';
+
   import InlineMachineCreator from './InlineMachineCreator.svelte';
+  import { getImageUrl } from '$lib/utils/image-utils';
 
   export let value: string = '';
   export let disabled = false;
@@ -182,9 +183,10 @@
                 {#if selectedMachine.image_path}
                   <div class="machine-image">
                     <img 
-                      src={selectedMachine.image_path} 
+                      src={getImageUrl(selectedMachine.image_path, 'machine')} 
                       alt={formatMachineDisplay(selectedMachine)}
                       loading="lazy"
+                      on:error={(e) => e.currentTarget.style.display = 'none'}
                     />
                   </div>
                 {/if}

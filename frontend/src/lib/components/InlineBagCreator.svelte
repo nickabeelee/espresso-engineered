@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import type { Bag, Bean, Roaster, CreateBagRequest } from '@shared/types';
+
   import InlineBeanCreator from './InlineBeanCreator.svelte';
 
   export let beans: Bean[] = [];

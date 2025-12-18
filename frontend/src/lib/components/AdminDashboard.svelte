@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { adminService } from '../admin-service.js';
-  import type { Brew } from '../../../../shared/types/index.js';
+
 
   let dashboardData: {
     totalBrews: number;
