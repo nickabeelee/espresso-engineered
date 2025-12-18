@@ -1,8 +1,77 @@
-# Espresso Engineered — MVP README
+# Espresso Engineered
 
-## Purpose
+Community-driven espresso brewing companion focused on **recording brews**, **learning from shared data**, and **surfacing practical grind and recipe suggestions** based on real-world usage.
 
-Espresso Engineered is a community-driven espresso brewing companion focused on **recording brews**, **learning from shared data**, and **surfacing practical grind and recipe suggestions** based on real-world usage.
+## Project Structure
+
+This is a monorepo containing three main packages:
+
+- **frontend/** - SvelteKit application (TypeScript)
+- **backend/** - Fastify API server (TypeScript)  
+- **shared/** - Shared TypeScript types and utilities
+
+## Quick Start
+
+### Install Dependencies
+
+```bash
+npm install
+```
+
+This will install dependencies for all workspaces.
+
+### Development
+
+Run frontend and backend in development mode:
+
+```bash
+# Frontend (SvelteKit)
+npm run dev:frontend
+
+# Backend (Fastify)
+npm run dev:backend
+```
+
+### Testing
+
+Run tests for all packages:
+
+```bash
+npm run test:all
+```
+
+Or test individual packages:
+
+```bash
+npm run test:frontend
+npm run test:backend
+npm run test:shared
+```
+
+### Building
+
+Build all packages:
+
+```bash
+npm run build:all
+```
+
+## Documentation
+
+- [Architecture](docs/ee-architecture-v1.md)
+- [Data Model](docs/ee-data-model-v1.md)
+- [System Definition](docs/ee-system-definition-document-v1.md)
+- [Frontend README](frontend/README.md)
+- [Backend README](backend/README.md)
+
+## Technology Stack
+
+- **Frontend**: SvelteKit with TypeScript on Netlify
+- **Backend**: Node.js with Fastify on Fly.io
+- **Database**: Supabase (PostgreSQL + Auth + Realtime)
+- **Testing**: Jest (backend), Vitest (frontend), fast-check (property-based testing)
+
+## MVP Goals & Scope
 
 This README defines:
 - The **Minimum Viable Product (MVP) goals**

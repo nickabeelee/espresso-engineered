@@ -1,0 +1,31 @@
+{
+  "name": "espresso-engineered",
+  "version": "1.0.0",
+  "description": "Community-driven espresso brewing companion",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "build:shared": "npm run build --workspace=shared",
+    "build:all": "npm run build:shared && npm run build:backend && npm run build:frontend",
+    "test:frontend": "npm run test --workspace=frontend",
+    "test:backend": "npm run test --workspace=backend",
+    "test:shared": "npm run test --workspace=shared",
+    "test:all": "npm run test:shared && npm run test:backend && npm run test:frontend",
+    "install:all": "npm install --workspaces",
+    "clean": "rm -rf frontend/node_modules backend/node_modules shared/node_modules node_modules"
+  },
+  "keywords": ["espresso", "coffee", "brewing", "community"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
