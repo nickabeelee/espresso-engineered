@@ -9,6 +9,7 @@ export interface AuthenticatedRequest extends FastifyRequest {
     first_name: string;
     last_name: string;
     display_name: string;
+    is_admin?: boolean;
   };
   authUserId?: string; // auth.users.id from JWT
 }

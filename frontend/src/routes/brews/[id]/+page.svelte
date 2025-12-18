@@ -6,7 +6,7 @@
   import BrewForm from '$lib/components/BrewForm.svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import type { Brew, CreateBrewRequest } from '@shared/types';
+  import type { Brew, CreateBrewRequest } from '../../../../shared/types/index.js';
   
   let brew: Brew | null = null;
   let loading = true;

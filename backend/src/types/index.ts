@@ -9,6 +9,7 @@ export interface Barista {
   first_name: string;
   last_name: string;
   display_name: string;
+  is_admin?: boolean; // Admin privileges flag
 }
 
 export interface Roaster {

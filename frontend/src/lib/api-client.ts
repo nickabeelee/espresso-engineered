@@ -50,6 +50,31 @@ class ApiClient {
     return response.json();
   }
 
+  // Generic HTTP methods for admin service
+  async get<T>(endpoint: string): Promise<T> {
+    return this.makeRequest<T>(endpoint);
+  }
+
+  async post<T>(endpoint: string, data?: any): Promise<T> {
+    return this.makeRequest<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async put<T>(endpoint: string, data?: any): Promise<T> {
+    return this.makeRequest<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete<T>(endpoint: string): Promise<T> {
+    return this.makeRequest<T>(endpoint, {
+      method: 'DELETE',
+    });
+  }
+
   // Brew endpoints
   async getBrews(filters?: BrewFilters, pagination?: PaginationParams): Promise<ListResponse<Brew>> {
     const params = new URLSearchParams();
