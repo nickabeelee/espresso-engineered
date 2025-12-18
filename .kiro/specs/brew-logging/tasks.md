@@ -87,7 +87,7 @@
   - Create barista profile display and management components
   - _Requirements: 9.5, 7.5_
 
-- [-] 8. Implement core UI components
+- [x] 8. Implement core UI components
   - Create BrewForm component with validation and pre-fill functionality
   - Create BrewList component with chronological ordering and filtering
   - Create AwaitingReflection component for incomplete brews
@@ -103,7 +103,7 @@
   - **Property 12: Chronological Ordering Consistency**
   - **Validates: Requirements 4.1, 4.2**
 
-- [ ] 9. Implement brew creation and editing workflows
+- [x] 9. Implement brew creation and editing workflows
   - Create new brew page with pre-fill option from previous brew
   - Implement draft saving functionality with offline support
   - Create brew editing page with ownership validation
@@ -111,7 +111,7 @@
   - Add calculated field display and automatic updates
   - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.3, 4.3, 4.5_
 
-- [ ] 10. Implement offline synchronization
+- [x] 10. Implement offline synchronization
   - Create offline draft storage using localStorage/IndexedDB
   - Implement connectivity detection and sync triggers
   - Create sync queue management for pending changes

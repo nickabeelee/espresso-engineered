@@ -1,0 +1,548 @@
+<script lang="ts">
+  import { createEventDispatcher } from 'svelte';
+  import { apiClient } from '$lib/api-client';
+  import type { Bag, Bean, Roaster, CreateBagRequest } from '@shared/types';
+  import InlineBeanCreator from './InlineBeanCreator.svelte';
+
+  export let beans: Bean[] = [];
+  export let roasters: Roaster[] = [];
+
+  const dispatch = createEventDispatcher<{
+    created: Bag;
+    cancel: void;
+  }>();
+
+  // Form fields
+  let bean_id = '';
+  let roast_date = '';
+  let weight_mg: number | undefined = undefined;
+  let price: number | undefined = undefined;
+  let purchase_location = '';
+
+  // UI state
+  let loading = false;
+  let error: string | null = null;
+  let validationErrors: Record<string, string> = {};
+  let showBeanCreator = false;
+
+  function validateForm(): boolean {
+    validationErrors = {};
+
+    if (!bean_id) {
+      validationErrors.bean_id = 'Bean is required';
+    }
+    if (weight_mg !== undefined && weight_mg < 0) {
+      validationErrors.weight_mg = 'Weight cannot be negative';
+    }
+    if (price !== undefined && price < 0) {
+      validationErrors.price = 'Price cannot be negative';
+    }
+
+    return Object.keys(validationErrors).length === 0;
+  }
+
+  async function handleSubmit() {
+    if (!validateForm()) {
+      error = 'Please fix validation errors';
+      return;
+    }
+
+    try {
+      loading = true;
+      error = null;
+
+      const bagData: CreateBagRequest = {
+        bean_id,
+        roast_date: roast_date || undefined,
+        weight_mg: weight_mg ? Math.round(weight_mg * 1000) : undefined, // Convert g to mg
+        price,
+        purchase_location: purchase_location.trim() || undefined
+      };
+
+      const response = await apiClient.createBag(bagData);
+      
+      if (response.data) {
+        dispatch('created', response.data);
+      } else {
+        throw new Error('Failed to create bag');
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to create bag';
+      console.error('Failed to create bag:', err);
+    } finally {
+      loading = false;
+    }
+  }
+
+  function handleCancel() {
+    dispatch('cancel');
+  }
+
+  function handleBeanCreated(event: CustomEvent<Bean>) {
+    const newBean = event.detail;
+    beans = [newBean, ...beans];
+    bean_id = newBean.id;
+    showBeanCreator = false;
+  }
+
+  function getBeanInfo(id: string): Bean | undefined {
+    return beans.find(b => b.id === id);
+  }
+
+  function getRoasterName(roasterId: string): string {
+    const roaster = roasters.find(r => r.id === roasterId);
+    return roaster?.name || 'Unknown Roaster';
+  }
+
+  function formatBeanDisplay(bean: Bean): string {
+    const roasterName = getRoasterName(bean.roaster_id);
+    return `${bean.name} - ${roasterName} (${bean.roast_level})`;
+  }
+
+  // Set default roast date to today
+  function setTodayAsRoastDate() {
+    const today = new Date();
+    roast_date = today.toISOString().split('T')[0];
+  }
+
+  // Set default weight to common bag sizes
+  function setCommonWeight(grams: number) {
+    weight_mg = grams;
+  }
+</script>
+
+<div class="inline-bag-creator">
+  <div class="creator-header">
+    <h4>Create New Bag</h4>
+    <button type="button" on:click={handleCancel} class="close-btn" disabled={loading}>
+      ✕
+    </button>
+  </div>
+
+  {#if error}
+    <div class="error-banner">{error}</div>
+  {/if}
+
+  {#if showBeanCreator}
+    <div class="nested-creator">
+      <InlineBeanCreator 
+        {roasters}
+        on:created={handleBeanCreated}
+        on:cancel={() => showBeanCreator = false}
+      />
+    </div>
+  {:else}
+    <form on:submit|preventDefault={handleSubmit} class="creator-form">
+      <div class="form-group">
+        <label for="bean">Bean *</label>
+        <div class="bean-input-group">
+          <select id="bean" bind:value={bean_id} disabled={loading} required>
+            <option value="">Select a bean...</option>
+            {#each beans as bean}
+              <option value={bean.id}>{formatBeanDisplay(bean)}</option>
+            {/each}
+          </select>
+          <button 
+            type="button" 
+            on:click={() => showBeanCreator = true}
+            class="add-bean-btn"
+            disabled={loading}
+          >
+            + New
+          </button>
+        </div>
+        {#if validationErrors.bean_id}
+          <span class="error-text">{validationErrors.bean_id}</span>
+        {/if}
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="roast-date">Roast Date</label>
+          <div class="date-input-group">
+            <input
+              id="roast-date"
+              type="date"
+              bind:value={roast_date}
+              disabled={loading}
+            />
+            <button 
+              type="button" 
+              on:click={setTodayAsRoastDate}
+              class="today-btn"
+              disabled={loading}
+            >
+              Today
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="weight">Weight (g)</label>
+          <div class="weight-input-group">
+            <input
+              id="weight"
+              type="number"
+              bind:value={weight_mg}
+              step="1"
+              min="0"
+              placeholder="250"
+              disabled={loading}
+            />
+            <div class="weight-presets">
+              <button type="button" on:click={() => setCommonWeight(250)} class="preset-btn" disabled={loading}>250g</button>
+              <button type="button" on:click={() => setCommonWeight(340)} class="preset-btn" disabled={loading}>340g</button>
+              <button type="button" on:click={() => setCommonWeight(500)} class="preset-btn" disabled={loading}>500g</button>
+            </div>
+          </div>
+          {#if validationErrors.weight_mg}
+            <span class="error-text">{validationErrors.weight_mg}</span>
+          {/if}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="price">Price ($)</label>
+          <input
+            id="price"
+            type="number"
+            bind:value={price}
+            step="0.01"
+            min="0"
+            placeholder="15.99"
+            disabled={loading}
+          />
+          {#if validationErrors.price}
+            <span class="error-text">{validationErrors.price}</span>
+          {/if}
+        </div>
+
+        <div class="form-group">
+          <label for="purchase-location">Purchase Location</label>
+          <input
+            id="purchase-location"
+            type="text"
+            bind:value={purchase_location}
+            placeholder="e.g., Local Coffee Shop"
+            disabled={loading}
+          />
+        </div>
+      </div>
+
+      <!-- Selected Bean Preview -->
+      {#if bean_id}
+        {@const selectedBean = getBeanInfo(bean_id)}
+        {#if selectedBean}
+          <div class="bean-preview">
+            <h5>Selected Bean:</h5>
+            <div class="bean-info">
+              <span class="bean-name">{selectedBean.name}</span>
+              <span class="roaster-name">{getRoasterName(selectedBean.roaster_id)}</span>
+              <span class="roast-level">{selectedBean.roast_level}</span>
+              {#if selectedBean.country_of_origin}
+                <span class="origin">{selectedBean.country_of_origin}</span>
+              {/if}
+            </div>
+          </div>
+        {/if}
+      {/if}
+
+      <div class="form-actions">
+        <button type="button" on:click={handleCancel} class="btn-cancel" disabled={loading}>
+          Cancel
+        </button>
+        <button type="submit" class="btn-create" disabled={loading}>
+          {loading ? 'Creating...' : 'Create Bag'}
+        </button>
+      </div>
+    </form>
+  {/if}
+</div>
+
+<style>
+  .inline-bag-creator {
+    background: white;
+    border: 2px solid #007bff;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin: 0.5rem 0;
+  }
+
+  .creator-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .creator-header h4 {
+    margin: 0;
+    color: #007bff;
+    font-size: 1.1rem;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #666;
+    padding: 0.25rem;
+    line-height: 1;
+  }
+
+  .close-btn:hover:not(:disabled) {
+    color: #dc3545;
+  }
+
+  .close-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .error-banner {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .nested-creator {
+    border: 1px solid #e5e5e5;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+  }
+
+  .creator-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+  }
+
+  .form-group input,
+  .form-group select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+
+  .form-group input:disabled,
+  .form-group select:disabled {
+    background: #f8f9fa;
+    cursor: not-allowed;
+  }
+
+  .bean-input-group,
+  .date-input-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .bean-input-group select,
+  .date-input-group input {
+    flex: 1;
+  }
+
+  .add-bean-btn,
+  .today-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .add-bean-btn:hover:not(:disabled),
+  .today-btn:hover:not(:disabled) {
+    background: #218838;
+  }
+
+  .add-bean-btn:disabled,
+  .today-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+  }
+
+  .weight-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .weight-presets {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .preset-btn {
+    background: #e9ecef;
+    color: #495057;
+    border: 1px solid #ced4da;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .preset-btn:hover:not(:disabled) {
+    background: #dee2e6;
+    border-color: #adb5bd;
+  }
+
+  .preset-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .error-text {
+    color: #dc3545;
+    font-size: 0.8rem;
+  }
+
+  .bean-preview {
+    background: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 0.25rem;
+    padding: 1rem;
+  }
+
+  .bean-preview h5 {
+    margin: 0 0 0.5rem 0;
+    color: #004085;
+    font-size: 0.9rem;
+  }
+
+  .bean-info {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .bean-info span {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .bean-name {
+    background: #004085;
+    color: white;
+  }
+
+  .roaster-name {
+    background: #cce7ff;
+    color: #004085;
+  }
+
+  .roast-level {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .origin {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+  }
+
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.25rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+  }
+
+  .btn-cancel {
+    background: #6c757d;
+    color: white;
+  }
+
+  .btn-cancel:hover:not(:disabled) {
+    background: #545b62;
+  }
+
+  .btn-create {
+    background: #007bff;
+    color: white;
+  }
+
+  .btn-create:hover:not(:disabled) {
+    background: #0056b3;
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .bean-input-group,
+    .date-input-group {
+      flex-direction: column;
+    }
+
+    .weight-presets {
+      justify-content: center;
+    }
+
+    .bean-info {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-actions {
+      flex-direction: column;
+    }
+  }
+</style>

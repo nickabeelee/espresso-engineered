@@ -1,18 +1,19 @@
 <script lang="ts">
-  // Individual brew view/edit page
-  // This will be implemented in task 9 (Implement brew creation and editing workflows)
-  
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
-  import type { Brew } from '@shared/types';
+  import BrewForm from '$lib/components/BrewForm.svelte';
+  import { apiClient } from '$lib/api-client';
+  import { barista } from '$lib/auth';
+  import type { Brew, CreateBrewRequest } from '@shared/types';
   
   let brew: Brew | null = null;
   let loading = true;
   let error: string | null = null;
   let editing = false;
   let canEdit = false;
+  let deleting = false;
 
   $: brewId = $page.params.id;
 
@@ -27,58 +28,88 @@
     error = null;
     
     try {
-      // Placeholder for brew loading logic
-      // Will be implemented in task 9
-      // For now, create a mock brew to satisfy TypeScript
-      brew = {
-        id: id,
-        created_at: new Date().toISOString(),
-        modified_at: new Date().toISOString(),
-        barista_id: 'mock-barista',
-        machine_id: 'mock-machine',
-        grinder_id: 'mock-grinder',
-        bag_id: 'mock-bag',
-        name: 'Mock Brew',
-        dose_mg: 18000,
-        yield_mg: 36000,
-        brew_time_ms: 30000,
-        grind_setting: '2.5',
-        flow_rate_mg_per_s: 1200,
-        ratio_dec: 2.0,
-        rating: 8,
-        tasting_notes: 'Mock tasting notes',
-        reflections: 'Mock reflections'
-      } as Brew;
-      canEdit = true; // Mock: assume user can edit
-      loading = false;
+      const response = await apiClient.getBrew(id);
+      if (response.data) {
+        brew = response.data;
+        
+        // Check if current user can edit this brew
+        const currentBarista = $barista;
+        canEdit = currentBarista?.id === brew.barista_id;
+      } else {
+        throw new Error('Brew not found');
+      }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load brew';
+    } finally {
       loading = false;
     }
   }
 
   function toggleEdit() {
     editing = !editing;
+    error = null; // Clear any previous errors when toggling edit mode
   }
 
-  async function handleSave(event: Event) {
-    event.preventDefault();
-    // Placeholder for save logic
-    // Will be implemented in task 9
+  async function handleSave(event: CustomEvent<CreateBrewRequest>) {
+    if (!brew) return;
+    
+    const brewData = event.detail;
+    loading = true;
+    error = null;
+
+    try {
+      const response = await apiClient.updateBrew(brew.id, brewData);
+      if (response.data) {
+        brew = response.data;
+        editing = false;
+      } else {
+        throw new Error('Failed to update brew');
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to save changes';
+    } finally {
+      loading = false;
+    }
+  }
+
+  function handleCancel() {
+    editing = false;
+    error = null;
   }
 
   async function handleDelete() {
-    if (!brew || !confirm('Are you sure you want to delete this brew?')) {
+    if (!brew || deleting) return;
+    
+    const confirmMessage = `Are you sure you want to delete "${brew.name || 'this brew'}"? This action cannot be undone.`;
+    if (!confirm(confirmMessage)) {
       return;
     }
     
+    deleting = true;
+    error = null;
+    
     try {
-      // Placeholder for delete logic
-      // Will be implemented in task 9
+      await apiClient.deleteBrew(brew.id);
       goto('/brews');
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to delete brew';
+      deleting = false;
     }
+  }
+
+  // Helper function to format calculated fields
+  function formatCalculatedFields(brew: Brew) {
+    const fields = [];
+    
+    if (brew.ratio_dec) {
+      fields.push(`Ratio: 1:${brew.ratio_dec.toFixed(2)}`);
+    }
+    
+    if (brew.flow_rate_mg_per_s) {
+      fields.push(`Flow Rate: ${brew.flow_rate_mg_per_s.toFixed(1)} mg/s`);
+    }
+    
+    return fields;
   }
 </script>
 
@@ -97,11 +128,11 @@
       
       {#if canEdit && brew}
         <div class="actions">
-          <button on:click={toggleEdit} class="btn-secondary">
+          <button on:click={toggleEdit} class="btn-secondary" disabled={loading}>
             {editing ? 'Cancel' : 'Edit'}
           </button>
-          <button on:click={handleDelete} class="btn-danger">
-            Delete
+          <button on:click={handleDelete} class="btn-danger" disabled={loading || deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       {/if}
@@ -116,21 +147,11 @@
     {@const currentBrew = brew}
     <div class="brew-content">
       {#if editing}
-        <form on:submit={handleSave}>
-          <div class="form-placeholder">
-            <p>Brew edit form will be implemented in task 9</p>
-            <p>This will use the same BrewForm component as the new brew page.</p>
-          </div>
-          
-          <div class="form-actions">
-            <button type="button" on:click={toggleEdit} class="btn-secondary">
-              Cancel
-            </button>
-            <button type="submit" class="btn-primary">
-              Save Changes
-            </button>
-          </div>
-        </form>
+        <BrewForm 
+          {brew}
+          on:save={handleSave}
+          on:cancel={handleCancel}
+        />
       {:else}
         <div class="brew-details">
           <div class="detail-section">
@@ -169,7 +190,13 @@
               {#if currentBrew.flow_rate_mg_per_s}
                 <div class="detail-item">
                   <label>Flow Rate:</label>
-                  <span>{currentBrew.flow_rate_mg_per_s.toFixed(1)}mg/s</span>
+                  <span>{currentBrew.flow_rate_mg_per_s.toFixed(1)} mg/s</span>
+                </div>
+              {/if}
+              {#if currentBrew.grind_setting}
+                <div class="detail-item">
+                  <label>Grind Setting:</label>
+                  <span>{currentBrew.grind_setting}</span>
                 </div>
               {/if}
               {#if currentBrew.rating}
@@ -197,7 +224,7 @@
 
           {#if !currentBrew.yield_mg || !currentBrew.rating}
             <div class="incomplete-notice">
-              <p>This brew is incomplete. <button on:click={toggleEdit} class="link-button">Complete it now</button>.</p>
+              <p>This brew is incomplete. {#if canEdit}<button on:click={toggleEdit} class="link-button">Complete it now</button>.{/if}</p>
             </div>
           {/if}
         </div>
@@ -290,6 +317,15 @@
     font-size: inherit;
   }
 
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  button:disabled:hover {
+    background: inherit;
+  }
+
   .loading, .error, .not-found {
     text-align: center;
     padding: 2rem;
@@ -307,20 +343,7 @@
     padding: 2rem;
   }
 
-  .form-placeholder {
-    padding: 2rem;
-    text-align: center;
-    color: #666;
-    background: #f8f9fa;
-    border-radius: 0.5rem;
-    margin-bottom: 2rem;
-  }
 
-  .form-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-  }
 
   .detail-section {
     margin-bottom: 2rem;

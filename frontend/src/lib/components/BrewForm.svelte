@@ -1,0 +1,568 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { createEventDispatcher } from 'svelte';
+  import { apiClient } from '$lib/api-client';
+  import { barista } from '$lib/auth';
+  import type { 
+    Brew, 
+    CreateBrewRequest, 
+    PrefillData,
+    Bean,
+    Bag,
+    Grinder,
+    Machine
+  } from '@shared/types';
+  import BeanSelector from './BeanSelector.svelte';
+  import BagSelector from './BagSelector.svelte';
+  import GrinderSelector from './GrinderSelector.svelte';
+  import MachineSelector from './MachineSelector.svelte';
+
+  export let brew: Brew | null = null;
+  export let prefillFromLast = false;
+
+  const dispatch = createEventDispatcher<{
+    save: CreateBrewRequest;
+    draft: CreateBrewRequest;
+    cancel: void;
+  }>();
+
+  // Form fields
+  let name = '';
+  let machine_id = '';
+  let grinder_id = '';
+  let bag_id = '';
+  let dose_mg = 18000;
+  let yield_mg: number | undefined = undefined;
+  let brew_time_ms: number | undefined = undefined;
+  let grind_setting = '';
+  let rating: number | undefined = undefined;
+  let tasting_notes = '';
+  let reflections = '';
+
+  // Calculated fields
+  let flow_rate_mg_per_s: number | undefined = undefined;
+  let ratio_dec: number | undefined = undefined;
+
+  // UI state
+  let loading = false;
+  let error: string | null = null;
+  let validationErrors: Record<string, string> = {};
+
+  onMount(async () => {
+    if (brew) {
+      // Editing existing brew
+      loadBrewData(brew);
+    } else if (prefillFromLast) {
+      // Pre-fill from last brew
+      await loadPrefillData();
+    }
+  });
+
+  function loadBrewData(brewData: Brew) {
+    name = brewData.name || '';
+    machine_id = brewData.machine_id;
+    grinder_id = brewData.grinder_id;
+    bag_id = brewData.bag_id;
+    dose_mg = brewData.dose_mg;
+    yield_mg = brewData.yield_mg;
+    brew_time_ms = brewData.brew_time_ms;
+    grind_setting = brewData.grind_setting || '';
+    rating = brewData.rating;
+    tasting_notes = brewData.tasting_notes || '';
+    reflections = brewData.reflections || '';
+  }
+
+  async function loadPrefillData() {
+    try {
+      loading = true;
+      const response = await apiClient.getPrefillData();
+      
+      if (response.data) {
+        const prefill = response.data;
+        machine_id = prefill.machine_id;
+        grinder_id = prefill.grinder_id;
+        bag_id = prefill.bag_id;
+        grind_setting = prefill.grind_setting || '';
+        dose_mg = prefill.dose_mg;
+      }
+    } catch (err) {
+      console.error('Failed to load prefill data:', err);
+      // Don't show error to user, just continue with empty form
+    } finally {
+      loading = false;
+    }
+  }
+
+  function calculateFields() {
+    // Calculate flow rate: yield_mg / (brew_time_ms / 1000)
+    if (yield_mg && brew_time_ms && brew_time_ms > 0) {
+      flow_rate_mg_per_s = yield_mg / (brew_time_ms / 1000);
+    } else {
+      flow_rate_mg_per_s = undefined;
+    }
+
+    // Calculate ratio: yield_mg / dose_mg
+    if (yield_mg && dose_mg && dose_mg > 0) {
+      ratio_dec = yield_mg / dose_mg;
+    } else {
+      ratio_dec = undefined;
+    }
+  }
+
+  function validateForm(): boolean {
+    validationErrors = {};
+
+    if (!machine_id) {
+      validationErrors.machine_id = 'Machine is required';
+    }
+    if (!grinder_id) {
+      validationErrors.grinder_id = 'Grinder is required';
+    }
+    if (!bag_id) {
+      validationErrors.bag_id = 'Bag is required';
+    }
+    if (!dose_mg || dose_mg <= 0) {
+      validationErrors.dose_mg = 'Dose must be greater than 0';
+    }
+    if (yield_mg !== undefined && yield_mg < 0) {
+      validationErrors.yield_mg = 'Yield cannot be negative';
+    }
+    if (brew_time_ms !== undefined && brew_time_ms < 0) {
+      validationErrors.brew_time_ms = 'Brew time cannot be negative';
+    }
+    if (rating !== undefined && (rating < 0 || rating > 10)) {
+      validationErrors.rating = 'Rating must be between 0 and 10';
+    }
+
+    return Object.keys(validationErrors).length === 0;
+  }
+
+  function handleSave() {
+    if (!validateForm()) {
+      error = 'Please fix validation errors';
+      return;
+    }
+
+    calculateFields();
+
+    const brewData: CreateBrewRequest = {
+      machine_id,
+      grinder_id,
+      bag_id,
+      name: name.trim() || undefined,
+      dose_mg,
+      yield_mg,
+      brew_time_ms,
+      grind_setting: grind_setting.trim() || undefined,
+      rating,
+      tasting_notes: tasting_notes.trim() || undefined,
+      reflections: reflections.trim() || undefined
+    };
+
+    dispatch('save', brewData);
+  }
+
+  function handleSaveDraft() {
+    if (!machine_id || !grinder_id || !bag_id || !dose_mg) {
+      error = 'Required fields: machine, grinder, bag, and dose';
+      return;
+    }
+
+    const brewData: CreateBrewRequest = {
+      machine_id,
+      grinder_id,
+      bag_id,
+      name: name.trim() || undefined,
+      dose_mg,
+      grind_setting: grind_setting.trim() || undefined,
+      // Include any output data that was entered
+      yield_mg,
+      brew_time_ms,
+      rating,
+      tasting_notes: tasting_notes.trim() || undefined,
+      reflections: reflections.trim() || undefined
+    };
+
+    dispatch('draft', brewData);
+  }
+
+  function handleCancel() {
+    dispatch('cancel');
+  }
+
+  // Reactive statement to recalculate when values change
+  $: if (yield_mg !== undefined || brew_time_ms !== undefined || dose_mg) {
+    calculateFields();
+  }
+</script>
+
+<div class="brew-form">
+  {#if error}
+    <div class="error-banner">{error}</div>
+  {/if}
+
+  <form on:submit|preventDefault={handleSave}>
+    <!-- Basic Information -->
+    <div class="form-section">
+      <h3>Basic Information</h3>
+      
+      <div class="form-group">
+        <label for="name">Brew Name (optional)</label>
+        <input
+          id="name"
+          type="text"
+          bind:value={name}
+          placeholder="e.g., Morning Shot"
+          disabled={loading}
+        />
+      </div>
+    </div>
+
+    <!-- Equipment Selection -->
+    <div class="form-section">
+      <h3>Equipment</h3>
+      
+      <div class="form-group">
+        <label for="machine">Machine *</label>
+        <MachineSelector bind:value={machine_id} disabled={loading} />
+        {#if validationErrors.machine_id}
+          <span class="error-text">{validationErrors.machine_id}</span>
+        {/if}
+      </div>
+
+      <div class="form-group">
+        <label for="grinder">Grinder *</label>
+        <GrinderSelector bind:value={grinder_id} disabled={loading} />
+        {#if validationErrors.grinder_id}
+          <span class="error-text">{validationErrors.grinder_id}</span>
+        {/if}
+      </div>
+
+      <div class="form-group">
+        <label for="bag">Coffee Bag *</label>
+        <BagSelector bind:value={bag_id} disabled={loading} />
+        {#if validationErrors.bag_id}
+          <span class="error-text">{validationErrors.bag_id}</span>
+        {/if}
+      </div>
+    </div>
+
+    <!-- Input Parameters -->
+    <div class="form-section">
+      <h3>Input Parameters</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="dose">Dose (mg) *</label>
+          <input
+            id="dose"
+            type="number"
+            bind:value={dose_mg}
+            step="100"
+            min="0"
+            placeholder="18000"
+            disabled={loading}
+            required
+          />
+          <small>{(dose_mg / 1000).toFixed(1)}g</small>
+          {#if validationErrors.dose_mg}
+            <span class="error-text">{validationErrors.dose_mg}</span>
+          {/if}
+        </div>
+
+        <div class="form-group">
+          <label for="grind_setting">Grind Setting</label>
+          <input
+            id="grind_setting"
+            type="text"
+            bind:value={grind_setting}
+            placeholder="e.g., 2.5"
+            disabled={loading}
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Output Measurements -->
+    <div class="form-section">
+      <h3>Output Measurements</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="yield">Yield (mg)</label>
+          <input
+            id="yield"
+            type="number"
+            bind:value={yield_mg}
+            step="100"
+            min="0"
+            placeholder="36000"
+            disabled={loading}
+          />
+          {#if yield_mg}
+            <small>{(yield_mg / 1000).toFixed(1)}g</small>
+          {/if}
+          {#if validationErrors.yield_mg}
+            <span class="error-text">{validationErrors.yield_mg}</span>
+          {/if}
+        </div>
+
+        <div class="form-group">
+          <label for="brew_time">Brew Time (ms)</label>
+          <input
+            id="brew_time"
+            type="number"
+            bind:value={brew_time_ms}
+            step="1000"
+            min="0"
+            placeholder="30000"
+            disabled={loading}
+          />
+          {#if brew_time_ms}
+            <small>{(brew_time_ms / 1000).toFixed(1)}s</small>
+          {/if}
+          {#if validationErrors.brew_time_ms}
+            <span class="error-text">{validationErrors.brew_time_ms}</span>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Calculated Fields Display -->
+      {#if ratio_dec || flow_rate_mg_per_s}
+        <div class="calculated-fields">
+          {#if ratio_dec}
+            <div class="calc-field">
+              <span class="label">Ratio:</span>
+              <span class="value">1:{ratio_dec.toFixed(2)}</span>
+            </div>
+          {/if}
+          {#if flow_rate_mg_per_s}
+            <div class="calc-field">
+              <span class="label">Flow Rate:</span>
+              <span class="value">{flow_rate_mg_per_s.toFixed(1)} mg/s</span>
+            </div>
+          {/if}
+        </div>
+      {/if}
+    </div>
+
+    <!-- Evaluation -->
+    <div class="form-section">
+      <h3>Evaluation</h3>
+      
+      <div class="form-group">
+        <label for="rating">Rating (0-10)</label>
+        <input
+          id="rating"
+          type="number"
+          bind:value={rating}
+          min="0"
+          max="10"
+          step="1"
+          placeholder="8"
+          disabled={loading}
+        />
+        {#if validationErrors.rating}
+          <span class="error-text">{validationErrors.rating}</span>
+        {/if}
+      </div>
+
+      <div class="form-group">
+        <label for="tasting_notes">Tasting Notes</label>
+        <textarea
+          id="tasting_notes"
+          bind:value={tasting_notes}
+          rows="3"
+          placeholder="Describe the flavors..."
+          disabled={loading}
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="reflections">Reflections</label>
+        <textarea
+          id="reflections"
+          bind:value={reflections}
+          rows="3"
+          placeholder="What worked? What would you change?"
+          disabled={loading}
+        />
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="button" on:click={handleCancel} class="btn-secondary" disabled={loading}>
+        Cancel
+      </button>
+      {#if !brew}
+        <button type="button" on:click={handleSaveDraft} class="btn-draft" disabled={loading}>
+          Save as Draft
+        </button>
+      {/if}
+      <button type="submit" class="btn-primary" disabled={loading}>
+        {loading ? 'Saving...' : (brew ? 'Save Changes' : 'Save Brew')}
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+  .brew-form {
+    width: 100%;
+  }
+
+  .error-banner {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-section h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.25rem;
+    border-bottom: 2px solid #e5e5e5;
+    padding-bottom: 0.5rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+
+  .form-group input:disabled,
+  .form-group textarea:disabled {
+    background: #f8f9fa;
+    cursor: not-allowed;
+  }
+
+  .form-group small {
+    color: #666;
+    font-size: 0.85rem;
+  }
+
+  .error-text {
+    color: #dc3545;
+    font-size: 0.85rem;
+  }
+
+  .calculated-fields {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem;
+    background: #e7f3ff;
+    border-radius: 0.5rem;
+    border: 1px solid #b3d9ff;
+  }
+
+  .calc-field {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .calc-field .label {
+    font-weight: 600;
+    color: #004085;
+  }
+
+  .calc-field .value {
+    color: #004085;
+    font-size: 1.1rem;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e5e5;
+  }
+
+  button {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+  }
+
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #0056b3;
+  }
+
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: #545b62;
+  }
+
+  .btn-draft {
+    background: #ffc107;
+    color: #333;
+  }
+
+  .btn-draft:hover:not(:disabled) {
+    background: #e0a800;
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+</style>

@@ -118,7 +118,7 @@ class ApiClient {
   async batchSyncBrews(drafts: BrewDraft[]): Promise<ApiResponse<Brew[]>> {
     return this.makeRequest<ApiResponse<Brew[]>>('/brews/batch-sync', {
       method: 'POST',
-      body: JSON.stringify({ drafts }),
+      body: JSON.stringify({ brews: drafts }),
     });
   }
 

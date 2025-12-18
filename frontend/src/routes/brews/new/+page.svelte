@@ -1,32 +1,128 @@
 <script lang="ts">
-  // New brew creation page
-  // This will be implemented in task 9 (Implement brew creation and editing workflows)
-  
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
-  import type { BrewDraft } from '@shared/types';
+  import BrewForm from '$lib/components/BrewForm.svelte';
+  import { apiClient } from '$lib/api-client';
+  import { OfflineStorage, ConnectivityManager } from '$lib/offline-storage';
+  import { syncService } from '$lib/sync-service';
+  import { barista } from '$lib/auth';
+  import type { CreateBrewRequest, BrewDraft } from '@shared/types';
   
   let prefillFromLast = false;
   let loading = false;
   let error: string | null = null;
+  let isOnline = true;
 
   onMount(() => {
     // Check if user wants to prefill from last brew
     const params = new URLSearchParams(window.location.search);
     prefillFromLast = params.get('prefill') === 'true';
+
+    // Set up connectivity monitoring
+    isOnline = ConnectivityManager.isOnline();
+    const cleanup = ConnectivityManager.addListener((online) => {
+      isOnline = online;
+      if (online) {
+        // Try to sync any pending drafts when coming back online
+        syncPendingDrafts();
+      }
+    });
+
+    return cleanup;
   });
 
-  async function handleSave(event: Event) {
-    event.preventDefault();
-    // Placeholder for save logic
-    // Will be implemented in task 9
+  async function syncPendingDrafts() {
+    try {
+      const result = await syncService.syncPendingDrafts();
+      if (result.success && result.syncedCount && result.syncedCount > 0) {
+        console.log(`Successfully synced ${result.syncedCount} drafts`);
+      }
+    } catch (err) {
+      console.error('Failed to sync pending drafts:', err);
+    }
   }
 
-  async function handleSaveDraft(event: Event) {
-    event.preventDefault();
-    // Placeholder for draft save logic
-    // Will be implemented in task 9
+  async function handleSave(event: CustomEvent<CreateBrewRequest>) {
+    const brewData = event.detail;
+    loading = true;
+    error = null;
+
+    try {
+      if (isOnline) {
+        // Save directly to server
+        const response = await apiClient.createBrew(brewData);
+        if (response.data) {
+          goto(`/brews/${response.data.id}`);
+        } else {
+          throw new Error('Failed to create brew');
+        }
+      } else {
+        // Save as draft offline
+        const currentBarista = $barista;
+        if (!currentBarista) {
+          throw new Error('No authenticated user');
+        }
+
+        const draft: BrewDraft = {
+          ...brewData,
+          barista_id: currentBarista.id,
+          created_at: new Date().toISOString()
+        };
+
+        const draftId = await OfflineStorage.saveDraft(draft);
+        goto(`/brews/drafts`);
+      }
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to save brew';
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleSaveDraft(event: CustomEvent<CreateBrewRequest>) {
+    const brewData = event.detail;
+    loading = true;
+    error = null;
+
+    try {
+      const currentBarista = $barista;
+      if (!currentBarista) {
+        throw new Error('No authenticated user');
+      }
+
+      const draft: BrewDraft = {
+        ...brewData,
+        barista_id: currentBarista.id,
+        created_at: new Date().toISOString()
+      };
+
+      if (isOnline) {
+        // Try to save as draft on server first
+        try {
+          const response = await apiClient.createBrew(draft);
+          if (response.data) {
+            goto(`/brews/${response.data.id}`);
+            return;
+          }
+        } catch (serverError) {
+          // If server fails, fall back to offline storage
+          console.warn('Server draft save failed, saving offline:', serverError);
+        }
+      }
+
+      // Save offline
+      const draftId = await OfflineStorage.saveDraft(draft);
+      goto('/brews/drafts');
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to save draft';
+    } finally {
+      loading = false;
+    }
+  }
+
+  function handleCancel() {
+    goto('/brews');
   }
 </script>
 
@@ -48,21 +144,18 @@
       </div>
     {/if}
 
-    <form on:submit={handleSave}>
-      <div class="form-placeholder">
-        <p>Brew form will be implemented in task 8 (Implement core UI components)</p>
-        <p>This page structure is ready for the BrewForm component.</p>
+    {#if !isOnline}
+      <div class="offline-banner">
+        <strong>Offline Mode:</strong> Your brew will be saved locally and synced when you're back online.
       </div>
+    {/if}
 
-      <div class="form-actions">
-        <button type="button" on:click={handleSaveDraft} class="btn-secondary">
-          Save as Draft
-        </button>
-        <button type="submit" class="btn-primary">
-          Save Brew
-        </button>
-      </div>
-    </form>
+    <BrewForm 
+      {prefillFromLast}
+      on:save={handleSave}
+      on:draft={handleSaveDraft}
+      on:cancel={handleCancel}
+    />
 
     {#if error}
       <div class="error">{error}</div>
@@ -115,46 +208,13 @@
     padding: 2rem;
   }
 
-  .form-placeholder {
-    padding: 2rem;
-    text-align: center;
-    color: #666;
-    background: #f8f9fa;
+  .offline-banner {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
     border-radius: 0.5rem;
-    margin-bottom: 2rem;
-  }
-
-  .form-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-  }
-
-  button {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 0.5rem;
-    font-weight: 500;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-
-  .btn-primary {
-    background: #007bff;
-    color: white;
-  }
-
-  .btn-primary:hover {
-    background: #0056b3;
-  }
-
-  .btn-secondary {
-    background: #6c757d;
-    color: white;
-  }
-
-  .btn-secondary:hover {
-    background: #545b62;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    color: #856404;
   }
 
   .error {
