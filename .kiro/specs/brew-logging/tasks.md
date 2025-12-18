@@ -71,7 +71,7 @@
 - [x] 5. Checkpoint - Ensure all backend tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [-] 6. Set up frontend project structure
+- [x] 6. Set up frontend project structure
   - Initialize SvelteKit project with TypeScript configuration
   - Set up Supabase client for frontend authentication and data access
   - Create shared TypeScript interfaces matching backend models
@@ -79,7 +79,7 @@
   - Configure routing structure for brew management pages
   - _Requirements: 8.1, 5.2_
 
-- [ ] 7. Implement authentication and barista management
+- [x] 7. Implement authentication and barista management
   - Create authentication service using Supabase Auth
   - Implement barista profile resolution from JWT tokens
   - Create login/logout components and flows
@@ -87,7 +87,7 @@
   - Create barista profile display and management components
   - _Requirements: 9.5, 7.5_
 
-- [ ] 8. Implement core UI components
+- [-] 8. Implement core UI components
   - Create BrewForm component with validation and pre-fill functionality
   - Create BrewList component with chronological ordering and filtering
   - Create AwaitingReflection component for incomplete brews

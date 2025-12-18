@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { browser } from '$app/environment';
 
-const supabaseUrl = 'https://your-project.supabase.co'; // Will be replaced with actual URL
-const supabaseAnonKey = 'your-anon-key'; // Will be replaced with actual key
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
 // Create Supabase client for frontend
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -12,6 +12,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true
   }
 });
+
+// Legacy helper functions - use authService instead for new code
+// These are kept for backward compatibility
 
 // Helper function to get current user's barista profile
 export async function getCurrentBarista() {
