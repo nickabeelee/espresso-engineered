@@ -75,8 +75,7 @@ class AuthService {
           }
 
           const userId = currentSession.user.id;
-          const shouldReloadProfile = event === 'SIGNED_IN'
-            || event === 'INITIAL_SESSION'
+          const shouldReloadProfile = event === 'INITIAL_SESSION'
             || event === 'USER_UPDATED'
             || this.profileUserId !== userId
             || !this.getCurrentBarista();
