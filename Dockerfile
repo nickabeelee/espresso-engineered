@@ -1,5 +1,5 @@
 # Multi-stage build for production (root context)
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN npm run build --prefix backend \
   && npm prune --omit=dev --prefix backend
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 WORKDIR /app
 
