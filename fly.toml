@@ -1,4 +1,4 @@
-app = "espresso-engineered-backend"
+app = "espresso-engineered"
 primary_region = "iad"
 
 [build]
