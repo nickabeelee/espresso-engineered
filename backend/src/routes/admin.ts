@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authenticateRequest } from '../middleware/auth.js';
 import { requireAdminAccess, AdminRequest } from '../middleware/admin.js';
 import { AdminRepository } from '../repositories/admin.js';
-import { validateSchema, updateBrewSchema } from '../validation/schemas.js';
+import { validateSchema, updateBrewSchema, nameOverrideSchema } from '../validation/schemas.js';
 import { handleRouteError, isNotFoundError, isValidationError } from '../utils/error-helpers.js';
 import type { BrewFilters } from '../types/index.js';
 
@@ -237,6 +237,61 @@ export async function adminRoutes(fastify: FastifyInstance) {
       }
       request.log.error(error);
       return handleRouteError(error, reply, 'delete admin bag');
+    }
+  });
+
+  // Admin name override endpoints
+  fastify.put('/api/admin/bags/:id/name', {
+    preHandler: [authenticateRequest, requireAdminAccess]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const overrideData = validateSchema(nameOverrideSchema, request.body);
+
+      const bag = await adminRepository.overrideBagName(id, overrideData.name, overrideData.reason);
+      return { data: bag };
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Bag not found'
+        });
+      }
+      if (isValidationError(error)) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: (error as Error).message
+        });
+      }
+      request.log.error(error);
+      return handleRouteError(error, reply, 'override bag name');
+    }
+  });
+
+  fastify.put('/api/admin/brews/:id/name', {
+    preHandler: [authenticateRequest, requireAdminAccess]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const overrideData = validateSchema(nameOverrideSchema, request.body);
+
+      const brew = await adminRepository.overrideBrewName(id, overrideData.name, overrideData.reason);
+      return { data: brew };
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Brew not found'
+        });
+      }
+      if (isValidationError(error)) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: (error as Error).message
+        });
+      }
+      request.log.error(error);
+      return handleRouteError(error, reply, 'override brew name');
     }
   });
 

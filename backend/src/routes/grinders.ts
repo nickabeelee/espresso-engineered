@@ -9,6 +9,20 @@ import { uploadImage, deleteImage, replaceImage } from '../utils/image-upload.js
 
 const grinderRepository = new GrinderRepository();
 
+function mapGrinderToApi(grinder: any) {
+  const { name, ...rest } = grinder;
+  return { ...rest, model: name };
+}
+
+function mapGrinderToDb(grinder: CreateGrinderRequest) {
+  return {
+    name: grinder.model,
+    manufacturer: grinder.manufacturer,
+    setting_guide_chart_url: grinder.setting_guide_chart_url,
+    image_path: grinder.image_path
+  };
+}
+
 export async function grinderRoutes(fastify: FastifyInstance) {
   // GET /api/grinders - List all grinders (authenticated access)
   fastify.get('/api/grinders', {
@@ -30,7 +44,7 @@ export async function grinderRoutes(fastify: FastifyInstance) {
       }
 
       return {
-        data: grinders,
+        data: grinders.map(mapGrinderToApi),
         count: grinders.length
       };
     } catch (error) {
@@ -51,7 +65,7 @@ export async function grinderRoutes(fastify: FastifyInstance) {
       
       const grinder = await grinderRepository.findById(id);
       
-      return { data: grinder };
+      return { data: mapGrinderToApi(grinder) };
     } catch (error) {
       request.log.error(error);
       return handleRouteError(error, reply, 'fetch grinder');
@@ -65,9 +79,10 @@ export async function grinderRoutes(fastify: FastifyInstance) {
     try {
       const authRequest = request as AuthenticatedRequest;
       const grinderData = validateSchema(createGrinderSchema, request.body) as CreateGrinderRequest;
+      const grinderInsert = mapGrinderToDb(grinderData);
 
       // Check if grinder name already exists
-      const exists = await grinderRepository.existsByName(grinderData.name);
+      const exists = await grinderRepository.existsByName(grinderInsert.name);
       if (exists) {
         return reply.status(409).send({
           error: 'Conflict',
@@ -75,9 +90,9 @@ export async function grinderRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const grinder = await grinderRepository.create(grinderData);
+      const grinder = await grinderRepository.create(grinderInsert);
       
-      return reply.status(201).send({ data: grinder });
+      return reply.status(201).send({ data: mapGrinderToApi(grinder) });
     } catch (error) {
       request.log.error(error);
       return handleRouteError(error, reply, 'create grinder');
@@ -90,11 +105,17 @@ export async function grinderRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      const grinderData = validateSchema(createGrinderSchema.partial(), request.body);
+      const grinderData = validateSchema(createGrinderSchema.partial(), request.body) as Partial<CreateGrinderRequest>;
+      const updateData = grinderData.model
+        ? { ...grinderData, name: grinderData.model }
+        : grinderData;
+      if ('model' in updateData) {
+        delete (updateData as any).model;
+      }
 
       // Check if new name conflicts with existing grinder
-      if (grinderData.name) {
-        const exists = await grinderRepository.existsByName(grinderData.name, id);
+      if ((updateData as any).name) {
+        const exists = await grinderRepository.existsByName((updateData as any).name, id);
         if (exists) {
           return reply.status(409).send({
             error: 'Conflict',
@@ -103,9 +124,9 @@ export async function grinderRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const grinder = await grinderRepository.update(id, grinderData);
+      const grinder = await grinderRepository.update(id, updateData);
       
-      return { data: grinder };
+      return { data: mapGrinderToApi(grinder) };
     } catch (error) {
       request.log.error(error);
       return handleRouteError(error, reply, 'update grinder');
@@ -185,7 +206,7 @@ export async function grinderRoutes(fastify: FastifyInstance) {
       });
 
       return {
-        data: updatedGrinder,
+        data: mapGrinderToApi(updatedGrinder),
         image_url: uploadResult.publicUrl
       };
     } catch (error) {
@@ -219,7 +240,7 @@ export async function grinderRoutes(fastify: FastifyInstance) {
         image_path: undefined
       });
 
-      return { data: updatedGrinder };
+      return { data: mapGrinderToApi(updatedGrinder) };
     } catch (error) {
       request.log.error(error);
       return handleRouteError(error, reply, 'delete grinder image');

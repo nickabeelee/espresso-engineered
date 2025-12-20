@@ -4,6 +4,7 @@ import { authenticateRequest, AuthenticatedRequest } from '../middleware/auth.js
 import { validateSchema, createBagSchema } from '../validation/schemas.js';
 import { CreateBagRequest } from '../types/index.js';
 import { handleRouteError, isNotFoundError, isConflictError } from '../utils/error-helpers.js';
+import { namingService, NamingError } from '../services/naming.js';
 
 const bagRepository = new BagRepository();
 const beanRepository = new BeanRepository();
@@ -66,6 +67,62 @@ export async function bagRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // POST /api/bags/preview-name - Preview bag name (authenticated)
+  fastify.post('/api/bags/preview-name', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const authRequest = request as AuthenticatedRequest;
+      const { bean_id, roast_date } = request.body as { bean_id: string; roast_date?: string };
+
+      if (!bean_id) {
+        return reply.status(400).send({
+          error: 'Validation Error',
+          message: 'bean_id is required for name preview'
+        });
+      }
+
+      // Validate that bean exists
+      try {
+        await beanRepository.findById(bean_id);
+      } catch (error) {
+        return reply.status(400).send({
+          error: 'Validation Error',
+          message: 'Referenced bean does not exist'
+        });
+      }
+
+      // Generate preview name
+      try {
+        const previewName = await namingService.generateBagName(
+          authRequest.barista!.id,
+          bean_id,
+          roast_date
+        );
+        
+        return { data: { name: previewName } };
+      } catch (error) {
+        request.log.warn({ error }, 'Failed to generate bag name preview');
+        
+        if (error instanceof NamingError) {
+          request.log.warn({
+            entityType: error.entityType,
+            entityId: error.entityId,
+            cause: error.cause?.message
+          }, `Naming error for bag preview: ${error.message}`);
+        }
+        
+        return reply.status(500).send({
+          error: 'Naming Error',
+          message: 'Failed to generate name preview'
+        });
+      }
+    } catch (error) {
+      request.log.error(error);
+      return handleRouteError(error, reply, 'preview bag name');
+    }
+  });
+
   // POST /api/bags - Create new bag (authenticated)
   fastify.post('/api/bags', {
     preHandler: authenticateRequest
@@ -84,8 +141,37 @@ export async function bagRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // Create bag with ownership set to current barista
-      const bag = await bagRepository.create(bagData, authRequest.barista!.id);
+      // Generate automatic name before database insertion
+      let generatedName: string | undefined = undefined;
+      try {
+        generatedName = await namingService.generateBagName(
+          authRequest.barista!.id,
+          bagData.bean_id,
+          bagData.roast_date
+        );
+      } catch (error) {
+        // Log naming failure but continue with creation
+        request.log.warn({ error }, 'Failed to generate bag name');
+        
+        if (error instanceof NamingError) {
+          request.log.warn({
+            entityType: error.entityType,
+            entityId: error.entityId,
+            cause: error.cause?.message
+          }, `Naming error for bag creation: ${error.message}`);
+        }
+        
+        // Set name to undefined if naming fails completely
+        generatedName = undefined;
+      }
+
+      // Create bag with generated name and ownership set to current barista
+      const bagDataWithName = {
+        ...bagData,
+        name: generatedName
+      };
+      
+      const bag = await bagRepository.create(bagDataWithName, authRequest.barista!.id);
       
       // Fetch the created bag with details
       const bagWithDetails = await bagRepository.findByIdWithDetails(bag.id, authRequest.barista!.id);

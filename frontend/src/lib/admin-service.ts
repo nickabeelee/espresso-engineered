@@ -102,6 +102,19 @@ export class AdminService {
   }
 
   /**
+   * Name override operations
+   */
+  async overrideBagName(id: string, name: string, reason?: string): Promise<Bag> {
+    const response = await apiClient.put(`/api/admin/bags/${id}/name`, { name, reason });
+    return response.data;
+  }
+
+  async overrideBrewName(id: string, name: string, reason?: string): Promise<Brew> {
+    const response = await apiClient.put(`/api/admin/brews/${id}/name`, { name, reason });
+    return response.data;
+  }
+
+  /**
    * Grinder management
    */
   async getAllGrinders(): Promise<Grinder[]> {

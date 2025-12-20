@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { authStore } from '../auth.js';
+  import { user } from '../auth.js';
   import { apiClient } from '../api-client.js';
 
   let isAdmin = false;
@@ -11,7 +11,7 @@
   onMount(async () => {
     try {
       // Check if user is authenticated
-      if (!$authStore.user) {
+      if (!$user) {
         goto('/auth');
         return;
       }

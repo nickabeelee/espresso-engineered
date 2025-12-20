@@ -9,6 +9,20 @@ import { uploadImage, deleteImage, replaceImage } from '../utils/image-upload.js
 
 const machineRepository = new MachineRepository();
 
+function mapMachineToApi(machine: any) {
+  const { name, ...rest } = machine;
+  return { ...rest, model: name };
+}
+
+function mapMachineToDb(machine: CreateMachineRequest) {
+  return {
+    name: machine.model,
+    manufacturer: machine.manufacturer,
+    user_manual_link: machine.user_manual_link,
+    image_path: machine.image_path
+  };
+}
+
 export async function machineRoutes(fastify: FastifyInstance) {
   // GET /api/machines - List all machines (authenticated access)
   fastify.get('/api/machines', {
@@ -30,7 +44,7 @@ export async function machineRoutes(fastify: FastifyInstance) {
       }
 
       return {
-        data: machines,
+        data: machines.map(mapMachineToApi),
         count: machines.length
       };
     } catch (error) {
@@ -51,7 +65,7 @@ export async function machineRoutes(fastify: FastifyInstance) {
       
       const machine = await machineRepository.findById(id);
       
-      return { data: machine };
+      return { data: mapMachineToApi(machine) };
     } catch (error) {
       request.log.error(error);
       return handleRouteError(error, reply, 'fetch machine');
@@ -65,9 +79,10 @@ export async function machineRoutes(fastify: FastifyInstance) {
     try {
       const authRequest = request as AuthenticatedRequest;
       const machineData = validateSchema(createMachineSchema, request.body) as CreateMachineRequest;
+      const machineInsert = mapMachineToDb(machineData);
 
       // Check if machine name already exists
-      const exists = await machineRepository.existsByName(machineData.name);
+      const exists = await machineRepository.existsByName(machineInsert.name);
       if (exists) {
         return reply.status(409).send({
           error: 'Conflict',
@@ -75,9 +90,9 @@ export async function machineRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const machine = await machineRepository.create(machineData);
+      const machine = await machineRepository.create(machineInsert);
       
-      return reply.status(201).send({ data: machine });
+      return reply.status(201).send({ data: mapMachineToApi(machine) });
     } catch (error) {
       request.log.error(error);
       return handleRouteError(error, reply, 'create machine');
@@ -90,11 +105,17 @@ export async function machineRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      const machineData = validateSchema(createMachineSchema.partial(), request.body);
+      const machineData = validateSchema(createMachineSchema.partial(), request.body) as Partial<CreateMachineRequest>;
+      const updateData = machineData.model
+        ? { ...machineData, name: machineData.model }
+        : machineData;
+      if ('model' in updateData) {
+        delete (updateData as any).model;
+      }
 
       // Check if new name conflicts with existing machine
-      if (machineData.name) {
-        const exists = await machineRepository.existsByName(machineData.name, id);
+      if ((updateData as any).name) {
+        const exists = await machineRepository.existsByName((updateData as any).name, id);
         if (exists) {
           return reply.status(409).send({
             error: 'Conflict',
@@ -103,9 +124,9 @@ export async function machineRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const machine = await machineRepository.update(id, machineData);
+      const machine = await machineRepository.update(id, updateData);
       
-      return { data: machine };
+      return { data: mapMachineToApi(machine) };
     } catch (error) {
       request.log.error(error);
       return handleRouteError(error, reply, 'update machine');
@@ -185,7 +206,7 @@ export async function machineRoutes(fastify: FastifyInstance) {
       });
 
       return {
-        data: updatedMachine,
+        data: mapMachineToApi(updatedMachine),
         image_url: uploadResult.publicUrl
       };
     } catch (error) {
@@ -219,7 +240,7 @@ export async function machineRoutes(fastify: FastifyInstance) {
         image_path: undefined
       });
 
-      return { data: updatedMachine };
+      return { data: mapMachineToApi(updatedMachine) };
     } catch (error) {
       request.log.error(error);
       return handleRouteError(error, reply, 'delete machine image');

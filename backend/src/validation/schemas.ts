@@ -53,15 +53,15 @@ export const createBagSchema = z.object({
 });
 
 export const createGrinderSchema = z.object({
-  name: z.string().min(1).max(255),
-  manufacturer: z.string().max(100).optional(),
+  manufacturer: z.string().min(1).max(100),
+  model: z.string().min(1).max(255),
   image_path: z.string().max(500).optional(),
   setting_guide_chart_url: z.string().url().optional()
 });
 
 export const createMachineSchema = z.object({
-  name: z.string().min(1).max(255),
-  manufacturer: z.string().max(100).optional(),
+  manufacturer: z.string().min(1).max(100),
+  model: z.string().min(1).max(255),
   user_manual_link: z.string().url().optional(),
   image_path: z.string().max(500).optional()
 });
@@ -95,6 +95,12 @@ export const paginationSchema = z.object({
 // Batch operations
 export const batchSyncSchema = z.object({
   brews: z.array(createBrewSchema).max(50) // Limit batch size
+});
+
+// Name override schemas
+export const nameOverrideSchema = z.object({
+  name: z.string().min(1, 'Name cannot be empty').max(255, 'Name too long'),
+  reason: z.string().max(500, 'Reason too long').optional()
 });
 
 // Validation helper function

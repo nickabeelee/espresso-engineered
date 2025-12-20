@@ -522,6 +522,91 @@ export class AdminRepository {
   }
 
   /**
+   * Override bag name (admin only)
+   */
+  async overrideBagName(id: string, name: string, reason?: string): Promise<Bag> {
+    const updateData = {
+      name,
+      modified_at: new Date().toISOString()
+    };
+
+    const { data: updated, error } = await supabase
+      .from('bag')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new NotFoundError(`Bag with id ${id} not found`);
+      }
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    // Log the override action for audit trail
+    await this.logNameOverride('bag', id, name, reason);
+
+    return updated as Bag;
+  }
+
+  /**
+   * Override brew name (admin only)
+   */
+  async overrideBrewName(id: string, name: string, reason?: string): Promise<Brew> {
+    const updateData = {
+      name,
+      modified_at: new Date().toISOString()
+    };
+
+    const { data: updated, error } = await supabase
+      .from('brew')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new NotFoundError(`Brew with id ${id} not found`);
+      }
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    // Log the override action for audit trail
+    await this.logNameOverride('brew', id, name, reason);
+
+    return updated as Brew;
+  }
+
+  /**
+   * Log name override action for audit trail
+   */
+  private async logNameOverride(entityType: 'bag' | 'brew', entityId: string, newName: string, reason?: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('admin_action_log')
+        .insert({
+          action_type: 'name_override',
+          entity_type: entityType,
+          entity_id: entityId,
+          details: {
+            new_name: newName,
+            reason: reason || 'No reason provided'
+          }
+        });
+
+      if (error) {
+        // Log the error but don't fail the main operation
+        console.error('Failed to log name override action:', error);
+      }
+    } catch (err) {
+      // Log the error but don't fail the main operation
+      console.error('Failed to log name override action:', err);
+    }
+  }
+
+  /**
    * Get content moderation dashboard data
    */
   async getModerationDashboard(): Promise<{

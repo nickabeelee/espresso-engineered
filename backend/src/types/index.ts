@@ -137,15 +137,15 @@ export interface CreateBagRequest {
 }
 
 export interface CreateGrinderRequest {
-  name: string;
-  manufacturer?: string;
+  manufacturer: string;
+  model: string;
   image_path?: string;
   setting_guide_chart_url?: string;
 }
 
 export interface CreateMachineRequest {
-  name: string;
-  manufacturer?: string;
+  manufacturer: string;
+  model: string;
   user_manual_link?: string;
   image_path?: string;
 }
@@ -188,4 +188,44 @@ export interface PaginationParams {
   limit?: number;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
+}
+
+// Naming service types
+export interface NamingContext {
+  baristaDisplayName: string;
+  baristaFirstName?: string;
+  beanName: string;
+  roastDate?: string;
+  createdAt: Date;
+  timezone?: string;
+}
+
+export interface BagNamingContext {
+  ownerDisplayName: string;
+  ownerFirstName?: string;
+  beanName: string;
+  roastDate?: string;
+}
+
+export interface BrewNamingContext {
+  baristaDisplayName: string;
+  baristaFirstName?: string;
+  beanName: string;
+  createdAt: Date;
+  timezone?: string;
+}
+
+export interface NameTemplate {
+  pattern: string;
+  fallbacks: Record<string, string>;
+}
+
+export interface NamingServiceConfig {
+  bagTemplate: NameTemplate;
+  brewTemplate: NameTemplate;
+  dateFormat: string;
+  timeFormat: string;
+  defaultTimezone: string;
+  maxRetries: number;
+  timeoutMs: number;
 }
