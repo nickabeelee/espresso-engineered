@@ -22,7 +22,7 @@ import type {
 } from '@shared/types';
 
 // API base URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 class ApiClient {
   private async makeRequest<T>(

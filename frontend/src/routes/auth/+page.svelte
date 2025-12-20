@@ -2,8 +2,8 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
-  import { authService, isAuthenticated } from '$lib/auth';
-  import AuthGuard from '$lib/components/AuthGuard.svelte';
+  import { authService, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
+
   
   let mode = 'login';
   let email = '';
@@ -20,13 +20,29 @@
   $: returnTo = $page.url.searchParams.get('returnTo') || '/brews';
 
   onMount(async () => {
+    console.log('Auth page: Initializing auth service...');
     await authService.initialize();
+    console.log('Auth page: Auth service initialized');
   });
 
-  // Redirect if already authenticated
-  $: if ($isAuthenticated) {
-    goto(returnTo);
-  }
+  // Handle authentication state changes with subscription
+  let authSubscription: (() => void) | null = null;
+  
+  onMount(() => {
+    // Subscribe to auth state changes directly
+    authSubscription = isAuthenticated.subscribe((authenticated) => {
+      if (authenticated && !$isLoading) {
+        console.log('User authenticated via subscription, redirecting to:', returnTo);
+        goto(returnTo);
+      }
+    });
+    
+    return () => {
+      if (authSubscription) {
+        authSubscription();
+      }
+    };
+  });
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -37,16 +53,24 @@
     try {
       if (mode === 'login') {
         await authService.signIn(email, password);
-        // Redirect will be handled by auth state change
+        console.log('Sign in successful, auth state will trigger redirect...');
       } else if (mode === 'signup') {
         if (password !== confirmPassword) {
           throw new Error('Passwords do not match');
         }
 
+        const trimmedFirst = firstName.trim();
+        const trimmedLast = lastName.trim();
+        const trimmedDisplay = displayName.trim();
+        const emailName = email.split('@')[0];
+
+        // Supabase trigger that creates barista rows expects non-null names
         const metadata = {
-          first_name: firstName.trim() || undefined,
-          last_name: lastName.trim() || undefined,
-          display_name: displayName.trim() || undefined
+          first_name: trimmedFirst,
+          last_name: trimmedLast,
+          display_name: trimmedDisplay || (trimmedFirst && trimmedLast
+            ? `${trimmedFirst} ${trimmedLast}`
+            : trimmedFirst || trimmedLast || emailName)
         };
 
         await authService.signUp(email, password, metadata);
@@ -81,13 +105,22 @@
   <meta name="description" content="Sign in to your Espresso Engineered account" />
 </svelte:head>
 
-<AuthGuard requireAuth={false}>
-  <div class="auth-page">
+<div class="auth-page">
     <div class="auth-container">
       <div class="auth-header">
         <h1>Espresso Engineered</h1>
         <p>Community-driven espresso brewing companion</p>
       </div>
+
+      {#if $authStatus === 'profile_missing'}
+        <div class="error">
+          We couldn't find your barista profile. Try signing out and back in.
+        </div>
+      {:else if $authStatus === 'error' && $authError}
+        <div class="error">
+          {$authError}
+        </div>
+      {/if}
 
       <form on:submit={handleSubmit} class="auth-form">
         <h2>
@@ -148,6 +181,7 @@
                 id="firstName"
                 type="text"
                 bind:value={firstName}
+                required
                 disabled={loading}
                 placeholder="Your first name"
               />
@@ -158,6 +192,7 @@
                 id="lastName"
                 type="text"
                 bind:value={lastName}
+                required
                 disabled={loading}
                 placeholder="Your last name"
               />
@@ -229,7 +264,6 @@
       </form>
     </div>
   </div>
-</AuthGuard>
 
 <style>
   .auth-page {

@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
-  import { authService, isAuthenticated, isLoading } from '$lib/auth';
+  import { authService, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
 
   export let redirectTo = '/auth';
   export let requireAuth = true;
@@ -16,7 +16,7 @@
   });
 
   // Reactive statement to handle redirects
-  $: if (mounted && !$isLoading) {
+  $: if (mounted && !$isLoading && $authStatus !== 'profile_missing' && $authStatus !== 'error') {
     if (requireAuth && !$isAuthenticated) {
       // Store the current path to redirect back after login
       const returnPath = $page.url.pathname + $page.url.search;
@@ -27,12 +27,37 @@
       goto('/brews');
     }
   }
+
+  async function handleRetry() {
+    await authService.reloadProfile();
+  }
+
+  async function handleSignOut() {
+    await authService.signOut();
+    goto('/auth');
+  }
 </script>
 
 {#if $isLoading}
   <div class="auth-guard-loading">
     <div class="loading-spinner"></div>
     <p>Checking authentication...</p>
+  </div>
+{:else if $authStatus === 'profile_missing'}
+  <div class="auth-guard-loading">
+    <p>We couldn't find your barista profile.</p>
+    <div class="auth-guard-actions">
+      <button on:click={handleRetry}>Retry</button>
+      <button on:click={handleSignOut}>Sign out</button>
+    </div>
+  </div>
+{:else if $authStatus === 'error'}
+  <div class="auth-guard-loading">
+    <p>{ $authError || 'Authentication failed. Please try again.' }</p>
+    <div class="auth-guard-actions">
+      <button on:click={handleRetry}>Retry</button>
+      <button on:click={handleSignOut}>Sign out</button>
+    </div>
   </div>
 {:else if requireAuth && !$isAuthenticated}
   <!-- Will redirect, show loading state -->
@@ -78,5 +103,23 @@
   .auth-guard-loading p {
     color: #666;
     font-size: 1.1rem;
+  }
+
+  .auth-guard-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .auth-guard-actions button {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 0.9rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+  }
+
+  .auth-guard-actions button:first-child {
+    background: #007bff;
   }
 </style>

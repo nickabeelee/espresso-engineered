@@ -53,7 +53,7 @@
       formData.append('file', file);
       
       const token = await getAuthToken();
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
       
       const response = await fetch(`${apiBaseUrl}/api/${entityType}s/${entityId}/image`, {
         method: 'POST',
@@ -88,7 +88,7 @@
     
     try {
       const token = await getAuthToken();
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
       
       const response = await fetch(`${apiBaseUrl}/api/${entityType}s/${entityId}/image`, {
         method: 'DELETE',

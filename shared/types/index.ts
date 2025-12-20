@@ -6,6 +6,7 @@ export type RoastLevel = 'Light' | 'Medium Light' | 'Medium' | 'Medium Dark' | '
 export interface Barista {
   id: string; // Primary key used throughout the app (maps to auth.users via FK)
   created_at: string;
+  email?: string;
   first_name: string;
   last_name: string;
   display_name: string;

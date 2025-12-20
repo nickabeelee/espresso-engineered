@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
-import { authService, user, session, barista, isAuthenticated } from './auth';
+import { authService, user, session, barista, authStatus, authError, isAuthenticated } from './auth';
 
 // Mock Supabase
 vi.mock('./supabase', () => ({
@@ -19,7 +19,7 @@ vi.mock('./supabase', () => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
-          single: vi.fn()
+          maybeSingle: vi.fn()
         }))
       })),
       update: vi.fn(() => ({
@@ -40,6 +40,8 @@ describe('AuthService', () => {
     user.set(null);
     session.set(null);
     barista.set(null);
+    authStatus.set('unauthenticated');
+    authError.set(null);
   });
 
   describe('stores', () => {
@@ -56,6 +58,7 @@ describe('AuthService', () => {
 
       user.set(mockUser);
       barista.set(mockBarista);
+      authStatus.set('authenticated');
 
       expect(get(isAuthenticated)).toBe(true);
     });
@@ -63,6 +66,7 @@ describe('AuthService', () => {
     it('should not be authenticated with only user', () => {
       const mockUser = { id: 'user-1', email: 'test@example.com' } as any;
       user.set(mockUser);
+      authStatus.set('authenticated');
 
       expect(get(isAuthenticated)).toBe(false);
     });
@@ -70,6 +74,7 @@ describe('AuthService', () => {
     it('should not be authenticated with only barista', () => {
       const mockBarista = { id: 'user-1', first_name: 'Test', last_name: 'User' } as any;
       barista.set(mockBarista);
+      authStatus.set('authenticated');
 
       expect(get(isAuthenticated)).toBe(false);
     });

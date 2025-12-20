@@ -4,82 +4,174 @@ import { supabase } from './supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import type { Barista } from '@shared/types';
 
+export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'profile_missing' | 'error';
+
 // Auth state stores
 export const user = writable<User | null>(null);
 export const session = writable<Session | null>(null);
 export const barista = writable<Barista | null>(null);
-export const loading = writable(true);
+export const authStatus = writable<AuthStatus>('loading');
+export const authError = writable<string | null>(null);
 
 // Derived stores for convenience
 export const isAuthenticated: Readable<boolean> = derived(
-  [user, barista],
-  ([$user, $barista]) => !!$user && !!$barista
+  [user, barista, authStatus],
+  ([$user, $barista, $status]) => $status === 'authenticated' && !!$user && !!$barista
 );
 
-export const isLoading: Readable<boolean> = derived(loading, ($loading) => $loading);
+export const isLoading: Readable<boolean> = derived(authStatus, ($status) => $status === 'loading');
 
 // Authentication service class
 class AuthService {
   private initialized = false;
+  private initializing: Promise<(() => void) | void> | null = null;
+  private profileLoadPromise: Promise<AuthStatus> | null = null;
+  private profileUserId: string | null = null;
 
   async initialize() {
     if (this.initialized || !browser) return;
+    if (this.initializing) {
+      return this.initializing;
+    }
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('Auth state changed:', event, newSession?.user?.id);
-        
-        session.set(newSession);
-        user.set(newSession?.user ?? null);
+    this.initializing = (async () => {
+      let unsubscribe: (() => void) | null = null;
+      const loadingTimeout = setTimeout(() => {
+        console.warn('Auth initialization timed out.');
+        authStatus.set('error');
+        authError.set('Auth initialization timed out. Please refresh and try again.');
+      }, 8000);
 
-        if (newSession?.user) {
-          // User is signed in, fetch barista profile
-          await this.loadBaristaProfile(newSession.user.id);
-        } else {
-          // User is signed out
-          barista.set(null);
+      try {
+        authStatus.set('loading');
+        authError.set(null);
+
+        const applySession = async (currentSession: Session | null, event?: string) => {
+          session.set(currentSession);
+          user.set(currentSession?.user ?? null);
+
+          if (!currentSession?.user) {
+            barista.set(null);
+            this.profileUserId = null;
+            this.profileLoadPromise = null;
+            authStatus.set('unauthenticated');
+            authError.set(null);
+            return;
+          }
+
+          const userId = currentSession.user.id;
+          const shouldReloadProfile = event === 'SIGNED_IN'
+            || event === 'INITIAL_SESSION'
+            || event === 'USER_UPDATED'
+            || this.profileUserId !== userId
+            || !this.getCurrentBarista();
+
+          if (event === 'TOKEN_REFRESHED' && !shouldReloadProfile) {
+            authStatus.set('authenticated');
+            return;
+          }
+
+          authStatus.set('loading');
+          const timeoutMs = event === 'SIGNED_IN' ? 15000 : 8000;
+          const status = await this.loadBaristaProfile(userId, timeoutMs);
+          authStatus.set(status);
+        };
+
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, newSession) => {
+            console.log('Auth state changed:', event, newSession?.user?.id);
+            await applySession(newSession ?? null, event);
+          }
+        );
+        unsubscribe = () => subscription.unsubscribe();
+
+        // Check initial session
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Failed to fetch initial session:', error);
+          authStatus.set('error');
+          authError.set('Unable to read auth session. Please refresh and try again.');
+          return;
         }
 
-        loading.set(false);
+        await applySession(initialSession ?? null, 'INITIAL_SESSION');
+      } catch (err) {
+        console.error('Auth initialization failed:', err);
+        authStatus.set('error');
+        authError.set('Auth initialization failed. Please refresh and try again.');
+      } finally {
+        clearTimeout(loadingTimeout);
+        this.initialized = true;
+        this.initializing = null;
       }
-    );
 
-    // Check initial session
-    const { data: { session: initialSession } } = await supabase.auth.getSession();
-    
-    if (initialSession?.user) {
-      session.set(initialSession);
-      user.set(initialSession.user);
-      await this.loadBaristaProfile(initialSession.user.id);
-    }
-    
-    loading.set(false);
-    this.initialized = true;
+      // Return cleanup function
+      return unsubscribe ?? undefined;
+    })();
 
-    // Return cleanup function
-    return () => subscription.unsubscribe();
+    return this.initializing;
   }
 
-  private async loadBaristaProfile(userId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('barista')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Failed to load barista profile:', error);
-        barista.set(null);
-        return;
-      }
-
-      barista.set(data);
-    } catch (err) {
-      console.error('Error loading barista profile:', err);
-      barista.set(null);
+  private async loadBaristaProfile(userId: string, timeoutMs = 8000): Promise<AuthStatus> {
+    if (this.profileLoadPromise && this.profileUserId === userId) {
+      return this.profileLoadPromise;
     }
+
+    this.profileUserId = userId;
+    this.profileLoadPromise = (async () => {
+      const existingBarista = this.getCurrentBarista();
+      const preserveExisting = !!existingBarista && existingBarista.id === userId;
+
+      try {
+        console.log('Loading barista profile for user:', userId);
+        const loadPromise = supabase
+          .from('barista')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Barista profile request timed out.')), timeoutMs);
+        });
+        const { data, error } = await Promise.race([loadPromise, timeoutPromise]);
+
+        if (error) {
+          console.error('Failed to load barista profile:', error);
+          authError.set('Unable to load your barista profile.');
+          if (preserveExisting) {
+            return 'authenticated';
+          }
+          barista.set(null);
+          return 'error';
+        }
+
+        if (!data) {
+          authError.set('No barista profile found for this account.');
+          if (preserveExisting) {
+            return 'authenticated';
+          }
+          barista.set(null);
+          return 'profile_missing';
+        }
+
+        console.log('Barista profile loaded:', data);
+        authError.set(null);
+        barista.set(data);
+        return 'authenticated';
+      } catch (err) {
+        console.error('Error loading barista profile:', err);
+        authError.set(err instanceof Error ? err.message : 'Unexpected error loading barista profile.');
+        if (preserveExisting) {
+          return 'authenticated';
+        }
+        barista.set(null);
+        return 'error';
+      } finally {
+        this.profileLoadPromise = null;
+      }
+    })();
+
+    return this.profileLoadPromise;
   }
 
   async signIn(email: string, password: string) {
@@ -92,6 +184,7 @@ class AuthService {
       throw new Error(error.message);
     }
 
+    console.log('Sign in successful:', data);
     return data;
   }
 
@@ -126,6 +219,10 @@ class AuthService {
     user.set(null);
     session.set(null);
     barista.set(null);
+    this.profileUserId = null;
+    this.profileLoadPromise = null;
+    authStatus.set('unauthenticated');
+    authError.set(null);
   }
 
   async resetPassword(email: string) {
@@ -165,6 +262,20 @@ class AuthService {
 
     barista.set(data);
     return data;
+  }
+
+  async reloadProfile() {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      authStatus.set('unauthenticated');
+      authError.set(null);
+      return;
+    }
+
+    authStatus.set('loading');
+    authError.set(null);
+    const status = await this.loadBaristaProfile(currentUser.id);
+    authStatus.set(status);
   }
 
   getCurrentUser(): User | null {

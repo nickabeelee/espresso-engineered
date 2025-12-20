@@ -60,6 +60,7 @@ All tables have RLS (Row Level Security) enabled.
 |--------|------|---------|---------|
 | id | uuid | primary key | - |
 | created_at | timestamptz | updatable | now() |
+| email | text | updatable, unique | - |
 | first_name | text | updatable | - |
 | last_name | text | updatable | - |
 | display_name | text | updatable, unique | - |

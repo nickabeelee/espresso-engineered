@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { authService, barista, isAuthenticated, isLoading } from '$lib/auth';
+  import { authService, barista, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
   import BaristaProfile from '$lib/components/BaristaProfile.svelte';
   
   // Pages that don't require authentication
@@ -11,7 +11,9 @@
   $: isPublicPage = publicPages.includes($page.url.pathname);
 
   onMount(async () => {
+    console.log('Layout: Initializing auth service...');
     await authService.initialize();
+    console.log('Layout: Auth service initialized');
   });
 
   async function handleSignOut() {
@@ -21,6 +23,10 @@
     } catch (err) {
       console.error('Sign out failed:', err);
     }
+  }
+
+  async function handleRetryProfile() {
+    await authService.reloadProfile();
   }
 </script>
 
@@ -54,7 +60,23 @@
 {/if}
 
 <main class:with-header={!isPublicPage && $isAuthenticated && $barista}>
-  {#if $isLoading}
+  {#if !isPublicPage && $authStatus === 'profile_missing'}
+    <div class="loading-screen">
+      <p>We couldn't find your barista profile.</p>
+      <div class="auth-actions">
+        <button on:click={handleRetryProfile} class="retry-btn">Retry</button>
+        <button on:click={handleSignOut} class="sign-out-btn">Sign Out</button>
+      </div>
+    </div>
+  {:else if !isPublicPage && $authStatus === 'error'}
+    <div class="loading-screen">
+      <p>{ $authError || 'Authentication failed. Please try again.' }</p>
+      <div class="auth-actions">
+        <button on:click={handleRetryProfile} class="retry-btn">Retry</button>
+        <button on:click={handleSignOut} class="sign-out-btn">Sign Out</button>
+      </div>
+    </div>
+  {:else if $isLoading && !isPublicPage}
     <div class="loading-screen">
       <div class="loading-spinner"></div>
       <p>Loading...</p>
@@ -186,6 +208,21 @@
   .loading-screen p {
     color: #666;
     font-size: 1.1rem;
+  }
+
+  .auth-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .retry-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    cursor: pointer;
   }
 
   /* Mobile responsiveness */
