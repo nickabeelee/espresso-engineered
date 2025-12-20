@@ -89,8 +89,8 @@
   .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #007bff;
+    border: 4px solid rgba(214, 199, 174, 0.2);
+    border-top: 4px solid var(--accent-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -101,7 +101,7 @@
   }
 
   .auth-guard-loading p {
-    color: #666;
+    color: var(--text-ink-muted);
     font-size: 1.1rem;
   }
 
@@ -111,15 +111,17 @@
   }
 
   .auth-guard-actions button {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 0.5rem 0.9rem;
-    border-radius: 0.25rem;
+    background: transparent;
+    color: var(--text-ink-secondary);
+    border: 1px solid var(--border-strong);
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
     cursor: pointer;
   }
 
   .auth-guard-actions button:first-child {
-    background: #007bff;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    border-color: var(--accent-primary);
   }
 </style>

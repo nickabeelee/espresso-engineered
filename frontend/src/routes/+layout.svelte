@@ -1,9 +1,11 @@
 <script lang="ts">
+  import '../app.css';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { authService, barista, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
   import BaristaProfile from '$lib/components/BaristaProfile.svelte';
+  import SyncStatus from '$lib/components/SyncStatus.svelte';
   
   // Pages that don't require authentication
   const publicPages = ['/auth', '/'];
@@ -30,156 +32,106 @@
   }
 </script>
 
-{#if !isPublicPage && $isAuthenticated && $barista}
-  <!-- Navigation header for authenticated users -->
-  <header class="app-header">
-    <div class="header-content">
-      <div class="header-left">
-        <a href="/brews" class="logo">Espresso Engineered</a>
-        <nav class="main-nav">
-          <a href="/brews" class:active={$page.url.pathname.startsWith('/brews')}>
-            My Brews
-          </a>
-          <a href="/brews/drafts" class:active={$page.url.pathname === '/brews/drafts'}>
-            Awaiting Reflection
-          </a>
-          <a href="/profile" class:active={$page.url.pathname === '/profile'}>
-            Profile
-          </a>
-        </nav>
-      </div>
-      
-      <div class="header-right">
-        <BaristaProfile compact={true} />
-        <button on:click={handleSignOut} class="sign-out-btn">
-          Sign Out
-        </button>
-      </div>
-    </div>
-  </header>
-{/if}
+<div class="app-shell">
+  {#if !isPublicPage && $isAuthenticated && $barista}
+    <div class="app-chrome">
+      <aside class="side-rail">
+        <div class="rail-top">
+          <a href="/brews" class="logo">Espresso Engineered</a>
+          <nav class="rail-nav">
+            <a
+              href="/brews"
+              class:active={
+                $page.url.pathname === '/brews'
+                || ($page.url.pathname.startsWith('/brews/') && !$page.url.pathname.startsWith('/brews/drafts'))
+              }
+            >
+              Brews
+            </a>
+            <a
+              href="/brews/drafts"
+              class:active={$page.url.pathname === '/brews/drafts' || $page.url.pathname.startsWith('/brews/drafts/')}
+            >
+              Reflection
+            </a>
+            <a
+              href="/profile"
+              class:active={$page.url.pathname === '/profile'}
+            >
+              Profile
+            </a>
+          </nav>
+        </div>
 
-<main class:with-header={!isPublicPage && $isAuthenticated && $barista}>
-  {#if !isPublicPage && $authStatus === 'profile_missing'}
-    <div class="loading-screen">
-      <p>We couldn't find your barista profile.</p>
-      <div class="auth-actions">
-        <button on:click={handleRetryProfile} class="retry-btn">Retry</button>
-        <button on:click={handleSignOut} class="sign-out-btn">Sign Out</button>
-      </div>
-    </div>
-  {:else if !isPublicPage && $authStatus === 'error'}
-    <div class="loading-screen">
-      <p>{ $authError || 'Authentication failed. Please try again.' }</p>
-      <div class="auth-actions">
-        <button on:click={handleRetryProfile} class="retry-btn">Retry</button>
-        <button on:click={handleSignOut} class="sign-out-btn">Sign Out</button>
-      </div>
-    </div>
-  {:else if $isLoading && !isPublicPage}
-    <div class="loading-screen">
-      <div class="loading-spinner"></div>
-      <p>Loading...</p>
+        <div class="rail-bottom">
+          <SyncStatus />
+          <BaristaProfile compact={true} />
+          <button on:click={handleSignOut} class="btn-quiet">
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      <main class="page-main">
+        {#if $authStatus === 'profile_missing'}
+          <div class="page-frame">
+            <div class="page-surface loading-screen">
+              <p>We couldn't find your barista profile.</p>
+              <div class="auth-actions">
+                <button on:click={handleRetryProfile} class="btn-primary">Retry</button>
+                <button on:click={handleSignOut} class="btn-secondary">Sign Out</button>
+              </div>
+            </div>
+          </div>
+        {:else if $authStatus === 'error'}
+          <div class="page-frame">
+            <div class="page-surface loading-screen">
+              <p>{ $authError || 'Authentication failed. Please try again.' }</p>
+              <div class="auth-actions">
+                <button on:click={handleRetryProfile} class="btn-primary">Retry</button>
+                <button on:click={handleSignOut} class="btn-secondary">Sign Out</button>
+              </div>
+            </div>
+          </div>
+        {:else if $isLoading}
+          <div class="page-frame">
+            <div class="page-surface loading-screen">
+              <div class="loading-spinner"></div>
+              <p>Loading...</p>
+            </div>
+          </div>
+        {:else}
+          <div class="page-frame">
+            <div class="page-surface">
+              <slot />
+            </div>
+          </div>
+        {/if}
+      </main>
     </div>
   {:else}
-    <slot />
+    <main>
+      <div class="page-frame public-frame">
+        <div class="page-surface">
+          <slot />
+        </div>
+      </div>
+    </main>
   {/if}
-</main>
+</div>
 
 <style>
-  .app-header {
-    background: white;
-    border-bottom: 1px solid #e5e5e5;
-    padding: 0 1rem;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .header-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 60px;
-  }
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-  }
-
   .logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #333;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text-ink-inverted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     text-decoration: none;
   }
 
   .logo:hover {
-    color: #007bff;
-  }
-
-  .main-nav {
-    display: flex;
-    gap: 1.5rem;
-  }
-
-  .main-nav a {
-    color: #666;
-    text-decoration: none;
-    font-weight: 500;
-    padding: 0.5rem 0;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s ease;
-  }
-
-  .main-nav a:hover {
-    color: #333;
-  }
-
-  .main-nav a.active {
-    color: #007bff;
-    border-bottom-color: #007bff;
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-
-
-  .sign-out-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-  }
-
-  .sign-out-btn:hover {
-    background: #545b62;
-  }
-
-  main {
-    min-height: 100vh;
-  }
-
-  main.with-header {
-    min-height: calc(100vh - 60px);
-    padding: 1rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  main:not(.with-header) {
-    padding: 0;
+    color: var(--text-ink-inverted-muted);
   }
 
   .loading-screen {
@@ -187,15 +139,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 50vh;
+    min-height: 40vh;
     gap: 1rem;
+    text-align: center;
   }
 
   .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #007bff;
+    border: 4px solid rgba(214, 199, 174, 0.2);
+    border-top: 4px solid var(--accent-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -206,8 +159,8 @@
   }
 
   .loading-screen p {
-    color: #666;
-    font-size: 1.1rem;
+    color: var(--text-ink-secondary);
+    font-size: 1rem;
   }
 
   .auth-actions {
@@ -215,34 +168,9 @@
     gap: 0.75rem;
   }
 
-  .retry-btn {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-  }
-
-  /* Mobile responsiveness */
-  @media (max-width: 768px) {
-    .header-content {
-      padding: 0 0.5rem;
+  @media (max-width: 900px) {
+    .logo {
+      letter-spacing: 0.06em;
     }
-    
-    .header-left {
-      gap: 1rem;
-    }
-    
-    .main-nav {
-      gap: 1rem;
-    }
-    
-    .main-nav a {
-      font-size: 0.9rem;
-    }
-    
-
   }
 </style>

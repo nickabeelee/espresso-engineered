@@ -133,19 +133,21 @@
 
 <AuthGuard>
   <div class="new-brew-page">
-    <header>
-      <h1>New Brew</h1>
-      <a href="/brews" class="back-link">← Back to Brews</a>
-    </header>
+    <div class="section-header">
+      <div>
+        <p class="voice-line">Take your time.</p>
+        <h1>New Brew</h1>
+        <p>Record the session as it unfolds.</p>
+      </div>
+      <a href="/brews" class="btn-secondary">Back</a>
+    </div>
 
     {#if prefillFromLast}
-      <div class="info-banner">
-        Pre-filling from your last brew...
-      </div>
+      <div class="notice">Starting from your last brew.</div>
     {/if}
 
     {#if !isOnline}
-      <div class="offline-banner">
+      <div class="notice warning">
         <strong>Offline Mode:</strong> Your brew will be saved locally and synced when you're back online.
       </div>
     {/if}
@@ -158,71 +160,15 @@
     />
 
     {#if error}
-      <div class="error">{error}</div>
+      <div class="notice error">{error}</div>
     {/if}
   </div>
 </AuthGuard>
 
 <style>
   .new-brew-page {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 1rem;
-  }
-
-  header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-  }
-
-  h1 {
-    color: #333;
-    font-size: 2rem;
-    margin: 0;
-  }
-
-  .back-link {
-    color: #007bff;
-    text-decoration: none;
-  }
-
-  .back-link:hover {
-    text-decoration: underline;
-  }
-
-  .info-banner {
-    background: #e7f3ff;
-    border: 1px solid #b3d9ff;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    color: #004085;
-  }
-
-  form {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 0.5rem;
-    padding: 2rem;
-  }
-
-  .offline-banner {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    color: #856404;
-  }
-
-  .error {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 0.5rem;
-    color: #721c24;
+    flex-direction: column;
+    gap: 1.5rem;
   }
 </style>

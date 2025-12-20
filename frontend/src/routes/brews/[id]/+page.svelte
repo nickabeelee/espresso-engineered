@@ -122,7 +122,7 @@
   <div class="brew-detail-page">
     <header>
       <div>
-        <a href="/brews" class="back-link">← Back to Brews</a>
+        <a href="/brews" class="back-link">Back to Brews</a>
         <h1>{brew?.name || 'Untitled Brew'}</h1>
       </div>
       
@@ -238,30 +238,32 @@
 
 <style>
   .brew-detail-page {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
   }
 
   header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 2rem;
+    gap: 1.5rem;
   }
 
   .back-link {
-    color: #007bff;
+    color: var(--accent-primary);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
   .back-link:hover {
-    text-decoration: underline;
+    color: var(--accent-primary-dark);
   }
 
   h1 {
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 2rem;
     margin: 0.5rem 0 0 0;
   }
@@ -273,44 +275,46 @@
 
   button {
     padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 0.25rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
     font-weight: 500;
     cursor: pointer;
     font-size: 0.9rem;
   }
 
   .btn-primary {
-    background: #007bff;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
   }
 
   .btn-primary:hover {
-    background: #0056b3;
+    background: var(--accent-primary-dark);
   }
 
   .btn-secondary {
-    background: #6c757d;
-    color: white;
+    background: transparent;
+    color: var(--text-ink-secondary);
+    border-color: var(--border-strong);
   }
 
   .btn-secondary:hover {
-    background: #545b62;
+    background: rgba(123, 94, 58, 0.12);
   }
 
   .btn-danger {
-    background: #dc3545;
-    color: white;
+    background: rgba(122, 62, 47, 0.15);
+    color: var(--semantic-error);
+    border-color: rgba(122, 62, 47, 0.35);
   }
 
   .btn-danger:hover {
-    background: #c82333;
+    background: rgba(122, 62, 47, 0.25);
   }
 
   .link-button {
     background: none;
     border: none;
-    color: #007bff;
+    color: var(--accent-primary);
     text-decoration: underline;
     cursor: pointer;
     padding: 0;
@@ -329,17 +333,17 @@
   .loading, .error, .not-found {
     text-align: center;
     padding: 2rem;
-    color: #666;
+    color: var(--text-ink-muted);
   }
 
   .error {
-    color: #dc3545;
+    color: var(--semantic-error);
   }
 
   .brew-content {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 0.5rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-md);
     padding: 2rem;
   }
 
@@ -354,7 +358,7 @@
   }
 
   .detail-section h3 {
-    color: #333;
+    color: var(--text-ink-secondary);
     margin: 0 0 1rem 0;
     font-size: 1.25rem;
   }
@@ -373,27 +377,27 @@
 
   .detail-item label {
     font-weight: 600;
-    color: #555;
+    color: var(--text-ink-muted);
     font-size: 0.9rem;
   }
 
   .detail-item span {
-    color: #333;
+    color: var(--text-ink-primary);
   }
 
   .detail-section p {
-    color: #333;
+    color: var(--text-ink-secondary);
     line-height: 1.6;
     margin: 0;
   }
 
   .incomplete-notice {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 0.5rem;
+    background: rgba(138, 106, 62, 0.15);
+    border: 1px solid rgba(138, 106, 62, 0.25);
+    border-radius: var(--radius-md);
     padding: 1rem;
     margin-top: 2rem;
-    color: #856404;
+    color: var(--semantic-warning);
   }
 
   .incomplete-notice p {

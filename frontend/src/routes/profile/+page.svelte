@@ -78,8 +78,9 @@
 <AuthGuard>
   <div class="profile-page">
     <div class="page-header">
-      <h1>My Profile</h1>
-      <p>Manage your barista profile and account settings</p>
+      <p class="voice-line">It is good to see you again.</p>
+      <h1>Profile</h1>
+      <p>Keep your record and security aligned.</p>
     </div>
 
     <div class="profile-sections">
@@ -96,7 +97,7 @@
         {#if !passwordChangeMode}
           <div class="password-section">
             <p>Keep your account secure with a strong password.</p>
-            <button on:click={startPasswordChange} class="change-password-btn">
+            <button on:click={startPasswordChange} class="btn-primary change-password-btn">
               Change Password
             </button>
           </div>
@@ -141,18 +142,18 @@
             </div>
 
             {#if passwordError}
-              <div class="error">{passwordError}</div>
+              <div class="notice error">{passwordError}</div>
             {/if}
 
             {#if passwordSuccess}
-              <div class="success">{passwordSuccess}</div>
+              <div class="notice success">{passwordSuccess}</div>
             {/if}
 
             <div class="form-actions">
-              <button type="submit" disabled={passwordLoading} class="save-button">
+              <button type="submit" disabled={passwordLoading} class="btn-primary save-button">
                 {passwordLoading ? 'Updating...' : 'Update Password'}
               </button>
-              <button type="button" on:click={cancelPasswordChange} disabled={passwordLoading} class="cancel-button">
+              <button type="button" on:click={cancelPasswordChange} disabled={passwordLoading} class="btn-secondary cancel-button">
                 Cancel
               </button>
             </div>
@@ -186,25 +187,24 @@
 
 <style>
   .profile-page {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
   }
 
   .page-header {
-    margin-bottom: 2rem;
-    text-align: center;
+    text-align: left;
   }
 
   .page-header h1 {
-    color: #333;
-    font-size: 2.5rem;
+    color: var(--text-ink-primary);
+    font-size: 2.2rem;
     margin: 0 0 0.5rem 0;
   }
 
   .page-header p {
-    color: #666;
-    font-size: 1.1rem;
+    color: var(--text-ink-muted);
+    font-size: 1rem;
     margin: 0;
   }
 
@@ -215,18 +215,19 @@
   }
 
   .profile-section {
-    background: white;
-    border-radius: 0.5rem;
+    background: var(--bg-surface-paper-secondary);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    box-shadow: var(--shadow-soft);
   }
 
   .profile-section h2 {
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 1.5rem;
     margin: 0 0 1rem 0;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border-subtle);
   }
 
   .password-section {
@@ -235,22 +236,12 @@
   }
 
   .password-section p {
-    color: #666;
+    color: var(--text-ink-muted);
     margin-bottom: 1.5rem;
   }
 
   .change-password-btn {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.25rem;
-    cursor: pointer;
     font-size: 1rem;
-  }
-
-  .change-password-btn:hover {
-    background: #0056b3;
   }
 
   .password-form {
@@ -262,94 +253,10 @@
     margin-bottom: 1rem;
   }
 
-  .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #333;
-    font-weight: 500;
-  }
-
-  .form-group input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
-
-  .form-group input:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-  }
-
-  .form-group input:disabled {
-    background: #f8f9fa;
-    cursor: not-allowed;
-  }
-
-  .error {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
-    padding: 0.75rem;
-    border-radius: 0.25rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-  }
-
-  .success {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
-    padding: 0.75rem;
-    border-radius: 0.25rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-  }
-
   .form-actions {
     display: flex;
     gap: 0.75rem;
     justify-content: center;
-  }
-
-  .save-button {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-
-  .save-button:hover:not(:disabled) {
-    background: #218838;
-  }
-
-  .save-button:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-  }
-
-  .cancel-button {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.25rem;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-
-  .cancel-button:hover:not(:disabled) {
-    background: #545b62;
-  }
-
-  .cancel-button:disabled {
-    cursor: not-allowed;
   }
 
   .account-info {
@@ -363,7 +270,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid rgba(123, 94, 58, 0.2);
   }
 
   .info-item:last-child {
@@ -372,29 +279,25 @@
 
   .info-item label {
     font-weight: 500;
-    color: #333;
+    color: var(--text-ink-primary);
   }
 
   .info-item span {
-    color: #666;
+    color: var(--text-ink-muted);
   }
 
   .account-id {
-    font-family: monospace;
+    font-family: "IBM Plex Mono", "Courier New", monospace;
     font-size: 0.9rem;
-    background: #f8f9fa;
+    background: var(--bg-surface-paper-secondary);
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
   }
 
   /* Mobile responsiveness */
   @media (max-width: 768px) {
-    .profile-page {
-      padding: 1rem 0.5rem;
-    }
-
     .page-header h1 {
-      font-size: 2rem;
+      font-size: 1.9rem;
     }
 
     .profile-section {

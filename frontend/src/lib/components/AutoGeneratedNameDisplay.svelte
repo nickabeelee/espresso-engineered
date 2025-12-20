@@ -23,8 +23,8 @@
       Auto-generated
       {#if showTooltip}
         <div class="tooltip">
-          This {type} name is automatically generated based on your selections. 
-          No manual input required - the system creates descriptive names for you!
+          This {type} name is generated from your selections.
+          Manual input is not required.
         </div>
       {/if}
     </span>
@@ -61,10 +61,10 @@
 
 <style>
   .auto-name-display {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 2px solid #dee2e6;
-    border-left: 4px solid #007bff;
-    border-radius: 0.5rem;
+    background: linear-gradient(135deg, var(--bg-surface-paper-secondary) 0%, rgba(123, 94, 58, 0.12) 100%);
+    border: 2px solid rgba(123, 94, 58, 0.2);
+    border-left: 4px solid var(--accent-primary);
+    border-radius: var(--radius-md);
     padding: 1rem;
     margin: 0.5rem 0;
     position: relative;
@@ -79,13 +79,13 @@
     height: 0;
     border-style: solid;
     border-width: 0 20px 20px 0;
-    border-color: transparent #007bff transparent transparent;
+    border-color: transparent var(--accent-primary) transparent transparent;
   }
 
   .auto-name-display.preview {
-    background: linear-gradient(135deg, #e7f3ff 0%, #cce7ff 100%);
-    border-color: #b3d9ff;
-    border-left-color: #007bff;
+    background: linear-gradient(135deg, var(--bg-surface-paper-secondary) 0%, rgba(176, 138, 90, 0.18) 100%);
+    border-color: rgba(123, 94, 58, 0.2);
+    border-left-color: var(--accent-primary);
   }
 
   .name-header {
@@ -99,7 +99,7 @@
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    color: #6c757d;
+    color: rgba(123, 94, 58, 0.6);
     font-size: 0.85rem;
     font-weight: 500;
     position: relative;
@@ -108,7 +108,7 @@
   }
 
   .auto-indicator:hover {
-    color: #007bff;
+    color: var(--accent-primary);
   }
 
   .auto-indicator svg {
@@ -120,16 +120,16 @@
     position: absolute;
     top: 100%;
     left: 0;
-    background: #333;
-    color: white;
+    background: var(--text-ink-primary);
+    color: var(--text-ink-inverted);
     padding: 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     font-size: 0.75rem;
     white-space: nowrap;
     max-width: 250px;
     white-space: normal;
     z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(43, 33, 24, 0.2);
     margin-top: 0.25rem;
   }
 
@@ -142,24 +142,24 @@
     height: 0;
     border-left: 4px solid transparent;
     border-right: 4px solid transparent;
-    border-bottom: 4px solid #333;
+    border-bottom: 4px solid var(--text-ink-primary);
   }
 
   .preview-label {
-    background: #007bff;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
     padding: 0.125rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
   }
 
   .final-label {
-    background: #28a745;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
     padding: 0.125rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -175,15 +175,15 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #6c757d;
+    color: rgba(123, 94, 58, 0.6);
     font-style: italic;
   }
 
   .loading-spinner {
     width: 16px;
     height: 16px;
-    border: 2px solid #e9ecef;
-    border-top: 2px solid #007bff;
+    border: 2px solid rgba(123, 94, 58, 0.12);
+    border-top: 2px solid var(--accent-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -195,28 +195,28 @@
 
   .name-text {
     font-weight: 600;
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 1.1rem;
     word-break: break-word;
   }
 
   .name-placeholder {
-    color: #6c757d;
+    color: rgba(123, 94, 58, 0.6);
     font-style: italic;
   }
 
   .help-text {
     margin-top: 0.5rem;
-    color: #6c757d;
+    color: rgba(123, 94, 58, 0.6);
     font-size: 0.8rem;
     line-height: 1.3;
   }
 
   .auto-name-display.preview .name-text {
-    color: #004085;
+    color: var(--text-ink-secondary);
   }
 
   .auto-name-display.preview .auto-indicator {
-    color: #004085;
+    color: var(--text-ink-secondary);
   }
 </style>

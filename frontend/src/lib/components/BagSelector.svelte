@@ -149,7 +149,7 @@
         <input
           type="text"
           bind:value={searchTerm}
-          placeholder="Search your bags..."
+          placeholder="Find a bag"
           class="search-input"
           {disabled}
         />
@@ -274,31 +274,31 @@
   .error {
     padding: 1rem;
     text-align: center;
-    color: #666;
-    background: #f8f9fa;
-    border: 1px solid #e5e5e5;
-    border-radius: 0.25rem;
+    color: var(--text-ink-muted);
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
   }
 
   .error {
-    color: #dc3545;
-    background: #f8d7da;
-    border-color: #f5c6cb;
+    color: var(--semantic-error);
+    background: rgba(122, 62, 47, 0.12);
+    border-color: rgba(122, 62, 47, 0.25);
   }
 
   .retry-btn {
     margin-left: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 0.25rem;
+    padding: 0.35rem 0.75rem;
+    background: rgba(122, 62, 47, 0.2);
+    color: var(--semantic-error);
+    border: 1px solid rgba(122, 62, 47, 0.35);
+    border-radius: 999px;
     cursor: pointer;
     font-size: 0.8rem;
   }
 
   .retry-btn:hover {
-    background: #c82333;
+    background: rgba(122, 62, 47, 0.3);
   }
 
   .selector-controls {
@@ -317,15 +317,21 @@
   .search-input {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
     font-size: 0.9rem;
+    background: var(--bg-surface-paper);
+    color: var(--text-ink-primary);
+  }
+
+  .search-input::placeholder {
+    color: var(--text-ink-muted);
   }
 
   .search-input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
   }
 
   .filter-group {
@@ -335,18 +341,18 @@
   .bean-filter {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
     font-size: 0.9rem;
-    background: white;
+    background: var(--bg-surface-paper);
   }
 
   .create-btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    border: 1px solid var(--accent-primary);
+    padding: 0.45rem 1.1rem;
+    border-radius: 999px;
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 500;
@@ -354,11 +360,11 @@
   }
 
   .create-btn:hover:not(:disabled) {
-    background: #218838;
+    background: var(--accent-primary-dark);
   }
 
   .create-btn:disabled {
-    background: #6c757d;
+    background: rgba(123, 94, 58, 0.4);
     cursor: not-allowed;
   }
 
@@ -369,10 +375,10 @@
   .empty-state {
     text-align: center;
     padding: 2rem 1rem;
-    color: #666;
-    background: #f8f9fa;
-    border: 1px solid #e5e5e5;
-    border-radius: 0.25rem;
+    color: var(--text-ink-muted);
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
   }
 
   .empty-state p {
@@ -381,61 +387,61 @@
 
   .clear-filters-btn,
   .create-first-btn {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    border: 1px solid var(--accent-primary);
+    padding: 0.45rem 1.1rem;
+    border-radius: 999px;
     cursor: pointer;
     font-weight: 500;
   }
 
   .clear-filters-btn:hover,
   .create-first-btn:hover:not(:disabled) {
-    background: #0056b3;
+    background: var(--accent-primary-dark);
   }
 
   .create-first-btn:disabled {
-    background: #6c757d;
+    background: rgba(123, 94, 58, 0.4);
     cursor: not-allowed;
   }
 
   .bag-select {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
     font-size: 1rem;
-    background: white;
+    background: var(--bg-surface-paper);
     margin-bottom: 1rem;
   }
 
   .bag-select:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
   }
 
   .bag-select:disabled {
-    background: #f8f9fa;
+    background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
   }
 
   .selected-bag-details {
-    background: #f8f9fa;
-    border: 1px solid #e5e5e5;
-    border-radius: 0.25rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     padding: 1rem;
   }
 
   .selected-bag-details.expired {
-    background: #fff3cd;
-    border-color: #ffeaa7;
+    background: rgba(138, 106, 62, 0.15);
+    border-color: rgba(138, 106, 62, 0.25);
   }
 
   .bag-info h4 {
     margin: 0 0 0.5rem 0;
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 1.1rem;
   }
 
@@ -447,59 +453,59 @@
   }
 
   .bag-meta span {
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 500;
   }
 
   .roaster {
-    background: #e7f3ff;
-    color: #004085;
+    background: var(--bg-surface-paper-secondary);
+    color: var(--text-ink-secondary);
   }
 
   .roast-level {
-    background: #fff3cd;
-    color: #856404;
+    background: rgba(138, 106, 62, 0.18);
+    color: var(--semantic-warning);
   }
 
   .roast-date {
-    background: #d4edda;
-    color: #155724;
+    background: rgba(85, 98, 74, 0.18);
+    color: var(--semantic-success);
   }
 
   .weight {
-    background: #e2e3e5;
-    color: #383d41;
+    background: rgba(123, 94, 58, 0.15);
+    color: var(--text-ink-secondary);
   }
 
   .weight.low {
-    background: #f8d7da;
-    color: #721c24;
+    background: rgba(122, 62, 47, 0.12);
+    color: var(--semantic-error);
   }
 
   .warning {
     padding: 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     font-size: 0.85rem;
     margin-bottom: 0.5rem;
   }
 
   .expired-warning {
-    background: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeaa7;
+    background: rgba(138, 106, 62, 0.15);
+    color: var(--semantic-warning);
+    border: 1px solid rgba(138, 106, 62, 0.25);
   }
 
   .low-weight-warning {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: rgba(122, 62, 47, 0.12);
+    color: var(--semantic-error);
+    border: 1px solid rgba(122, 62, 47, 0.25);
   }
 
   .purchase-info {
     margin: 0;
-    color: #555;
+    color: var(--text-ink-secondary);
     font-size: 0.9rem;
     line-height: 1.4;
   }

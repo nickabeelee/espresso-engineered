@@ -317,9 +317,9 @@
 
 <style>
   .inline-bag-creator {
-    background: white;
-    border: 2px solid #007bff;
-    border-radius: 0.5rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 2px solid var(--accent-primary);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
     margin: 0.5rem 0;
   }
@@ -333,7 +333,7 @@
 
   .creator-header h4 {
     margin: 0;
-    color: #007bff;
+    color: var(--accent-primary);
     font-size: 1.1rem;
   }
 
@@ -342,13 +342,13 @@
     border: none;
     font-size: 1.2rem;
     cursor: pointer;
-    color: #666;
+    color: var(--text-ink-muted);
     padding: 0.25rem;
     line-height: 1;
   }
 
   .close-btn:hover:not(:disabled) {
-    color: #dc3545;
+    color: var(--semantic-error);
   }
 
   .close-btn:disabled {
@@ -357,20 +357,20 @@
   }
 
   .error-banner {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
+    background: rgba(122, 62, 47, 0.12);
+    border: 1px solid rgba(122, 62, 47, 0.25);
+    color: var(--semantic-error);
     padding: 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     margin-bottom: 1rem;
     font-size: 0.9rem;
   }
 
   .nested-creator {
-    border: 1px solid #e5e5e5;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
     padding: 0.5rem;
-    background: #f8f9fa;
+    background: var(--bg-surface-paper-secondary);
   }
 
   .creator-form {
@@ -393,15 +393,15 @@
 
   .form-group label {
     font-weight: 600;
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 0.9rem;
   }
 
   .form-group input,
   .form-group select {
     padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
     font-size: 0.9rem;
     font-family: inherit;
   }
@@ -409,13 +409,13 @@
   .form-group input:focus,
   .form-group select:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
   }
 
   .form-group input:disabled,
   .form-group select:disabled {
-    background: #f8f9fa;
+    background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
   }
 
@@ -432,11 +432,11 @@
 
   .add-bean-btn,
   .today-btn {
-    background: #28a745;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
     border: none;
     padding: 0.5rem 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 0.8rem;
     font-weight: 500;
@@ -445,12 +445,12 @@
 
   .add-bean-btn:hover:not(:disabled),
   .today-btn:hover:not(:disabled) {
-    background: #218838;
+    background: var(--accent-primary-dark);
   }
 
   .add-bean-btn:disabled,
   .today-btn:disabled {
-    background: #6c757d;
+    background: rgba(123, 94, 58, 0.6);
     cursor: not-allowed;
   }
 
@@ -466,19 +466,19 @@
   }
 
   .preset-btn {
-    background: #e9ecef;
-    color: #495057;
-    border: 1px solid #ced4da;
+    background: rgba(123, 94, 58, 0.12);
+    color: var(--text-ink-secondary);
+    border: 1px solid var(--border-subtle);
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 0.75rem;
     font-weight: 500;
   }
 
   .preset-btn:hover:not(:disabled) {
-    background: #dee2e6;
-    border-color: #adb5bd;
+    background: rgba(123, 94, 58, 0.2);
+    border-color: var(--border-strong);
   }
 
   .preset-btn:disabled {
@@ -487,20 +487,20 @@
   }
 
   .error-text {
-    color: #dc3545;
+    color: var(--semantic-error);
     font-size: 0.8rem;
   }
 
   .bean-preview {
-    background: #e7f3ff;
-    border: 1px solid #b3d9ff;
-    border-radius: 0.25rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-sm);
     padding: 1rem;
   }
 
   .bean-preview h5 {
     margin: 0 0 0.5rem 0;
-    color: #004085;
+    color: var(--text-ink-secondary);
     font-size: 0.9rem;
   }
 
@@ -512,29 +512,29 @@
 
   .bean-info span {
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     font-size: 0.8rem;
     font-weight: 500;
   }
 
   .bean-name {
-    background: #004085;
-    color: white;
+    background: var(--text-ink-secondary);
+    color: var(--text-ink-inverted);
   }
 
   .roaster-name {
-    background: #cce7ff;
-    color: #004085;
+    background: rgba(176, 138, 90, 0.18);
+    color: var(--text-ink-secondary);
   }
 
   .roast-level {
-    background: #fff3cd;
-    color: #856404;
+    background: rgba(138, 106, 62, 0.15);
+    color: var(--semantic-warning);
   }
 
   .origin {
-    background: #d4edda;
-    color: #155724;
+    background: rgba(85, 98, 74, 0.2);
+    color: var(--semantic-success);
   }
 
   .form-actions {
@@ -545,9 +545,9 @@
   }
 
   button {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 0.25rem;
+    padding: 0.45rem 1.1rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
     font-weight: 500;
     cursor: pointer;
     font-size: 0.9rem;
@@ -555,21 +555,21 @@
   }
 
   .btn-cancel {
-    background: #6c757d;
-    color: white;
+    background: rgba(123, 94, 58, 0.6);
+    color: var(--text-ink-inverted);
   }
 
   .btn-cancel:hover:not(:disabled) {
-    background: #545b62;
+    background: rgba(123, 94, 58, 0.75);
   }
 
   .btn-create {
-    background: #007bff;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
   }
 
   .btn-create:hover:not(:disabled) {
-    background: #0056b3;
+    background: var(--accent-primary-dark);
   }
 
   button:disabled {

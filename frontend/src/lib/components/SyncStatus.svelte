@@ -105,10 +105,10 @@
   }
 
   function getStatusColor(): string {
-    if (!isOnline) return '#dc3545'; // Red for offline
-    if (syncInProgress) return '#ffc107'; // Yellow for syncing
-    if (pendingSyncCount > 0) return '#fd7e14'; // Orange for pending
-    return '#28a745'; // Green for all synced
+    if (!isOnline) return 'var(--semantic-error)'; // Red for offline
+    if (syncInProgress) return 'var(--accent-primary)'; // syncing
+    if (pendingSyncCount > 0) return 'var(--semantic-warning)'; // pending
+    return 'var(--semantic-success)'; // all synced
   }
 
   function getStatusText(): string {
@@ -180,17 +180,17 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    background: white;
-    border: 1px solid #e5e5e5;
-    border-radius: 1rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
     cursor: pointer;
     font-size: 0.875rem;
     transition: all 0.2s ease;
   }
 
   .sync-indicator:hover {
-    background: #f8f9fa;
-    border-color: #dee2e6;
+    background: var(--bg-surface-paper-secondary);
+    border-color: var(--border-strong);
   }
 
   .status-dot {
@@ -212,7 +212,7 @@
   }
 
   .status-text {
-    color: #333;
+    color: var(--text-ink-primary);
     font-weight: 500;
   }
 
@@ -221,10 +221,10 @@
     top: 100%;
     right: 0;
     margin-top: 0.5rem;
-    background: white;
-    border: 1px solid #e5e5e5;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(43, 33, 24, 0.2);
     padding: 1rem;
     min-width: 200px;
     z-index: 1000;
@@ -243,38 +243,38 @@
 
   .label {
     font-size: 0.8rem;
-    color: #666;
+    color: var(--text-ink-muted);
     font-weight: 500;
   }
 
   .value {
     font-size: 0.8rem;
-    color: #333;
+    color: var(--text-ink-primary);
     font-weight: 600;
   }
 
   .value.offline {
-    color: #dc3545;
+    color: var(--semantic-error);
   }
 
   .status-message {
-    color: #007bff;
+    color: var(--accent-primary);
     font-style: italic;
   }
 
   .sync-actions {
     margin-top: 0.75rem;
     padding-top: 0.75rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border-subtle);
   }
 
   .sync-btn {
     width: 100%;
     padding: 0.5rem;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 0.25rem;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    border: 1px solid var(--accent-primary);
+    border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
@@ -282,11 +282,11 @@
   }
 
   .sync-btn:hover:not(:disabled) {
-    background: #0056b3;
+    background: var(--accent-primary-dark);
   }
 
   .sync-btn:disabled {
-    background: #6c757d;
+    background: rgba(123, 94, 58, 0.6);
     cursor: not-allowed;
     opacity: 0.6;
   }

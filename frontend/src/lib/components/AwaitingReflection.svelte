@@ -8,6 +8,7 @@
   let draftBrews: Brew[] = [];
   let loading = true;
   let error: string | null = null;
+  const emptyMessage = 'Quiet for now.';
 
   onMount(() => {
     loadDraftBrews();
@@ -111,9 +112,7 @@
     </div>
   {:else if draftBrews.length === 0}
     <div class="empty-state">
-      <div class="empty-icon">✅</div>
-      <h3>All caught up!</h3>
-      <p>You have no incomplete brews. Great job keeping your records up to date!</p>
+      <h3>{emptyMessage}</h3>
     </div>
   {:else}
     <div class="draft-list">
@@ -220,18 +219,18 @@
   }
 
   .section-header {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
   }
 
   .section-header h2 {
     margin: 0 0 0.5rem 0;
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 1.75rem;
   }
 
   .section-header p {
     margin: 0;
-    color: #666;
+    color: var(--text-ink-muted);
     font-size: 1rem;
   }
 
@@ -239,10 +238,10 @@
   .error-state,
   .empty-state {
     text-align: center;
-    padding: 3rem 1rem;
-    background: white;
-    border: 1px solid #e5e5e5;
-    border-radius: 0.5rem;
+    padding: 2rem 1rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-md);
   }
 
   .loading-state {
@@ -255,8 +254,8 @@
   .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #007bff;
+    border: 3px solid rgba(214, 199, 174, 0.2);
+    border-top: 3px solid var(--accent-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -267,62 +266,57 @@
   }
 
   .error-state p {
-    color: #dc3545;
+    color: var(--semantic-error);
     margin-bottom: 1rem;
   }
 
   .btn-retry {
-    background: #007bff;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
+    padding: 0.6rem 1.4rem;
+    border-radius: 999px;
     cursor: pointer;
     font-weight: 500;
   }
 
   .btn-retry:hover {
-    background: #0056b3;
+    background: var(--accent-primary-dark);
   }
 
   .empty-state {
-    color: #666;
-  }
-
-  .empty-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    color: var(--text-ink-muted);
   }
 
   .empty-state h3 {
-    color: #333;
-    margin-bottom: 0.5rem;
+    color: var(--text-ink-secondary);
+    margin: 0;
   }
 
   .draft-list {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
 
   .draft-card {
-    background: white;
-    border: 1px solid #e5e5e5;
-    border-left: 4px solid #ffc107;
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-    transition: box-shadow 0.2s;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    transition: box-shadow var(--motion-fast);
   }
 
   .draft-card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-soft);
   }
 
   .draft-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 
   .brew-info {
@@ -331,12 +325,12 @@
 
   .brew-title {
     margin: 0 0 0.25rem 0;
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 1.25rem;
   }
 
   .brew-date {
-    color: #666;
+    color: var(--text-ink-muted);
     font-size: 0.9rem;
   }
 
@@ -349,10 +343,10 @@
     height: 60px;
     border-radius: 50%;
     background: conic-gradient(
-      #ffc107 0deg,
-      #ffc107 calc(var(--percentage) * 3.6deg),
-      #e5e5e5 calc(var(--percentage) * 3.6deg),
-      #e5e5e5 360deg
+      var(--accent-primary) 0deg,
+      var(--accent-primary) calc(var(--percentage) * 3.6deg),
+      rgba(123, 94, 58, 0.2) calc(var(--percentage) * 3.6deg),
+      rgba(123, 94, 58, 0.2) 360deg
     );
     display: flex;
     align-items: center;
@@ -364,7 +358,7 @@
     content: '';
     width: 45px;
     height: 45px;
-    background: white;
+    background: var(--bg-surface-paper-secondary);
     border-radius: 50%;
     position: absolute;
   }
@@ -374,13 +368,13 @@
     z-index: 1;
     font-weight: 600;
     font-size: 0.8rem;
-    color: #333;
+    color: var(--text-ink-primary);
   }
 
   .brew-summary {
     display: flex;
     gap: 1.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
     flex-wrap: wrap;
   }
 
@@ -392,22 +386,22 @@
 
   .summary-item .label {
     font-weight: 500;
-    color: #555;
+    color: var(--text-ink-secondary);
     font-size: 0.9rem;
   }
 
   .summary-item .value {
-    color: #333;
+    color: var(--text-ink-primary);
     font-weight: 600;
   }
 
   .missing-fields {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 
   .missing-fields h4 {
     margin: 0 0 0.5rem 0;
-    color: #dc3545;
+    color: var(--semantic-error);
     font-size: 0.95rem;
   }
 
@@ -418,10 +412,10 @@
   }
 
   .missing-tag {
-    background: #f8d7da;
-    color: #721c24;
+    background: rgba(122, 62, 47, 0.12);
+    color: var(--semantic-error);
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 500;
   }
@@ -430,15 +424,15 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(123, 94, 58, 0.08);
+    border-radius: var(--radius-md);
   }
 
   .quick-label {
     font-weight: 500;
-    color: #555;
+    color: var(--text-ink-secondary);
     font-size: 0.9rem;
   }
 
@@ -450,18 +444,18 @@
   .rating-btn {
     width: 35px;
     height: 35px;
-    border: 1px solid #007bff;
-    background: white;
-    color: #007bff;
-    border-radius: 0.25rem;
+    border: 1px solid var(--accent-primary);
+    background: transparent;
+    color: var(--accent-primary);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-weight: 500;
     transition: all 0.2s;
   }
 
   .rating-btn:hover {
-    background: #007bff;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
   }
 
   .draft-actions {
@@ -472,9 +466,9 @@
 
   .btn-complete,
   .btn-view {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 0.25rem;
+    padding: 0.45rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
     text-decoration: none;
     font-size: 0.9rem;
     font-weight: 500;
@@ -483,50 +477,51 @@
   }
 
   .btn-complete {
-    background: #28a745;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
   }
 
   .btn-complete:hover {
-    background: #218838;
+    background: var(--accent-primary-dark);
   }
 
   .btn-view {
-    background: #6c757d;
-    color: white;
+    background: transparent;
+    color: var(--text-ink-secondary);
+    border-color: var(--border-strong);
   }
 
   .btn-view:hover {
-    background: #545b62;
+    background: rgba(123, 94, 58, 0.12);
   }
 
   .batch-actions {
     margin-top: 2rem;
     padding: 1.5rem;
-    background: #e7f3ff;
-    border: 1px solid #b3d9ff;
-    border-radius: 0.5rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-md);
     text-align: center;
   }
 
   .batch-text {
     margin: 0 0 1rem 0;
-    color: #004085;
+    color: var(--text-ink-secondary);
     font-weight: 500;
   }
 
   .btn-view-all {
-    background: #007bff;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    padding: 0.6rem 1.4rem;
+    border-radius: 999px;
     text-decoration: none;
     font-weight: 500;
     display: inline-block;
   }
 
   .btn-view-all:hover {
-    background: #0056b3;
+    background: var(--accent-primary-dark);
   }
 
   @media (max-width: 768px) {

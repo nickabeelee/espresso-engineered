@@ -181,10 +181,11 @@
 
 <style>
   .barista-profile {
-    background: white;
-    border-radius: 0.5rem;
+    background: var(--bg-surface-paper-secondary);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    box-shadow: var(--shadow-soft);
   }
 
   .barista-profile.compact {
@@ -209,8 +210,8 @@
   .profile-avatar {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: radial-gradient(circle at top, rgba(176, 138, 90, 0.8), rgba(64, 43, 21, 0.9));
+    color: var(--text-ink-inverted);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -227,49 +228,49 @@
 
   .profile-info h2 {
     margin: 0 0 0.25rem 0;
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 1.5rem;
   }
 
   .profile-meta {
     margin: 0;
-    color: #666;
+    color: var(--text-ink-muted);
     font-size: 0.9rem;
   }
 
   .profile-name {
-    color: #333;
+    color: var(--text-ink-primary);
     font-weight: 500;
   }
 
   .edit-button {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    border: 1px solid var(--accent-primary);
+    padding: 0.45rem 1.1rem;
+    border-radius: 999px;
     cursor: pointer;
     font-size: 0.9rem;
     margin-left: auto;
   }
 
   .edit-button:hover:not(:disabled) {
-    background: #0056b3;
+    background: var(--accent-primary-dark);
   }
 
   .edit-button:disabled {
-    background: #6c757d;
+    background: rgba(123, 94, 58, 0.4);
     cursor: not-allowed;
   }
 
   .edit-form {
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border-subtle);
     padding-top: 1.5rem;
   }
 
   .edit-form h3 {
     margin: 0 0 1rem 0;
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 1.25rem;
   }
 
@@ -280,53 +281,53 @@
   .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    color: #333;
+    color: var(--text-ink-primary);
     font-weight: 500;
   }
 
   .form-group input {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
     font-size: 1rem;
     box-sizing: border-box;
   }
 
   .form-group input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
   }
 
   .form-group input:disabled {
-    background: #f8f9fa;
+    background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
   }
 
   .form-group small {
     display: block;
     margin-top: 0.25rem;
-    color: #666;
+    color: var(--text-ink-muted);
     font-size: 0.85rem;
   }
 
   .error {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
+    background: rgba(122, 62, 47, 0.12);
+    border: 1px solid rgba(122, 62, 47, 0.25);
+    color: var(--semantic-error);
     padding: 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     margin-bottom: 1rem;
     font-size: 0.9rem;
   }
 
   .success {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
+    background: rgba(85, 98, 74, 0.18);
+    border: 1px solid rgba(85, 98, 74, 0.3);
+    color: var(--semantic-success);
     padding: 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     margin-bottom: 1rem;
     font-size: 0.9rem;
   }
@@ -337,36 +338,36 @@
   }
 
   .save-button {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.25rem;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    border: 1px solid var(--accent-primary);
+    padding: 0.6rem 1.4rem;
+    border-radius: 999px;
     cursor: pointer;
     font-size: 1rem;
   }
 
   .save-button:hover:not(:disabled) {
-    background: #218838;
+    background: var(--accent-primary-dark);
   }
 
   .save-button:disabled {
-    background: #6c757d;
+    background: rgba(123, 94, 58, 0.4);
     cursor: not-allowed;
   }
 
   .cancel-button {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.25rem;
+    background: transparent;
+    color: var(--text-ink-secondary);
+    border: 1px solid var(--border-strong);
+    padding: 0.6rem 1.4rem;
+    border-radius: 999px;
     cursor: pointer;
     font-size: 1rem;
   }
 
   .cancel-button:hover:not(:disabled) {
-    background: #545b62;
+    background: rgba(123, 94, 58, 0.12);
   }
 
   .cancel-button:disabled {
@@ -382,8 +383,8 @@
   .loading-spinner {
     width: 30px;
     height: 30px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #007bff;
+    border: 3px solid rgba(214, 199, 174, 0.2);
+    border-top: 3px solid var(--accent-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }

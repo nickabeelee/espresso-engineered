@@ -433,11 +433,11 @@
   }
 
   .error-banner {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
+    background: rgba(122, 62, 47, 0.12);
+    border: 1px solid rgba(122, 62, 47, 0.25);
+    color: var(--semantic-error);
     padding: 1rem;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-md);
     margin-bottom: 1.5rem;
   }
 
@@ -455,9 +455,9 @@
 
   .form-section h3 {
     margin: 0;
-    color: #333;
+    color: var(--text-ink-secondary);
     font-size: 1.25rem;
-    border-bottom: 2px solid #e5e5e5;
+    border-bottom: 1px solid var(--border-subtle);
     padding-bottom: 0.5rem;
   }
 
@@ -475,15 +475,15 @@
 
   .form-group label {
     font-weight: 600;
-    color: #333;
+    color: var(--text-ink-secondary);
     font-size: 0.95rem;
   }
 
   .form-group input,
   .form-group textarea {
     padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
     font-size: 1rem;
     font-family: inherit;
   }
@@ -491,23 +491,23 @@
   .form-group input:focus,
   .form-group textarea:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
   }
 
   .form-group input:disabled,
   .form-group textarea:disabled {
-    background: #f8f9fa;
+    background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
   }
 
   .form-group small {
-    color: #666;
+    color: var(--text-ink-muted);
     font-size: 0.85rem;
   }
 
   .error-text {
-    color: #dc3545;
+    color: var(--semantic-error);
     font-size: 0.85rem;
   }
 
@@ -515,9 +515,9 @@
     display: flex;
     gap: 2rem;
     padding: 1rem;
-    background: #e7f3ff;
-    border-radius: 0.5rem;
-    border: 1px solid #b3d9ff;
+    background: var(--bg-surface-paper-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(123, 94, 58, 0.2);
   }
 
   .calc-field {
@@ -528,11 +528,11 @@
 
   .calc-field .label {
     font-weight: 600;
-    color: #004085;
+    color: var(--text-ink-secondary);
   }
 
   .calc-field .value {
-    color: #004085;
+    color: var(--text-ink-primary);
     font-size: 1.1rem;
   }
 
@@ -541,48 +541,23 @@
     gap: 1rem;
     justify-content: flex-end;
     padding-top: 1rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border-subtle);
   }
 
   button {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 0.5rem;
+    padding: 0.6rem 1.4rem;
+    border-radius: 999px;
     font-weight: 500;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.2s;
-  }
-
-  .btn-primary {
-    background: #007bff;
-    color: white;
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    background: #0056b3;
-  }
-
-  .btn-secondary {
-    background: #6c757d;
-    color: white;
-  }
-
-  .btn-secondary:hover:not(:disabled) {
-    background: #545b62;
+    font-size: 0.95rem;
   }
 
   .btn-draft {
-    background: #ffc107;
-    color: #333;
+    background: rgba(176, 138, 90, 0.15);
+    color: var(--text-ink-secondary);
+    border: 1px solid rgba(176, 138, 90, 0.4);
   }
 
   .btn-draft:hover:not(:disabled) {
-    background: #e0a800;
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+    background: rgba(176, 138, 90, 0.25);
   }
 </style>

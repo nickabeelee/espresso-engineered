@@ -217,12 +217,20 @@
 <style>
   .image-upload {
     width: 100%;
+    --color-surface: var(--bg-surface-paper-secondary);
+    --color-border: var(--border-subtle);
+    --color-primary: var(--accent-primary);
+    --color-primary-light: rgba(176, 138, 90, 0.12);
+    --color-text: var(--text-ink-primary);
+    --color-text-secondary: var(--text-ink-muted);
+    --color-error: var(--semantic-error);
+    --color-error-dark: rgba(122, 62, 47, 0.35);
   }
   
   .current-image {
     position: relative;
     display: inline-block;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     overflow: hidden;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -242,7 +250,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    background: linear-gradient(transparent, rgba(43, 33, 24, 0.72));
     padding: 0.5rem;
     display: flex;
     gap: 0.5rem;
@@ -257,7 +265,7 @@
   
   .upload-area {
     border: 2px dashed var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 2rem;
     text-align: center;
     cursor: pointer;
@@ -345,7 +353,7 @@
   
   .btn-danger {
     background: var(--color-error);
-    color: white;
+    color: var(--text-ink-inverted);
     border: 1px solid var(--color-error);
   }
   

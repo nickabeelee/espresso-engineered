@@ -61,10 +61,10 @@
         };
 
         await authService.signUp(email, password, metadata);
-        success = 'Check your email for the confirmation link!';
+        success = 'Check your email for the confirmation link.';
       } else if (mode === 'forgot') {
         await authService.resetPassword(email);
-        success = 'Password reset email sent! Check your inbox.';
+        success = 'Password reset email sent. Check your inbox.';
       }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Authentication failed';
@@ -93,18 +93,19 @@
 </svelte:head>
 
 <div class="auth-page">
-    <div class="auth-container">
-      <div class="auth-header">
-        <h1>Espresso Engineered</h1>
-        <p>Community-driven espresso brewing companion</p>
-      </div>
+  <div class="auth-container">
+    <div class="auth-header">
+      <p class="voice-line">There is time for this.</p>
+      <h1>Espresso Engineered</h1>
+      <p>Sign in to continue your record.</p>
+    </div>
 
       {#if $authStatus === 'profile_missing'}
-        <div class="error">
+        <div class="notice error">
           We couldn't find your barista profile. Try signing out and back in.
         </div>
       {:else if $authStatus === 'error' && $authError}
-        <div class="error">
+        <div class="notice error">
           {$authError}
         </div>
       {/if}
@@ -200,14 +201,14 @@
         {/if}
 
         {#if error}
-          <div class="error">{error}</div>
+          <div class="notice error">{error}</div>
         {/if}
 
         {#if success}
-          <div class="success">{success}</div>
+          <div class="notice success">{success}</div>
         {/if}
 
-        <button type="submit" disabled={loading} class="auth-submit">
+        <button type="submit" disabled={loading} class="btn-primary auth-submit">
           {#if loading}
             {#if mode === 'login'}
               Signing In...
@@ -254,45 +255,35 @@
 
 <style>
   .auth-page {
-    min-height: 100vh;
     display: flex;
-    align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 1rem;
   }
 
   .auth-container {
-    background: white;
-    border-radius: 1rem;
-    padding: 2rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px;
+    width: min(420px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
   }
 
   .auth-header {
-    text-align: center;
-    margin-bottom: 2rem;
+    text-align: left;
   }
 
   .auth-header h1 {
-    color: #333;
-    font-size: 2rem;
-    margin: 0 0 0.5rem 0;
+    font-size: 1.9rem;
+    margin-bottom: 0.5rem;
   }
 
   .auth-header p {
-    color: #666;
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
   }
 
   .auth-form h2 {
-    color: #333;
-    font-size: 1.5rem;
-    margin: 0 0 1.5rem 0;
-    text-align: center;
+    font-size: 1.2rem;
+    margin: 0 0 1.25rem 0;
+    color: var(--text-ink-secondary);
   }
 
   .form-group {
@@ -302,48 +293,12 @@
   label {
     display: block;
     margin-bottom: 0.5rem;
-    color: #333;
+    color: var(--text-ink-secondary);
     font-weight: 500;
   }
 
   input {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    box-sizing: border-box;
-  }
-
-  input:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-  }
-
-  input:disabled {
-    background: #f8f9fa;
-    cursor: not-allowed;
-  }
-
-  .error {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-  }
-
-  .success {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
   }
 
   .form-row {
@@ -354,31 +309,14 @@
 
   .form-group small {
     display: block;
-    margin-top: 0.25rem;
-    color: #666;
-    font-size: 0.85rem;
+    margin-top: 0.35rem;
+    color: var(--text-ink-muted);
+    font-size: 0.8rem;
   }
 
   .auth-submit {
     width: 100%;
-    background: #007bff;
-    color: white;
-    padding: 0.75rem;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    margin-bottom: 1rem;
-  }
-
-  .auth-submit:hover:not(:disabled) {
-    background: #0056b3;
-  }
-
-  .auth-submit:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
+    margin: 0.5rem 0 1rem;
   }
 
   .auth-toggle {
@@ -386,7 +324,7 @@
   }
 
   .auth-toggle p {
-    color: #666;
+    color: var(--text-ink-muted);
     margin: 0;
     font-size: 0.9rem;
   }
@@ -394,14 +332,19 @@
   .link-button {
     background: none;
     border: none;
-    color: #007bff;
-    text-decoration: underline;
+    color: var(--accent-primary);
     cursor: pointer;
     font-size: inherit;
     padding: 0;
   }
 
   .link-button:hover {
-    color: #0056b3;
+    color: var(--accent-primary-dark);
+  }
+
+  @media (max-width: 600px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

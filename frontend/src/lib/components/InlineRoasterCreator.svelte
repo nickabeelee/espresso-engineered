@@ -201,9 +201,9 @@
 
 <style>
   .inline-roaster-creator {
-    background: white;
-    border: 2px solid #007bff;
-    border-radius: 0.5rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid rgba(123, 94, 58, 0.3);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
     margin: 0.5rem 0;
   }
@@ -217,22 +217,22 @@
 
   .creator-header h4 {
     margin: 0;
-    color: #007bff;
+    color: var(--accent-primary);
     font-size: 1.1rem;
   }
 
   .close-btn {
     background: none;
-    border: none;
+    border: 1px solid transparent;
     font-size: 1.2rem;
     cursor: pointer;
-    color: #666;
+    color: var(--text-ink-muted);
     padding: 0.25rem;
     line-height: 1;
   }
 
   .close-btn:hover:not(:disabled) {
-    color: #dc3545;
+    color: var(--semantic-error);
   }
 
   .close-btn:disabled {
@@ -241,11 +241,11 @@
   }
 
   .error-banner {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
+    background: rgba(122, 62, 47, 0.12);
+    border: 1px solid rgba(122, 62, 47, 0.25);
+    color: var(--semantic-error);
     padding: 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: 999px;
     margin-bottom: 1rem;
     font-size: 0.9rem;
   }
@@ -264,26 +264,26 @@
 
   .form-group label {
     font-weight: 600;
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 0.9rem;
   }
 
   .form-group input {
     padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
     font-size: 0.9rem;
     font-family: inherit;
   }
 
   .form-group input:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
   }
 
   .form-group input:disabled {
-    background: #f8f9fa;
+    background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
   }
 
@@ -293,7 +293,7 @@
 
   .presets-label {
     font-size: 0.8rem;
-    color: #666;
+    color: var(--text-ink-muted);
     margin-bottom: 0.5rem;
     display: block;
   }
@@ -305,11 +305,11 @@
   }
 
   .preset-btn {
-    background: #e9ecef;
-    color: #495057;
-    border: 1px solid #ced4da;
+    background: rgba(123, 94, 58, 0.12);
+    color: var(--text-ink-secondary);
+    border: 1px solid var(--border-subtle);
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: 999px;
     cursor: pointer;
     font-size: 0.75rem;
     font-weight: 500;
@@ -317,14 +317,14 @@
   }
 
   .preset-btn:hover:not(:disabled) {
-    background: #dee2e6;
-    border-color: #adb5bd;
+    background: rgba(123, 94, 58, 0.2);
+    border-color: var(--border-strong);
   }
 
   .preset-btn.selected {
-    background: #007bff;
-    color: white;
-    border-color: #007bff;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    border-color: var(--accent-primary);
   }
 
   .preset-btn:disabled {
@@ -333,26 +333,26 @@
   }
 
   .help-text {
-    color: #666;
+    color: var(--text-ink-muted);
     font-size: 0.8rem;
     line-height: 1.3;
   }
 
   .error-text {
-    color: #dc3545;
+    color: var(--semantic-error);
     font-size: 0.8rem;
   }
 
   .roaster-preview {
-    background: #e7f3ff;
-    border: 1px solid #b3d9ff;
-    border-radius: 0.25rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: 999px;
     padding: 1rem;
   }
 
   .roaster-preview h5 {
     margin: 0 0 0.5rem 0;
-    color: #004085;
+    color: var(--text-ink-secondary);
     font-size: 0.9rem;
   }
 
@@ -363,7 +363,7 @@
   }
 
   .preview-content strong {
-    color: #004085;
+    color: var(--text-ink-secondary);
     font-size: 1rem;
   }
 
@@ -372,7 +372,7 @@
   }
 
   .preview-link a {
-    color: #007bff;
+    color: var(--accent-primary);
     text-decoration: none;
   }
 
@@ -388,9 +388,9 @@
   }
 
   button {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 0.25rem;
+    padding: 0.45rem 1.1rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
     font-weight: 500;
     cursor: pointer;
     font-size: 0.9rem;
@@ -398,21 +398,21 @@
   }
 
   .btn-cancel {
-    background: #6c757d;
-    color: white;
+    background: rgba(123, 94, 58, 0.6);
+    color: var(--text-ink-inverted);
   }
 
   .btn-cancel:hover:not(:disabled) {
-    background: #545b62;
+    background: rgba(123, 94, 58, 0.75);
   }
 
   .btn-create {
-    background: #007bff;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
   }
 
   .btn-create:hover:not(:disabled) {
-    background: #0056b3;
+    background: var(--accent-primary-dark);
   }
 
   button:disabled {

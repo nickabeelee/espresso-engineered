@@ -195,9 +195,9 @@
 
 <style>
   .inline-bean-creator {
-    background: white;
-    border: 2px solid #007bff;
-    border-radius: 0.5rem;
+    background: var(--bg-surface-paper-secondary);
+    border: 2px solid var(--accent-primary);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
     margin: 0.5rem 0;
   }
@@ -211,22 +211,22 @@
 
   .creator-header h4 {
     margin: 0;
-    color: #007bff;
+    color: var(--accent-primary);
     font-size: 1.1rem;
   }
 
   .close-btn {
     background: none;
-    border: none;
+    border: 1px solid transparent;
     font-size: 1.2rem;
     cursor: pointer;
-    color: #666;
+    color: var(--text-ink-muted);
     padding: 0.25rem;
     line-height: 1;
   }
 
   .close-btn:hover:not(:disabled) {
-    color: #dc3545;
+    color: var(--semantic-error);
   }
 
   .close-btn:disabled {
@@ -235,20 +235,20 @@
   }
 
   .error-banner {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
+    background: rgba(122, 62, 47, 0.12);
+    border: 1px solid rgba(122, 62, 47, 0.25);
+    color: var(--semantic-error);
     padding: 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: 999px;
     margin-bottom: 1rem;
     font-size: 0.9rem;
   }
 
   .nested-creator {
-    border: 1px solid #e5e5e5;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
     padding: 0.5rem;
-    background: #f8f9fa;
+    background: var(--bg-surface-paper-secondary);
   }
 
   .creator-form {
@@ -271,7 +271,7 @@
 
   .form-group label {
     font-weight: 600;
-    color: #333;
+    color: var(--text-ink-primary);
     font-size: 0.9rem;
   }
 
@@ -279,8 +279,8 @@
   .form-group select,
   .form-group textarea {
     padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
     font-size: 0.9rem;
     font-family: inherit;
   }
@@ -289,14 +289,14 @@
   .form-group select:focus,
   .form-group textarea:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
   }
 
   .form-group input:disabled,
   .form-group select:disabled,
   .form-group textarea:disabled {
-    background: #f8f9fa;
+    background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
   }
 
@@ -310,11 +310,11 @@
   }
 
   .add-roaster-btn {
-    background: #28a745;
-    color: white;
-    border: none;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    border: 1px solid transparent;
     padding: 0.5rem 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: 999px;
     cursor: pointer;
     font-size: 0.8rem;
     font-weight: 500;
@@ -322,16 +322,16 @@
   }
 
   .add-roaster-btn:hover:not(:disabled) {
-    background: #218838;
+    background: var(--accent-primary-dark);
   }
 
   .add-roaster-btn:disabled {
-    background: #6c757d;
+    background: rgba(123, 94, 58, 0.6);
     cursor: not-allowed;
   }
 
   .error-text {
-    color: #dc3545;
+    color: var(--semantic-error);
     font-size: 0.8rem;
   }
 
@@ -343,9 +343,9 @@
   }
 
   button {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 0.25rem;
+    padding: 0.45rem 1.1rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
     font-weight: 500;
     cursor: pointer;
     font-size: 0.9rem;
@@ -353,21 +353,21 @@
   }
 
   .btn-cancel {
-    background: #6c757d;
-    color: white;
+    background: rgba(123, 94, 58, 0.6);
+    color: var(--text-ink-inverted);
   }
 
   .btn-cancel:hover:not(:disabled) {
-    background: #545b62;
+    background: rgba(123, 94, 58, 0.75);
   }
 
   .btn-create {
-    background: #007bff;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
   }
 
   .btn-create:hover:not(:disabled) {
-    background: #0056b3;
+    background: var(--accent-primary-dark);
   }
 
   button:disabled {
