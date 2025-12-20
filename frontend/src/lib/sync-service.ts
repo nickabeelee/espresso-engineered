@@ -76,7 +76,7 @@ export class SyncService {
           // Mark all successfully synced drafts
           for (const syncedBrew of response.data) {
             const originalDraft = validDrafts.find(d => 
-              d.dose_mg === syncedBrew.dose_mg && 
+              d.dose_g === syncedBrew.dose_g && 
               d.bag_id === syncedBrew.bag_id &&
               d.machine_id === syncedBrew.machine_id &&
               d.grinder_id === syncedBrew.grinder_id

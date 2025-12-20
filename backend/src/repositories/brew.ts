@@ -90,9 +90,9 @@ export class BrewRepository extends BaseRepository<Brew> {
     }
     if (filters.is_draft !== undefined) {
       if (filters.is_draft) {
-        query = query.is('yield_mg', null);
+        query = query.is('yield_g', null);
       } else {
-        query = query.not('yield_mg', 'is', null);
+        query = query.not('yield_g', 'is', null);
       }
     }
 
@@ -109,7 +109,7 @@ export class BrewRepository extends BaseRepository<Brew> {
   }
 
   /**
-   * Get draft brews (missing yield_mg) for a barista
+   * Get draft brews (missing yield_g) for a barista
    */
   async findDrafts(baristaId: string): Promise<Brew[]> {
     const { data, error } = await supabase
@@ -132,7 +132,7 @@ export class BrewRepository extends BaseRepository<Brew> {
   async getPrefillData(baristaId: string): Promise<PrefillData | null> {
     const { data, error } = await supabase
       .from('brew')
-      .select('bag_id, machine_id, grinder_id, grind_setting, dose_mg')
+      .select('bag_id, machine_id, grinder_id, grind_setting, dose_g')
       .eq('barista_id', baristaId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -154,8 +154,8 @@ export class BrewRepository extends BaseRepository<Brew> {
   async completeDraft(
     id: string, 
     outputData: {
-      yield_mg?: number;
-      brew_time_ms?: number;
+      yield_g?: number;
+      brew_time_s?: number;
       rating?: number;
       tasting_notes?: string;
       reflections?: string;
@@ -164,7 +164,7 @@ export class BrewRepository extends BaseRepository<Brew> {
   ): Promise<Brew> {
     // First verify this is actually a draft
     const existing = await this.findById(id, baristaId);
-    if (existing.yield_mg !== null) {
+    if (existing.yield_g !== null) {
       throw new Error('Brew is not a draft - already has yield measurement');
     }
 
@@ -172,19 +172,19 @@ export class BrewRepository extends BaseRepository<Brew> {
   }
 
   /**
-   * Calculate derived fields (flow_rate_mg_per_s and ratio_dec)
+   * Calculate derived fields (flow_rate_g_per_s and ratio)
    */
   private calculateFields(data: Partial<Brew>): Partial<Brew> {
     const calculated: Partial<Brew> = {};
 
-    // Calculate flow rate: yield_mg / (brew_time_ms / 1000)
-    if (data.yield_mg && data.brew_time_ms && data.brew_time_ms > 0) {
-      calculated.flow_rate_mg_per_s = data.yield_mg / (data.brew_time_ms / 1000);
+    // Calculate flow rate: yield_g / brew_time_s
+    if (data.yield_g && data.brew_time_s && data.brew_time_s > 0) {
+      calculated.flow_rate_g_per_s = data.yield_g / data.brew_time_s;
     }
 
-    // Calculate ratio: yield_mg / dose_mg
-    if (data.yield_mg && data.dose_mg && data.dose_mg > 0) {
-      calculated.ratio_dec = data.yield_mg / data.dose_mg;
+    // Calculate ratio: yield_g / dose_g
+    if (data.yield_g && data.dose_g && data.dose_g > 0) {
+      calculated.ratio = data.yield_g / data.dose_g;
     }
 
     return calculated;

@@ -36,7 +36,7 @@ export interface Bag {
   bean_id: string;
   owner_id: string; // References barista.id, NOT auth.users.id
   roast_date?: string;
-  weight_mg?: number;
+  weight_g?: number; // Weight in grams with 0.1g precision
   price?: number;
   purchase_location?: string;
 }
@@ -68,12 +68,12 @@ export interface Brew {
   grinder_id: string;
   bag_id: string;
   name?: string;
-  dose_mg: number;
-  yield_mg?: number;
-  brew_time_ms?: number;
+  dose_g: number; // Coffee dose in grams with 0.1g precision
+  yield_g?: number; // Espresso yield in grams with 0.1g precision
+  brew_time_s?: number; // Brew time in seconds with 0.01s precision
   grind_setting?: string;
-  flow_rate_mg_per_s?: number; // Calculated field: yield_mg / (brew_time_ms / 1000)
-  ratio_dec?: number; // Calculated field: yield_mg / dose_mg
+  flow_rate_g_per_s?: number; // Flow rate in grams per second with 0.01 precision
+  ratio?: number; // Brew ratio (yield/dose) with 0.01 precision
   rating?: number;
   tasting_notes?: string;
   reflections?: string;
@@ -85,7 +85,7 @@ export interface BrewDraft extends Partial<Brew> {
   machine_id: string;
   grinder_id: string;
   bag_id: string;
-  dose_mg: number;
+  dose_g: number;
 }
 
 // API request/response types
@@ -94,9 +94,9 @@ export interface CreateBrewRequest {
   grinder_id: string;
   bag_id: string;
   name?: string;
-  dose_mg: number;
-  yield_mg?: number;
-  brew_time_ms?: number;
+  dose_g: number;
+  yield_g?: number;
+  brew_time_s?: number;
   grind_setting?: string;
   rating?: number;
   tasting_notes?: string;
@@ -112,7 +112,7 @@ export interface PrefillData {
   machine_id: string;
   grinder_id: string;
   grind_setting?: string;
-  dose_mg: number;
+  dose_g: number;
 }
 
 // Entity creation types for inline creation
@@ -127,7 +127,7 @@ export interface CreateBeanRequest {
 export interface CreateBagRequest {
   bean_id: string;
   roast_date?: string;
-  weight_mg?: number;
+  weight_g?: number;
   price?: number;
   purchase_location?: string;
 }

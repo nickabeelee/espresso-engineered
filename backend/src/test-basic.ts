@@ -20,9 +20,9 @@ async function testBasicFunctionality() {
       machine_id: '123e4567-e89b-12d3-a456-426614174000',
       grinder_id: '123e4567-e89b-12d3-a456-426614174001',
       bag_id: '123e4567-e89b-12d3-a456-426614174002',
-      dose_mg: 18.5,
-      yield_mg: 36.0,
-      brew_time_ms: 28000,
+      dose_g: 18.5,
+      yield_g: 36.0,
+      brew_time_s: 28.0,
       rating: 8
     };
 
@@ -36,7 +36,7 @@ async function testBasicFunctionality() {
   try {
     const invalidBrewData = {
       machine_id: 'invalid-uuid',
-      dose_mg: -5 // Invalid negative number
+      dose_g: -5 // Invalid negative number
     };
 
     validateSchema(createBrewSchema, invalidBrewData);

@@ -37,7 +37,6 @@ vi.mock('svelte/store', () => ({
 import { SyncService } from './sync-service';
 import { OfflineStorage, ConnectivityManager } from './offline-storage';
 import { apiClient } from './api-client';
-import { barista } from './auth';
 import { get } from 'svelte/store';
 
 describe('SyncService', () => {
@@ -80,7 +79,7 @@ describe('SyncService', () => {
         machine_id: 'test-machine',
         grinder_id: 'test-grinder',
         bag_id: 'test-bag',
-        dose_mg: 18000
+        dose_g: 18.0
       };
 
       vi.mocked(OfflineStorage.getDraftsToSync).mockResolvedValue([mockDraft]);
@@ -101,7 +100,7 @@ describe('SyncService', () => {
         machine_id: 'test-machine',
         grinder_id: 'test-grinder',
         bag_id: 'test-bag',
-        dose_mg: 18000
+        dose_g: 18.0
       };
 
       const mockSyncedBrew = {
@@ -142,7 +141,7 @@ describe('SyncService', () => {
           machine_id: 'test-machine',
           grinder_id: 'test-grinder',
           bag_id: 'test-bag',
-          dose_mg: 18000
+          dose_g: 18.0
         },
         {
           id: 'draft-2',
@@ -150,7 +149,7 @@ describe('SyncService', () => {
           machine_id: 'test-machine',
           grinder_id: 'test-grinder',
           bag_id: 'test-bag',
-          dose_mg: 18000
+          dose_g: 18.0
         }
       ];
 
@@ -189,7 +188,7 @@ describe('SyncService', () => {
         machine_id: 'test-machine',
         grinder_id: 'test-grinder',
         bag_id: 'test-bag',
-        dose_mg: 18000
+        dose_g: 18.0
       };
 
       const mockSyncedBrew = {
@@ -230,8 +229,8 @@ describe('SyncService', () => {
   describe('utility methods', () => {
     it('should return pending sync count', async () => {
       vi.mocked(OfflineStorage.getDraftsToSync).mockResolvedValue([
-        { barista_id: 'test', machine_id: 'test', grinder_id: 'test', bag_id: 'test', dose_mg: 18000 },
-        { barista_id: 'test', machine_id: 'test', grinder_id: 'test', bag_id: 'test', dose_mg: 18000 }
+        { barista_id: 'test', machine_id: 'test', grinder_id: 'test', bag_id: 'test', dose_g: 18.0 },
+        { barista_id: 'test', machine_id: 'test', grinder_id: 'test', bag_id: 'test', dose_g: 18.0 }
       ]);
 
       const count = await syncService.getPendingSyncCount();
@@ -258,7 +257,7 @@ describe('SyncService', () => {
 
       // Mock a long-running sync
       vi.mocked(OfflineStorage.getDraftsToSync).mockResolvedValue([
-        { barista_id: 'test', machine_id: 'test', grinder_id: 'test', bag_id: 'test', dose_mg: 18000 }
+        { barista_id: 'test', machine_id: 'test', grinder_id: 'test', bag_id: 'test', dose_g: 18.0 }
       ]);
       
       // Mock get function to return authenticated user

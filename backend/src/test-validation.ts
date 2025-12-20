@@ -10,9 +10,9 @@ function testValidationSchemas() {
       machine_id: '123e4567-e89b-12d3-a456-426614174000',
       grinder_id: '123e4567-e89b-12d3-a456-426614174001',
       bag_id: '123e4567-e89b-12d3-a456-426614174002',
-      dose_mg: 18.5,
-      yield_mg: 36.0,
-      brew_time_ms: 28000,
+      dose_g: 18.5,
+      yield_g: 36.0,
+      brew_time_s: 28.0,
       rating: 8,
       tasting_notes: 'Bright and fruity',
       reflections: 'Good extraction, maybe grind slightly finer next time'
@@ -30,7 +30,7 @@ function testValidationSchemas() {
       machine_id: 'invalid-uuid',
       grinder_id: '123e4567-e89b-12d3-a456-426614174001',
       bag_id: '123e4567-e89b-12d3-a456-426614174002',
-      dose_mg: 18.5
+      dose_g: 18.5
     };
 
     validateSchema(createBrewSchema, invalidUuidData);
@@ -45,7 +45,7 @@ function testValidationSchemas() {
       machine_id: '123e4567-e89b-12d3-a456-426614174000',
       grinder_id: '123e4567-e89b-12d3-a456-426614174001',
       bag_id: '123e4567-e89b-12d3-a456-426614174002',
-      dose_mg: -5
+      dose_g: -5
     };
 
     validateSchema(createBrewSchema, negativeDoseData);
@@ -90,7 +90,7 @@ function testValidationSchemas() {
       machine_id: '123e4567-e89b-12d3-a456-426614174000',
       grinder_id: '123e4567-e89b-12d3-a456-426614174001',
       bag_id: '123e4567-e89b-12d3-a456-426614174002',
-      dose_mg: 18.5,
+      dose_g: 18.5,
       rating: 15 // Invalid rating > 10
     };
 

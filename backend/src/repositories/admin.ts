@@ -72,9 +72,9 @@ export class AdminRepository {
     }
     if (filters.is_draft !== undefined) {
       if (filters.is_draft) {
-        query = query.is('yield_mg', null);
+        query = query.is('yield_g', null);
       } else {
-        query = query.not('yield_mg', 'is', null);
+        query = query.not('yield_g', 'is', null);
       }
     }
 
@@ -148,11 +148,11 @@ export class AdminRepository {
     (updateData as any).modified_at = new Date().toISOString();
 
     // Calculate derived fields if needed
-    if (data.yield_mg && data.brew_time_ms && data.brew_time_ms > 0) {
-      updateData.flow_rate_mg_per_s = data.yield_mg / (data.brew_time_ms / 1000);
+    if (data.yield_g && data.brew_time_s && data.brew_time_s > 0) {
+      updateData.flow_rate_g_per_s = data.yield_g / data.brew_time_s;
     }
-    if (data.yield_mg && data.dose_mg && data.dose_mg > 0) {
-      updateData.ratio_dec = data.yield_mg / data.dose_mg;
+    if (data.yield_g && data.dose_g && data.dose_g > 0) {
+      updateData.ratio = data.yield_g / data.dose_g;
     }
 
     const { data: updated, error } = await supabase

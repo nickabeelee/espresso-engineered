@@ -119,7 +119,7 @@ All tables have RLS (Row Level Security) enabled.
 | bean_id | uuid | updatable | - |
 | owner_id | uuid | updatable | - |
 | roast_date | date | nullable, updatable | - |
-| weight_mg | numeric | nullable, updatable | - |
+| weight_g | numeric | nullable, updatable | - |
 | price | numeric | nullable, updatable | - |
 | purchase_location | text | nullable, updatable | - |
 
@@ -142,12 +142,12 @@ All tables have RLS (Row Level Security) enabled.
 | grinder_id | uuid | updatable | - |
 | bag_id | uuid | updatable | - |
 | name | text | updatable | - |
-| dose_mg | numeric | updatable | - |
-| yield_mg | numeric | nullable, updatable | - |
-| brew_time_ms | numeric | nullable, updatable | - |
+| dose_g | numeric | updatable | - |
+| yield_g | numeric | nullable, updatable | - |
+| brew_time_s | numeric | nullable, updatable | - |
 | grind_setting | varchar | nullable, updatable | - |
-| flow_rate_mg/s | numeric | nullable, updatable | - |
-| ratio_dec | numeric | nullable, updatable | - |
+| flow_rate_g_per_s | numeric | nullable, updatable | - |
+| ratio | numeric | nullable, updatable | - |
 | rating | integer | nullable, updatable | - |
 | tasting_notes | text | nullable, updatable | - |
 | reflections | text | nullable, updatable | - |

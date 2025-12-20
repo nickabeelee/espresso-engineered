@@ -43,14 +43,14 @@ function testRepositoryLogic() {
     // Test the private calculateFields method through create/update
     // This tests the business logic without requiring database
     const testData = {
-      dose_mg: 18.5,
-      yield_mg: 37.0,
-      brew_time_ms: 28000
+      dose_g: 18.5,
+      yield_g: 37.0,
+      brew_time_s: 28.0
     };
 
     // The calculated fields should be:
-    // flow_rate_mg_per_s = 37.0 / (28000 / 1000) = 37.0 / 28 = 1.32...
-    // ratio_dec = 37.0 / 18.5 = 2.0
+    // flow_rate_g_per_s = 37.0 / 28.0 = 1.32...
+    // ratio = 37.0 / 18.5 = 2.0
 
     console.log('✓ Calculated fields logic: PASS (logic verified)');
   } catch (error) {

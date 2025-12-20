@@ -16,9 +16,9 @@ export const createBrewSchema = z.object({
   grinder_id: uuidSchema,
   bag_id: uuidSchema,
   name: z.string().min(1).max(255).optional(),
-  dose_mg: positiveNumber,
-  yield_mg: positiveNumber.optional(),
-  brew_time_ms: positiveNumber.optional(),
+  dose_g: positiveNumber,
+  yield_g: positiveNumber.optional(),
+  brew_time_s: positiveNumber.optional(),
   grind_setting: z.string().max(50).optional(),
   rating: z.number().int().min(1).max(10).optional(),
   tasting_notes: z.string().max(1000).optional(),
@@ -28,8 +28,8 @@ export const createBrewSchema = z.object({
 export const updateBrewSchema = createBrewSchema.partial();
 
 export const completeDraftSchema = z.object({
-  yield_mg: positiveNumber.optional(),
-  brew_time_ms: positiveNumber.optional(),
+  yield_g: positiveNumber.optional(),
+  brew_time_s: positiveNumber.optional(),
   rating: z.number().int().min(1).max(10).optional(),
   tasting_notes: z.string().max(1000).optional(),
   reflections: z.string().max(2000).optional()
@@ -47,7 +47,7 @@ export const createBeanSchema = z.object({
 export const createBagSchema = z.object({
   bean_id: uuidSchema,
   roast_date: z.string().datetime().optional(),
-  weight_mg: positiveNumber.optional(),
+  weight_g: positiveNumber.optional(),
   price: nonNegativeNumber.optional(),
   purchase_location: z.string().max(255).optional()
 });
