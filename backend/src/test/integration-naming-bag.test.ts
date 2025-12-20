@@ -117,7 +117,7 @@ describe('Bag Creation Integration Tests', () => {
           bean_id: testBeanId,
           roast_date: roastDate,
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -156,7 +156,7 @@ describe('Bag Creation Integration Tests', () => {
         body: JSON.stringify({
           bean_id: testBeanId,
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -194,7 +194,7 @@ describe('Bag Creation Integration Tests', () => {
           bean_id: specialBean!.id,
           roast_date: '2023-12-01',
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -243,7 +243,7 @@ describe('Bag Creation Integration Tests', () => {
           bean_id: testBeanId,
           roast_date: roastDate,
           purchase_date: '2023-12-15',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -311,7 +311,7 @@ describe('Bag Creation Integration Tests', () => {
           bean_id: testBeanId,
           roast_date: '2023-12-01',
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -361,7 +361,7 @@ describe('Bag Creation Integration Tests', () => {
           bean_id: testBeanId,
           roast_date: '2023-12-01',
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -390,7 +390,7 @@ describe('Bag Creation Integration Tests', () => {
           bean_id: '00000000-0000-0000-0000-000000000000',
           roast_date: '2023-12-01',
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -477,7 +477,7 @@ describe('Bag Creation Integration Tests', () => {
           bean_id: testBeanId,
           roast_date: '2023-12-20',
           purchase_date: '2023-12-20',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 

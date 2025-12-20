@@ -118,10 +118,15 @@ All tables have RLS (Row Level Security) enabled.
 | modified_at | timestamptz | updatable | now() |
 | bean_id | uuid | updatable | - |
 | owner_id | uuid | updatable | - |
+| name | text | nullable, updatable | - |
 | roast_date | date | nullable, updatable | - |
 | weight_g | numeric | nullable, updatable | - |
 | price | numeric | nullable, updatable | - |
 | purchase_location | text | nullable, updatable | - |
+
+**Field Notes:**
+- `name`: The name of this bag of beans
+- `weight_g`: Bag weight in grams with 0.1g precision
 
 **Foreign Key References:**
 - References: `bean.id`, `barista.id`
@@ -151,6 +156,14 @@ All tables have RLS (Row Level Security) enabled.
 | rating | integer | nullable, updatable | - |
 | tasting_notes | text | nullable, updatable | - |
 | reflections | text | nullable, updatable | - |
+
+**Field Precision Notes:**
+- `dose_g`: Coffee dose in grams with 0.1g precision
+- `yield_g`: Espresso yield in grams with 0.1g precision  
+- `brew_time_s`: Brew time in seconds with 0.01s precision
+- `flow_rate_g_per_s`: Flow rate in grams per second with 0.01 precision
+- `ratio`: Brew ratio (yield/dose) with 0.01 precision
+- `weight_g`: Bag weight in grams with 0.1g precision
 
 **Foreign Key References:**
 - References: `barista.id`, `machine.id`, `grinder.id`, `bag.id`

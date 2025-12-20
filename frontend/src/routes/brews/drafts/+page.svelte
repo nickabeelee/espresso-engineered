@@ -14,13 +14,13 @@
   });
 
   function isDraft(brew: Brew): boolean {
-    return !brew.yield_mg || !brew.rating;
+    return !brew.yield_g || !brew.rating;
   }
 
   function getMissingFields(brew: Brew): string[] {
     const missing: string[] = [];
-    if (!brew.yield_mg) missing.push('yield');
-    if (!brew.brew_time_ms) missing.push('brew time');
+    if (!brew.yield_g) missing.push('yield');
+    if (!brew.brew_time_s) missing.push('brew time');
     if (!brew.rating) missing.push('rating');
     return missing;
   }
@@ -70,7 +70,7 @@
             <div class="draft-preview">
               <div class="preview-item">
                 <label>Dose:</label>
-                <span>{draft.dose_mg}mg</span>
+                <span>{draft.dose_g}g</span>
               </div>
               {#if draft.grind_setting}
                 <div class="preview-item">
@@ -78,10 +78,10 @@
                   <span>{draft.grind_setting}</span>
                 </div>
               {/if}
-              {#if draft.yield_mg}
+              {#if draft.yield_g}
                 <div class="preview-item">
                   <label>Yield:</label>
-                  <span>{draft.yield_mg}mg</span>
+                  <span>{draft.yield_g}g</span>
                 </div>
               {/if}
             </div>

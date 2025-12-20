@@ -37,6 +37,7 @@ export interface Bag {
   modified_at: string;
   bean_id: string;
   owner_id: string; // References barista.id, NOT auth.users.id
+  name?: string; // The name of this bag of beans
   roast_date?: string;
   weight_g?: number; // Weight in grams with 0.1g precision
   price?: number;
@@ -130,6 +131,7 @@ export interface CreateBeanRequest {
 
 export interface CreateBagRequest {
   bean_id: string;
+  name?: string;
   roast_date?: string;
   weight_g?: number;
   price?: number;

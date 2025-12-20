@@ -25,7 +25,7 @@ describe('OfflineStorage', () => {
     machine_id: 'machine-1',
     grinder_id: 'grinder-1',
     bag_id: 'bag-1',
-    dose_mg: 18000,
+    dose_g: 18,
     grind_setting: '2.5',
     created_at: '2023-01-01T10:00:00Z'
   };

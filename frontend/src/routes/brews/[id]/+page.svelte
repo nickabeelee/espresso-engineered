@@ -101,12 +101,12 @@
   function formatCalculatedFields(brew: Brew) {
     const fields = [];
     
-    if (brew.ratio_dec) {
-      fields.push(`Ratio: 1:${brew.ratio_dec.toFixed(2)}`);
+    if (brew.ratio) {
+      fields.push(`Ratio: 1:${brew.ratio.toFixed(2)}`);
     }
     
-    if (brew.flow_rate_mg_per_s) {
-      fields.push(`Flow Rate: ${brew.flow_rate_mg_per_s.toFixed(1)} mg/s`);
+    if (brew.flow_rate_g_per_s) {
+      fields.push(`Flow Rate: ${brew.flow_rate_g_per_s.toFixed(1)} g/s`);
     }
     
     return fields;
@@ -167,30 +167,30 @@
               </div>
               <div class="detail-item">
                 <label>Dose:</label>
-                <span>{currentBrew.dose_mg}mg</span>
+                <span>{currentBrew.dose_g}g</span>
               </div>
-              {#if currentBrew.yield_mg}
+              {#if currentBrew.yield_g}
                 <div class="detail-item">
                   <label>Yield:</label>
-                  <span>{currentBrew.yield_mg}mg</span>
+                  <span>{currentBrew.yield_g}g</span>
                 </div>
               {/if}
-              {#if currentBrew.brew_time_ms}
+              {#if currentBrew.brew_time_s}
                 <div class="detail-item">
                   <label>Brew Time:</label>
-                  <span>{(currentBrew.brew_time_ms / 1000).toFixed(1)}s</span>
+                  <span>{currentBrew.brew_time_s.toFixed(1)}s</span>
                 </div>
               {/if}
-              {#if currentBrew.ratio_dec}
+              {#if currentBrew.ratio}
                 <div class="detail-item">
                   <label>Ratio:</label>
-                  <span>1:{currentBrew.ratio_dec.toFixed(2)}</span>
+                  <span>1:{currentBrew.ratio.toFixed(2)}</span>
                 </div>
               {/if}
-              {#if currentBrew.flow_rate_mg_per_s}
+              {#if currentBrew.flow_rate_g_per_s}
                 <div class="detail-item">
                   <label>Flow Rate:</label>
-                  <span>{currentBrew.flow_rate_mg_per_s.toFixed(1)} mg/s</span>
+                  <span>{currentBrew.flow_rate_g_per_s.toFixed(1)} g/s</span>
                 </div>
               {/if}
               {#if currentBrew.grind_setting}
@@ -222,7 +222,7 @@
             </div>
           {/if}
 
-          {#if !currentBrew.yield_mg || !currentBrew.rating}
+          {#if !currentBrew.yield_g || !currentBrew.rating}
             <div class="incomplete-notice">
               <p>This brew is incomplete. {#if canEdit}<button on:click={toggleEdit} class="link-button">Complete it now</button>.{/if}</p>
             </div>

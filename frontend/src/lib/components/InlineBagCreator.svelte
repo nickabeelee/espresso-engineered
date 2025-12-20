@@ -17,7 +17,7 @@
   // Form fields
   let bean_id = '';
   let roast_date = '';
-  let weight_mg: number | undefined = undefined;
+  let weight_g: number | undefined = undefined;
   let price: number | undefined = undefined;
   let purchase_location = '';
 
@@ -37,8 +37,8 @@
     if (!bean_id) {
       validationErrors.bean_id = 'Bean is required';
     }
-    if (weight_mg !== undefined && weight_mg < 0) {
-      validationErrors.weight_mg = 'Weight cannot be negative';
+    if (weight_g !== undefined && weight_g < 0) {
+      validationErrors.weight_g = 'Weight cannot be negative';
     }
     if (price !== undefined && price < 0) {
       validationErrors.price = 'Price cannot be negative';
@@ -60,7 +60,7 @@
       const bagData: CreateBagRequest = {
         bean_id,
         roast_date: roast_date || undefined,
-        weight_mg: weight_mg ? Math.round(weight_mg * 1000) : undefined, // Convert g to mg
+        weight_g: weight_g || undefined,
         price,
         purchase_location: purchase_location.trim() || undefined
       };
@@ -113,7 +113,7 @@
 
   // Set default weight to common bag sizes
   function setCommonWeight(grams: number) {
-    weight_mg = grams;
+    weight_g = grams;
   }
 
   // Preview name generation with debouncing for performance optimization
@@ -238,20 +238,20 @@
             <input
               id="weight"
               type="number"
-              bind:value={weight_mg}
-              step="1"
-              min="0"
-              placeholder="250"
-              disabled={loading}
-            />
+            bind:value={weight_g}
+            step="1"
+            min="0"
+            placeholder="250"
+            disabled={loading}
+          />
             <div class="weight-presets">
               <button type="button" on:click={() => setCommonWeight(250)} class="preset-btn" disabled={loading}>250g</button>
               <button type="button" on:click={() => setCommonWeight(340)} class="preset-btn" disabled={loading}>340g</button>
               <button type="button" on:click={() => setCommonWeight(500)} class="preset-btn" disabled={loading}>500g</button>
             </div>
           </div>
-          {#if validationErrors.weight_mg}
-            <span class="error-text">{validationErrors.weight_mg}</span>
+          {#if validationErrors.weight_g}
+            <span class="error-text">{validationErrors.weight_g}</span>
           {/if}
         </div>
       </div>

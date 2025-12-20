@@ -66,7 +66,7 @@
     if (!bean) return 'Unknown Bean';
     
     const roasterName = getRoasterName(bean.roaster_id);
-    const weight = bag.weight_mg ? ` (${(bag.weight_mg / 1000).toFixed(0)}g)` : '';
+    const weight = bag.weight_g ? ` (${bag.weight_g.toFixed(0)}g)` : '';
     const roastDate = bag.roast_date ? ` - ${new Date(bag.roast_date).toLocaleDateString()}` : '';
     
     return `${bean.name} - ${roasterName}${weight}${roastDate}`;
@@ -81,8 +81,8 @@
   }
 
   function isLowWeight(bag: Bag): boolean {
-    if (!bag.weight_mg) return false;
-    return bag.weight_mg < 50000; // Less than 50g
+    if (!bag.weight_g) return false;
+    return bag.weight_g < 50; // Less than 50g
   }
 
   // Filter bags to show only user's bags
@@ -229,9 +229,9 @@
                       Roasted {new Date(selectedBag.roast_date).toLocaleDateString()}
                     </span>
                   {/if}
-                  {#if selectedBag.weight_mg}
+                  {#if selectedBag.weight_g}
                     <span class="weight" class:low={isLowWeight(selectedBag)}>
-                      {(selectedBag.weight_mg / 1000).toFixed(0)}g remaining
+                      {selectedBag.weight_g.toFixed(0)}g remaining
                     </span>
                   {/if}
                 </div>

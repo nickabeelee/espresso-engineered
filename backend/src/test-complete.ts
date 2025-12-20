@@ -34,9 +34,9 @@ function testCompleteFoundation() {
       machine_id: '123e4567-e89b-12d3-a456-426614174000',
       grinder_id: '123e4567-e89b-12d3-a456-426614174001',
       bag_id: '123e4567-e89b-12d3-a456-426614174002',
-      dose_mg: 18.5,
-      yield_mg: 36.0,
-      brew_time_ms: 28000,
+      dose_g: 18.5,
+      yield_g: 36.0,
+      brew_time_s: 28,
       rating: 8
     };
     validateSchema(createBrewSchema, validData);
@@ -47,7 +47,7 @@ function testCompleteFoundation() {
       machine_id: 'invalid-uuid',
       grinder_id: '123e4567-e89b-12d3-a456-426614174001',
       bag_id: '123e4567-e89b-12d3-a456-426614174002',
-      dose_mg: 18.5
+      dose_g: 18.5
     };
     try {
       validateSchema(createBrewSchema, invalidData);
@@ -103,22 +103,22 @@ function testCompleteFoundation() {
   // Test 3: Business Logic
   runTest('Business Logic - Calculated fields', () => {
     // Test the calculation logic that would be used in BrewRepository
-    const dose_mg = 18.5;
-    const yield_mg = 37.0;
-    const brew_time_ms = 28000;
+    const dose_g = 18.5;
+    const yield_g = 37.0;
+    const brew_time_s = 28;
 
-    const flow_rate_mg_per_s = yield_mg / (brew_time_ms / 1000);
-    const ratio_dec = yield_mg / dose_mg;
+    const flow_rate_g_per_s = yield_g / brew_time_s;
+    const ratio = yield_g / dose_g;
 
     const expectedFlowRate = 37.0 / 28; // ≈ 1.32
     const expectedRatio = 37.0 / 18.5; // = 2.0
 
-    if (Math.abs(flow_rate_mg_per_s - expectedFlowRate) > 0.01) {
-      throw new Error(`Flow rate calculation incorrect: expected ${expectedFlowRate}, got ${flow_rate_mg_per_s}`);
+    if (Math.abs(flow_rate_g_per_s - expectedFlowRate) > 0.01) {
+      throw new Error(`Flow rate calculation incorrect: expected ${expectedFlowRate}, got ${flow_rate_g_per_s}`);
     }
 
-    if (Math.abs(ratio_dec - expectedRatio) > 0.01) {
-      throw new Error(`Ratio calculation incorrect: expected ${expectedRatio}, got ${ratio_dec}`);
+    if (Math.abs(ratio - expectedRatio) > 0.01) {
+      throw new Error(`Ratio calculation incorrect: expected ${expectedRatio}, got ${ratio}`);
     }
   });
 
@@ -160,12 +160,12 @@ function testCompleteFoundation() {
 
   // Test 5: Data Model Validation
   runTest('Data Models - Required fields', () => {
-    const requiredBrewFields = ['machine_id', 'grinder_id', 'bag_id', 'dose_mg'];
+    const requiredBrewFields = ['machine_id', 'grinder_id', 'bag_id', 'dose_g'];
     const testData = {
       machine_id: '123e4567-e89b-12d3-a456-426614174000',
       grinder_id: '123e4567-e89b-12d3-a456-426614174001',
       bag_id: '123e4567-e89b-12d3-a456-426614174002',
-      dose_mg: 18.5
+      dose_g: 18.5
     };
 
     requiredBrewFields.forEach(field => {

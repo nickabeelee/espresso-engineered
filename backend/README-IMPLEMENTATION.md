@@ -69,15 +69,15 @@ Key Features:
 - Consistent error messages and status codes
 
 ### 7. Brew Repository (`src/repositories/brew.ts`)
-- **Calculated Fields**: Automatic calculation of flow_rate_mg_per_s and ratio_dec
+- **Calculated Fields**: Automatic calculation of flow_rate_g_per_s and ratio
 - **Draft Management**: Support for incomplete brews (drafts)
 - **Prefill Data**: Retrieves data from most recent brew for quick entry
 - **Advanced Filtering**: Complex queries with multiple filter criteria
 - **Draft Completion**: Special endpoint for completing draft brews
 
 Calculated Fields:
-- `flow_rate_mg_per_s = yield_mg / (brew_time_ms / 1000)`
-- `ratio_dec = yield_mg / dose_mg`
+- `flow_rate_g_per_s = yield_g / (brew_time_s / 1000)`
+- `ratio = yield_g / dose_g`
 
 ### 8. Validation Schemas (`src/validation/schemas.ts`)
 - **Zod Integration**: Type-safe validation using Zod

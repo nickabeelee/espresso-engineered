@@ -46,7 +46,8 @@ export const createBeanSchema = z.object({
 
 export const createBagSchema = z.object({
   bean_id: uuidSchema,
-  roast_date: z.string().datetime().optional(),
+  name: z.string().min(1).max(255).optional(),
+  roast_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
   weight_g: positiveNumber.optional(),
   price: nonNegativeNumber.optional(),
   purchase_location: z.string().max(255).optional()

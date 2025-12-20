@@ -45,6 +45,7 @@ export type Database = {
           created_at: string
           id: string
           modified_at: string
+          name: string | null
           owner_id: string
           price: number | null
           purchase_location: string | null
@@ -56,6 +57,7 @@ export type Database = {
           created_at?: string
           id?: string
           modified_at?: string
+          name?: string | null
           owner_id: string
           price?: number | null
           purchase_location?: string | null
@@ -67,6 +69,7 @@ export type Database = {
           created_at?: string
           id?: string
           modified_at?: string
+          name?: string | null
           owner_id?: string
           price?: number | null
           purchase_location?: string | null

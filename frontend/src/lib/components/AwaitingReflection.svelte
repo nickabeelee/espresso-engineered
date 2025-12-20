@@ -20,7 +20,7 @@
 
       const response = await apiClient.getDraftBrews();
       draftBrews = response.data.filter(brew => 
-        brew.barista_id === barista_id && (!brew.yield_mg || !brew.rating)
+        brew.barista_id === barista_id && (!brew.yield_g || !brew.rating)
       );
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load draft brews';
@@ -48,8 +48,8 @@
 
   function getMissingFields(brew: Brew): string[] {
     const missing: string[] = [];
-    if (!brew.yield_mg) missing.push('Yield');
-    if (!brew.brew_time_ms) missing.push('Brew Time');
+    if (!brew.yield_g) missing.push('Yield');
+    if (!brew.brew_time_s) missing.push('Brew Time');
     if (!brew.rating) missing.push('Rating');
     if (!brew.tasting_notes) missing.push('Tasting Notes');
     if (!brew.reflections) missing.push('Reflections');
@@ -59,8 +59,8 @@
   function getCompletionPercentage(brew: Brew): number {
     const totalFields = 5; // yield, brew_time, rating, tasting_notes, reflections
     const completedFields = [
-      brew.yield_mg,
-      brew.brew_time_ms,
+      brew.yield_g,
+      brew.brew_time_s,
       brew.rating,
       brew.tasting_notes,
       brew.reflections
@@ -137,7 +137,7 @@
           <div class="brew-summary">
             <div class="summary-item">
               <span class="label">Dose:</span>
-              <span class="value">{(brew.dose_mg / 1000).toFixed(1)}g</span>
+              <span class="value">{brew.dose_g.toFixed(1)}g</span>
             </div>
             
             {#if brew.grind_setting}
@@ -147,17 +147,17 @@
               </div>
             {/if}
 
-            {#if brew.yield_mg}
+            {#if brew.yield_g}
               <div class="summary-item">
                 <span class="label">Yield:</span>
-                <span class="value">{(brew.yield_mg / 1000).toFixed(1)}g</span>
+                <span class="value">{brew.yield_g.toFixed(1)}g</span>
               </div>
             {/if}
 
-            {#if brew.brew_time_ms}
+            {#if brew.brew_time_s}
               <div class="summary-item">
                 <span class="label">Time:</span>
-                <span class="value">{(brew.brew_time_ms / 1000).toFixed(1)}s</span>
+                <span class="value">{brew.brew_time_s.toFixed(1)}s</span>
               </div>
             {/if}
           </div>

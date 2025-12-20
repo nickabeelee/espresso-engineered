@@ -24,9 +24,9 @@
   let machine_id = '';
   let grinder_id = '';
   let bag_id = '';
-  let dose_mg = 18000;
-  let yield_mg: number | undefined = undefined;
-  let brew_time_ms: number | undefined = undefined;
+  let dose_g = 18;
+  let yield_g: number | undefined = undefined;
+  let brew_time_s: number | undefined = undefined;
   let grind_setting = '';
   let rating: number | undefined = undefined;
   let tasting_notes = '';
@@ -37,8 +37,8 @@
   let previewLoading = false;
 
   // Calculated fields
-  let flow_rate_mg_per_s: number | undefined = undefined;
-  let ratio_dec: number | undefined = undefined;
+  let flow_rate_g_per_s: number | undefined = undefined;
+  let ratio: number | undefined = undefined;
 
   // UI state
   let loading = false;
@@ -59,9 +59,9 @@
     machine_id = brewData.machine_id;
     grinder_id = brewData.grinder_id;
     bag_id = brewData.bag_id;
-    dose_mg = brewData.dose_mg;
-    yield_mg = brewData.yield_mg;
-    brew_time_ms = brewData.brew_time_ms;
+    dose_g = brewData.dose_g;
+    yield_g = brewData.yield_g;
+    brew_time_s = brewData.brew_time_s;
     grind_setting = brewData.grind_setting || '';
     rating = brewData.rating;
     tasting_notes = brewData.tasting_notes || '';
@@ -79,7 +79,7 @@
         grinder_id = prefill.grinder_id;
         bag_id = prefill.bag_id;
         grind_setting = prefill.grind_setting || '';
-        dose_mg = prefill.dose_mg;
+        dose_g = prefill.dose_g;
       }
     } catch (err) {
       console.error('Failed to load prefill data:', err);
@@ -90,18 +90,18 @@
   }
 
   function calculateFields() {
-    // Calculate flow rate: yield_mg / (brew_time_ms / 1000)
-    if (yield_mg && brew_time_ms && brew_time_ms > 0) {
-      flow_rate_mg_per_s = yield_mg / (brew_time_ms / 1000);
+    // Calculate flow rate: yield_g / brew_time_s
+    if (yield_g && brew_time_s && brew_time_s > 0) {
+      flow_rate_g_per_s = yield_g / brew_time_s;
     } else {
-      flow_rate_mg_per_s = undefined;
+      flow_rate_g_per_s = undefined;
     }
 
-    // Calculate ratio: yield_mg / dose_mg
-    if (yield_mg && dose_mg && dose_mg > 0) {
-      ratio_dec = yield_mg / dose_mg;
+    // Calculate ratio: yield_g / dose_g
+    if (yield_g && dose_g && dose_g > 0) {
+      ratio = yield_g / dose_g;
     } else {
-      ratio_dec = undefined;
+      ratio = undefined;
     }
   }
 
@@ -117,14 +117,14 @@
     if (!bag_id) {
       validationErrors.bag_id = 'Bag is required';
     }
-    if (!dose_mg || dose_mg <= 0) {
-      validationErrors.dose_mg = 'Dose must be greater than 0';
+    if (!dose_g || dose_g <= 0) {
+      validationErrors.dose_g = 'Dose must be greater than 0';
     }
-    if (yield_mg !== undefined && yield_mg < 0) {
-      validationErrors.yield_mg = 'Yield cannot be negative';
+    if (yield_g !== undefined && yield_g < 0) {
+      validationErrors.yield_g = 'Yield cannot be negative';
     }
-    if (brew_time_ms !== undefined && brew_time_ms < 0) {
-      validationErrors.brew_time_ms = 'Brew time cannot be negative';
+    if (brew_time_s !== undefined && brew_time_s < 0) {
+      validationErrors.brew_time_s = 'Brew time cannot be negative';
     }
     if (rating !== undefined && (rating < 0 || rating > 10)) {
       validationErrors.rating = 'Rating must be between 0 and 10';
@@ -145,9 +145,9 @@
       machine_id,
       grinder_id,
       bag_id,
-      dose_mg,
-      yield_mg,
-      brew_time_ms,
+      dose_g,
+      yield_g,
+      brew_time_s,
       grind_setting: grind_setting.trim() || undefined,
       rating,
       tasting_notes: tasting_notes.trim() || undefined,
@@ -158,7 +158,7 @@
   }
 
   function handleSaveDraft() {
-    if (!machine_id || !grinder_id || !bag_id || !dose_mg) {
+    if (!machine_id || !grinder_id || !bag_id || !dose_g) {
       error = 'Required fields: machine, grinder, bag, and dose';
       return;
     }
@@ -167,11 +167,11 @@
       machine_id,
       grinder_id,
       bag_id,
-      dose_mg,
+      dose_g,
       grind_setting: grind_setting.trim() || undefined,
       // Include any output data that was entered
-      yield_mg,
-      brew_time_ms,
+      yield_g,
+      brew_time_s,
       rating,
       tasting_notes: tasting_notes.trim() || undefined,
       reflections: reflections.trim() || undefined
@@ -185,7 +185,7 @@
   }
 
   // Reactive statement to recalculate when values change
-  $: if (yield_mg !== undefined || brew_time_ms !== undefined || dose_mg) {
+  $: if (yield_g !== undefined || brew_time_s !== undefined || dose_g) {
     calculateFields();
   }
 
@@ -280,20 +280,19 @@
       
       <div class="form-row">
         <div class="form-group">
-          <label for="dose">Dose (mg) *</label>
+          <label for="dose">Dose (g) *</label>
           <input
             id="dose"
             type="number"
-            bind:value={dose_mg}
-            step="100"
+            bind:value={dose_g}
+            step="0.1"
             min="0"
-            placeholder="18000"
+            placeholder="18"
             disabled={loading}
             required
           />
-          <small>{(dose_mg / 1000).toFixed(1)}g</small>
-          {#if validationErrors.dose_mg}
-            <span class="error-text">{validationErrors.dose_mg}</span>
+          {#if validationErrors.dose_g}
+            <span class="error-text">{validationErrors.dose_g}</span>
           {/if}
         </div>
 
@@ -316,57 +315,51 @@
       
       <div class="form-row">
         <div class="form-group">
-          <label for="yield">Yield (mg)</label>
+          <label for="yield">Yield (g)</label>
           <input
             id="yield"
             type="number"
-            bind:value={yield_mg}
-            step="100"
+            bind:value={yield_g}
+            step="0.1"
             min="0"
-            placeholder="36000"
+            placeholder="36"
             disabled={loading}
           />
-          {#if yield_mg}
-            <small>{(yield_mg / 1000).toFixed(1)}g</small>
-          {/if}
-          {#if validationErrors.yield_mg}
-            <span class="error-text">{validationErrors.yield_mg}</span>
+          {#if validationErrors.yield_g}
+            <span class="error-text">{validationErrors.yield_g}</span>
           {/if}
         </div>
 
         <div class="form-group">
-          <label for="brew_time">Brew Time (ms)</label>
+          <label for="brew_time">Brew Time (s)</label>
           <input
             id="brew_time"
             type="number"
-            bind:value={brew_time_ms}
-            step="1000"
+            bind:value={brew_time_s}
+            step="0.1"
             min="0"
-            placeholder="30000"
+            placeholder="28"
             disabled={loading}
           />
-          {#if brew_time_ms}
-            <small>{(brew_time_ms / 1000).toFixed(1)}s</small>
-          {/if}
-          {#if validationErrors.brew_time_ms}
-            <span class="error-text">{validationErrors.brew_time_ms}</span>
+          {#if validationErrors.brew_time_s}
+            <span class="error-text">{validationErrors.brew_time_s}</span>
           {/if}
         </div>
       </div>
 
       <!-- Calculated Fields Display -->
-      {#if ratio_dec || flow_rate_mg_per_s}
+      {#if ratio || flow_rate_g_per_s}
         <div class="calculated-fields">
-          {#if ratio_dec}
+          {#if ratio}
             <div class="calc-field">
               <span class="label">Ratio:</span>
-              <span class="value">1:{ratio_dec.toFixed(2)}</span>
+              <span class="value">1:{ratio.toFixed(2)}</span>
             </div>
           {/if}
-          {#if flow_rate_mg_per_s}
+          {#if flow_rate_g_per_s}
             <div class="calc-field">
               <span class="label">Flow Rate:</span>
-              <span class="value">{flow_rate_mg_per_s.toFixed(1)} mg/s</span>
+              <span class="value">{flow_rate_g_per_s.toFixed(1)} g/s</span>
             </div>
           {/if}
         </div>

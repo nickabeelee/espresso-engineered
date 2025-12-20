@@ -27,7 +27,7 @@ export interface Bag {
     bean_id: string;
     owner_id: string;
     roast_date?: string;
-    weight_mg?: number;
+    weight_g?: number;
     price?: number;
     purchase_location?: string;
 }
@@ -56,12 +56,12 @@ export interface Brew {
     grinder_id: string;
     bag_id: string;
     name?: string;
-    dose_mg: number;
-    yield_mg?: number;
-    brew_time_ms?: number;
+    dose_g: number;
+    yield_g?: number;
+    brew_time_s?: number;
     grind_setting?: string;
-    flow_rate_mg_per_s?: number;
-    ratio_dec?: number;
+    flow_rate_g_per_s?: number;
+    ratio?: number;
     rating?: number;
     tasting_notes?: string;
     reflections?: string;
@@ -71,16 +71,16 @@ export interface BrewDraft extends Partial<Brew> {
     machine_id: string;
     grinder_id: string;
     bag_id: string;
-    dose_mg: number;
+    dose_g: number;
 }
 export interface CreateBrewRequest {
     machine_id: string;
     grinder_id: string;
     bag_id: string;
     name?: string;
-    dose_mg: number;
-    yield_mg?: number;
-    brew_time_ms?: number;
+    dose_g: number;
+    yield_g?: number;
+    brew_time_s?: number;
     grind_setting?: string;
     rating?: number;
     tasting_notes?: string;
@@ -94,7 +94,7 @@ export interface PrefillData {
     machine_id: string;
     grinder_id: string;
     grind_setting?: string;
-    dose_mg: number;
+    dose_g: number;
 }
 export interface CreateBeanRequest {
     roaster_id: string;
@@ -106,7 +106,7 @@ export interface CreateBeanRequest {
 export interface CreateBagRequest {
     bean_id: string;
     roast_date?: string;
-    weight_mg?: number;
+    weight_g?: number;
     price?: number;
     purchase_location?: string;
 }

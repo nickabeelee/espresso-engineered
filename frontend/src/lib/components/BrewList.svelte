@@ -93,7 +93,7 @@
   }
 
   function isDraft(brew: Brew): boolean {
-    return !brew.yield_mg || !brew.rating;
+    return !brew.yield_g || !brew.rating;
   }
 
   function getBrewTitle(brew: Brew): string {
@@ -219,27 +219,27 @@
         <div class="brew-details">
           <div class="detail-row">
             <span class="label">Dose:</span>
-            <span class="value">{(brew.dose_mg / 1000).toFixed(1)}g</span>
+            <span class="value">{brew.dose_g.toFixed(1)}g</span>
           </div>
 
-          {#if brew.yield_mg}
+          {#if brew.yield_g}
             <div class="detail-row">
               <span class="label">Yield:</span>
-              <span class="value">{(brew.yield_mg / 1000).toFixed(1)}g</span>
+              <span class="value">{brew.yield_g.toFixed(1)}g</span>
             </div>
           {/if}
 
-          {#if brew.ratio_dec}
+          {#if brew.ratio}
             <div class="detail-row">
               <span class="label">Ratio:</span>
-              <span class="value">1:{brew.ratio_dec.toFixed(2)}</span>
+              <span class="value">1:{brew.ratio.toFixed(2)}</span>
             </div>
           {/if}
 
-          {#if brew.brew_time_ms}
+          {#if brew.brew_time_s}
             <div class="detail-row">
               <span class="label">Time:</span>
-              <span class="value">{(brew.brew_time_ms / 1000).toFixed(1)}s</span>
+              <span class="value">{brew.brew_time_s.toFixed(1)}s</span>
             </div>
           {/if}
 

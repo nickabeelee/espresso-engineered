@@ -116,7 +116,7 @@ export class BrewRepository extends BaseRepository<Brew> {
       .from('brew')
       .select('*')
       .eq('barista_id', baristaId)
-      .is('yield_mg', null)
+      .is('yield_g', null)
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -142,7 +142,7 @@ export class BagRepository extends BaseRepository<Bag> {
         )
       `)
       .eq('owner_id', baristaId)
-      .gt('weight_mg', 0) // Only bags with remaining weight
+      .gt('weight_g', 0) // Only bags with remaining weight
       .order('roast_date', { ascending: false });
 
     if (error) {

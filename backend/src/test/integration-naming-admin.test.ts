@@ -173,7 +173,7 @@ describe('Admin Override Integration Tests', () => {
           bean_id: testBeanId,
           roast_date: '2023-12-01',
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -246,7 +246,7 @@ describe('Admin Override Integration Tests', () => {
           bean_id: testBeanId,
           roast_date: '2023-12-01',
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -285,7 +285,7 @@ describe('Admin Override Integration Tests', () => {
           bean_id: testBeanId,
           roast_date: '2023-12-01',
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 
@@ -303,8 +303,8 @@ describe('Admin Override Integration Tests', () => {
         body: JSON.stringify({
           bag_id: testBagId,
           grind_setting: 15,
-          dose_grams: 18.5,
-          yield_grams: 36.0,
+          dose_g: 18.5,
+          yield_g: 36.0,
           brew_time_seconds: 28,
           water_temp_celsius: 93,
           rating: 4
@@ -382,7 +382,7 @@ describe('Admin Override Integration Tests', () => {
           bean_id: testBeanId,
           roast_date: '2023-12-01',
           purchase_date: '2023-12-01',
-          weight_grams: 250
+          weight_g: 250
         })
       });
 

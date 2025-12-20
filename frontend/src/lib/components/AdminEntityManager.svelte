@@ -19,7 +19,7 @@
     brews: {
       title: 'Brews',
       icon: '☕',
-      fields: ['name', 'barista_id', 'dose_mg', 'yield_mg', 'rating', 'created_at'],
+      fields: ['name', 'barista_id', 'dose_g', 'yield_g', 'rating', 'created_at'],
       supportsNameOverride: true
     },
     beans: {
@@ -31,7 +31,7 @@
     bags: {
       title: 'Bags',
       icon: '📦',
-      fields: ['name', 'bean_id', 'owner_id', 'roast_date', 'weight_mg', 'price', 'created_at'],
+      fields: ['name', 'bean_id', 'owner_id', 'roast_date', 'weight_g', 'price', 'created_at'],
       supportsNameOverride: true
     },
     grinders: {
@@ -216,8 +216,8 @@
       return new Date(value).toLocaleDateString();
     }
     
-    if (field.includes('_mg')) {
-      return `${value}mg`;
+    if (field.includes('_g')) {
+      return `${value}g`;
     }
     
     if (field === 'price') {
