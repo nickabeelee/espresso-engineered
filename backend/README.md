@@ -56,12 +56,38 @@ npm start
 
 Build Docker image:
 ```bash
-docker build -t espresso-engineered-backend .
+docker build -t espresso-engineered-backend -f backend/Dockerfile .
 ```
 
 Run container:
 ```bash
-docker run -p 3000:3000 espresso-engineered-backend
+docker run -p 8080:8080 espresso-engineered-backend
+```
+
+## Fly.io Deployment
+
+1. Install and authenticate:
+```bash
+brew install flyctl
+flyctl auth login
+```
+
+2. Create the Fly app without deploying:
+```bash
+flyctl launch --no-deploy
+```
+
+3. Set required secrets:
+```bash
+flyctl secrets set \
+  SUPABASE_URL=your-supabase-url \
+  SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
+  FRONTEND_URL=https://your-frontend-domain
+```
+
+4. Deploy:
+```bash
+flyctl deploy
 ```
 
 ## API Endpoints
