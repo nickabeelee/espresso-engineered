@@ -41,18 +41,26 @@ This is not a design theory document. It is an execution reference.
 
 ## 3. Reference Model (Adapted)
 
-Primary structural inspiration is **Notion‑style layout discipline**, adapted to:
+Primary structural inspiration is **Notion-style layout discipline**, adapted to:
 
-* Dark‑first, material UI
+* Dark-first, material UI
 * Stronger hierarchy
 * Fewer visible controls
 * Clear separation between *structure* and *content*
+
+**Material interpretation (critical)**
+
+* Dark surfaces define the **environment**
+* Paper surfaces define the **work**
+* Secondary surfaces provide **structure**
+
+The user is not meant to stare into darkness. The dark palette frames the experience, while attention and interaction are centered on light, paper-like surfaces.
 
 Key principles borrowed from Notion:
 
 * One primary content column
 * Generous vertical rhythm
-* Low‑friction CRUD
+* Low-friction CRUD
 * Controls appear only when relevant
 
 ---
@@ -345,27 +353,112 @@ Typography carries most of the aesthetic weight. It should feel **printed, edito
 
 ### 7.2 Voice (Execution Rules)
 
-Voice appears only in **quiet moments**.
+Voice appears only in **quiet moments**. It should feel like a presence beside the user — attentive, aware, and restrained. The tone carries **implied intimacy and feminine draw** that is *felt*, not stated.
+
+The model is subtle physical closeness: a brief touch, held eye contact, a moment that lingers — never an invitation, never a promise.
+
+The voice should feel:
+
+* Gently attentive
+* Confident in its own presence
+* Comfortable with proximity
+* Comfortable with silence
+
+It acknowledges the user’s presence and history, and occasionally their intention, but never demands response and never advances.
 
 **Allowed Locations**
 
-* Home header
+* Home header (first line only)
+* Return greetings
 * Empty states
 * Post-save confirmations
-* Return greetings
+* Contextual assistance during creation (subtle, optional)
 
 **Disallowed Locations**
 
 * Errors
-* Validation
+* Validation messages
+* Warnings
 * Data tables
+* Dense or time-sensitive forms
 
 **Tone Rules**
 
-* Feminine, restrained
-* Respectful
-* Sentence case
+* Feminine, restrained, composed
+* Intriguing without invitation
+* Sentence case only
+* Short, declarative sentences
+* Occasional fragments are acceptable
 * No punctuation flourish
+* No exclamation points
+
+---
+
+**Example Use Cases & Lines**
+
+*First visit (home)*
+
+* "Take a moment."
+* "There’s time for this."
+* "You can stay here awhile."
+
+*Returning visit*
+
+* "You came back."
+* "I wondered if you would."
+* "It’s good to see you again."
+
+*Morning context*
+
+* "Morning light changes things."
+* "This hour suits espresso."
+* "Earlier has its advantages."
+
+*Evening context*
+
+* "The day’s behind you now."
+* "Evening brings a different mood."
+* "This feels like a night brew."
+
+*Empty state (no brews yet)*
+
+* "Nothing here yet."
+* "You haven’t started this one."
+* "When you’re ready, I’ll remember it."
+
+*After saving a brew*
+
+* "That felt deliberate."
+* "You took care with this one."
+* "I’ll remember how you made it."
+
+*During brew entry (general)*
+
+* "Take your time."
+* "You know what you’re doing."
+* "Let it settle before you decide."
+
+*Using previous brew data to assist entry*
+
+* "Last time, you leaned this way."
+* "You’ve liked it close to this before."
+* "This resembles what you usually choose."
+
+*Suggesting autofilled or remembered values*
+
+* "I started where you usually begin."
+* "These felt familiar for you."
+* "You’ve trusted these settings before."
+
+*Discovery context*
+
+* "This one draws people in."
+* "You might linger here."
+* "There’s something about this."
+
+These lines are **illustrative patterns**, not fixed strings. They encode pacing, implication, proximity, and restraint. Future copy — human or AI — must preserve the same sense of intrigue without escalation.
+
+Voice should always suggest presence, awareness, and quiet confidence — nothing more.
 
 ---
 
