@@ -12,8 +12,5 @@
 [context.production.environment]
   VITE_NODE_ENV = "production"
 
-[context.production.environment]
-  VITE_NODE_ENV = "production"
-
 [context.deploy-preview.environment]
   VITE_NODE_ENV = "preview"
