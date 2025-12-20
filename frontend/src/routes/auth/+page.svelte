@@ -25,24 +25,11 @@
     console.log('Auth page: Auth service initialized');
   });
 
-  // Handle authentication state changes with subscription
-  let authSubscription: (() => void) | null = null;
-  
-  onMount(() => {
-    // Subscribe to auth state changes directly
-    authSubscription = isAuthenticated.subscribe((authenticated) => {
-      if (authenticated && !$isLoading) {
-        console.log('User authenticated via subscription, redirecting to:', returnTo);
-        goto(returnTo);
-      }
-    });
-    
-    return () => {
-      if (authSubscription) {
-        authSubscription();
-      }
-    };
-  });
+  // Redirect when fully authenticated
+  $: if ($authStatus === 'authenticated') {
+    console.log('User authenticated, redirecting to:', returnTo);
+    goto(returnTo);
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();

@@ -27,6 +27,10 @@ class AuthService {
   private initializing: Promise<(() => void) | void> | null = null;
   private profileLoadPromise: Promise<AuthStatus> | null = null;
   private profileUserId: string | null = null;
+  private readonly initialSessionTimeoutMs = 15000;
+  private readonly signedInTimeoutMs = 15000;
+  private readonly defaultTimeoutMs = 8000;
+  private initialSessionResolved = false;
 
   async initialize() {
     if (this.initialized || !browser) return;
@@ -36,17 +40,28 @@ class AuthService {
 
     this.initializing = (async () => {
       let unsubscribe: (() => void) | null = null;
+      let timeoutCleared = false;
+      const clearLoadingTimeout = () => {
+        if (!timeoutCleared) {
+          clearTimeout(loadingTimeout);
+          timeoutCleared = true;
+        }
+      };
       const loadingTimeout = setTimeout(() => {
         console.warn('Auth initialization timed out.');
-        authStatus.set('error');
-        authError.set('Auth initialization timed out. Please refresh and try again.');
-      }, 8000);
+        // Avoid forcing an error state if auth is still resolving; profile load has its own timeout.
+        if (!timeoutCleared) {
+          authError.set('Auth initialization is taking longer than expected.');
+        }
+      }, 30000);
 
       try {
+        this.initialSessionResolved = false;
         authStatus.set('loading');
         authError.set(null);
 
         const applySession = async (currentSession: Session | null, event?: string) => {
+          clearLoadingTimeout();
           session.set(currentSession);
           user.set(currentSession?.user ?? null);
 
@@ -66,14 +81,33 @@ class AuthService {
             || this.profileUserId !== userId
             || !this.getCurrentBarista();
 
+          if (event === 'SIGNED_IN' && !this.initialSessionResolved) {
+            authStatus.set('loading');
+            return;
+          }
+
+          if (event === 'SIGNED_IN' && this.initialSessionResolved && !shouldReloadProfile) {
+            authStatus.set('authenticated');
+            return;
+          }
+
           if (event === 'TOKEN_REFRESHED' && !shouldReloadProfile) {
             authStatus.set('authenticated');
             return;
           }
 
           authStatus.set('loading');
-          const timeoutMs = event === 'SIGNED_IN' ? 15000 : 8000;
-          const status = await this.loadBaristaProfile(userId, timeoutMs);
+          const timeoutMs = event === 'SIGNED_IN'
+            ? this.signedInTimeoutMs
+            : event === 'INITIAL_SESSION'
+              ? this.initialSessionTimeoutMs
+              : this.defaultTimeoutMs;
+          const maxAttempts = event === 'INITIAL_SESSION' ? 2 : 1;
+          const status = await this.loadBaristaProfile(userId, {
+            timeoutMs,
+            maxAttempts,
+            retryDelayMs: 1000
+          });
           authStatus.set(status);
         };
 
@@ -88,6 +122,7 @@ class AuthService {
 
         // Check initial session
         const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        clearLoadingTimeout();
         if (error) {
           console.error('Failed to fetch initial session:', error);
           authStatus.set('error');
@@ -95,13 +130,14 @@ class AuthService {
           return;
         }
 
+        this.initialSessionResolved = true;
         await applySession(initialSession ?? null, 'INITIAL_SESSION');
       } catch (err) {
         console.error('Auth initialization failed:', err);
         authStatus.set('error');
         authError.set('Auth initialization failed. Please refresh and try again.');
       } finally {
-        clearTimeout(loadingTimeout);
+        clearLoadingTimeout();
         this.initialized = true;
         this.initializing = null;
       }
@@ -113,7 +149,10 @@ class AuthService {
     return this.initializing;
   }
 
-  private async loadBaristaProfile(userId: string, timeoutMs = 8000): Promise<AuthStatus> {
+  private async loadBaristaProfile(
+    userId: string,
+    options?: { timeoutMs?: number; maxAttempts?: number; retryDelayMs?: number }
+  ): Promise<AuthStatus> {
     if (this.profileLoadPromise && this.profileUserId === userId) {
       return this.profileLoadPromise;
     }
@@ -122,49 +161,64 @@ class AuthService {
     this.profileLoadPromise = (async () => {
       const existingBarista = this.getCurrentBarista();
       const preserveExisting = !!existingBarista && existingBarista.id === userId;
+      const timeoutMs = options?.timeoutMs ?? this.defaultTimeoutMs;
+      const maxAttempts = options?.maxAttempts ?? 1;
+      const retryDelayMs = options?.retryDelayMs ?? 0;
 
       try {
-        console.log('Loading barista profile for user:', userId);
-        const loadPromise = supabase
-          .from('barista')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Barista profile request timed out.')), timeoutMs);
-        });
-        const { data, error } = await Promise.race([loadPromise, timeoutPromise]);
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+          try {
+            console.log('Loading barista profile for user:', userId);
+            const loadPromise = supabase
+              .from('barista')
+              .select('*')
+              .eq('id', userId)
+              .maybeSingle();
+            const timeoutPromise = new Promise<never>((_, reject) => {
+              setTimeout(() => reject(new Error('Barista profile request timed out.')), timeoutMs);
+            });
+            const { data, error } = await Promise.race([loadPromise, timeoutPromise]);
 
-        if (error) {
-          console.error('Failed to load barista profile:', error);
-          authError.set('Unable to load your barista profile.');
-          if (preserveExisting) {
+            if (error) {
+              console.error('Failed to load barista profile:', error);
+              authError.set('Unable to load your barista profile.');
+              if (preserveExisting) {
+                return 'authenticated';
+              }
+              barista.set(null);
+              return 'error';
+            }
+
+            if (!data) {
+              authError.set('No barista profile found for this account.');
+              if (preserveExisting) {
+                return 'authenticated';
+              }
+              barista.set(null);
+              return 'profile_missing';
+            }
+
+            console.log('Barista profile loaded:', data);
+            authError.set(null);
+            barista.set(data);
             return 'authenticated';
+          } catch (err) {
+            const isTimeout = err instanceof Error && err.message.includes('timed out');
+            console.error('Error loading barista profile:', err);
+            authError.set(err instanceof Error ? err.message : 'Unexpected error loading barista profile.');
+            if (!isTimeout || attempt >= maxAttempts) {
+              if (preserveExisting) {
+                return 'authenticated';
+              }
+              barista.set(null);
+              return 'error';
+            }
+            if (retryDelayMs > 0) {
+              await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+            }
           }
-          barista.set(null);
-          return 'error';
         }
 
-        if (!data) {
-          authError.set('No barista profile found for this account.');
-          if (preserveExisting) {
-            return 'authenticated';
-          }
-          barista.set(null);
-          return 'profile_missing';
-        }
-
-        console.log('Barista profile loaded:', data);
-        authError.set(null);
-        barista.set(data);
-        return 'authenticated';
-      } catch (err) {
-        console.error('Error loading barista profile:', err);
-        authError.set(err instanceof Error ? err.message : 'Unexpected error loading barista profile.');
-        if (preserveExisting) {
-          return 'authenticated';
-        }
-        barista.set(null);
         return 'error';
       } finally {
         this.profileLoadPromise = null;
