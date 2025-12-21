@@ -3,6 +3,7 @@
 
   export let showEditForm = false;
   export let compact = false;
+  export let minimal = false;
 
   let editMode = false;
   let loading = false;
@@ -81,16 +82,18 @@
 </script>
 
 {#if $barista}
-  <div class="barista-profile" class:compact>
+  <div class="barista-profile" class:compact class:minimal>
     {#if compact}
       <!-- Compact display for header/navigation -->
       <div class="profile-compact">
         <div class="profile-avatar">
           {getInitials($barista)}
         </div>
-        <span class="profile-name">
-          {getDisplayName($barista)}
-        </span>
+        {#if !minimal}
+          <span class="profile-name">
+            {getDisplayName($barista)}
+          </span>
+        {/if}
       </div>
     {:else}
       <!-- Full profile display -->
@@ -192,6 +195,13 @@
     background: none;
     box-shadow: none;
     padding: 0;
+  }
+
+  .barista-profile.compact.minimal .profile-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
   }
 
   .profile-compact {
