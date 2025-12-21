@@ -6,6 +6,7 @@ primary_region = "iad"
 
 [env]
   PORT = "8080"
+  FRONTEND_URLS = "https://espresso-engineered.netlify.app,https://espressoengineered.com,https://www.espressoengineered.com"
 
 [[services]]
   internal_port = 8080
