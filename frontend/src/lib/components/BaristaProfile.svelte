@@ -71,14 +71,6 @@
     return 'Anonymous Barista';
   }
 
-  function getInitials(barista: Barista): string {
-    const displayName = getDisplayName(barista);
-    const words = displayName.split(' ');
-    if (words.length >= 2) {
-      return `${words[0][0]}${words[1][0]}`.toUpperCase();
-    }
-    return displayName.substring(0, 2).toUpperCase();
-  }
 </script>
 
 {#if $barista}
@@ -86,21 +78,13 @@
     {#if compact}
       <!-- Compact display for header/navigation -->
       <div class="profile-compact">
-        <div class="profile-avatar">
-          {getInitials($barista)}
-        </div>
-        {#if !minimal}
-          <span class="profile-name">
-            {getDisplayName($barista)}
-          </span>
-        {/if}
+        <span class="profile-name">
+          {getDisplayName($barista)}
+        </span>
       </div>
     {:else}
       <!-- Full profile display -->
       <div class="profile-header">
-        <div class="profile-avatar large">
-          {getInitials($barista)}
-        </div>
         <div class="profile-info">
           <h2>{getDisplayName($barista)}</h2>
           <p class="profile-meta">
@@ -195,45 +179,18 @@
     background: none;
     box-shadow: none;
     padding: 0;
-  }
-
-  .barista-profile.compact.minimal .profile-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
+    border: none;
   }
 
   .profile-compact {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
   }
 
   .profile-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
     margin-bottom: 1.5rem;
-  }
-
-  .profile-avatar {
-    width: 40px;
-    height: 40px;
-    background: radial-gradient(circle at top, rgba(176, 138, 90, 0.8), rgba(64, 43, 21, 0.9));
-    color: var(--text-ink-inverted);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-
-  .profile-avatar.large {
-    width: 60px;
-    height: 60px;
-    font-size: 1.2rem;
   }
 
   .profile-info h2 {
@@ -251,6 +208,12 @@
   .profile-name {
     color: var(--text-ink-primary);
     font-weight: 500;
+  }
+
+  .barista-profile.compact .profile-name {
+    color: var(--text-ink-inverted);
+    letter-spacing: 0.02em;
+    font-size: 0.9rem;
   }
 
   .edit-button {

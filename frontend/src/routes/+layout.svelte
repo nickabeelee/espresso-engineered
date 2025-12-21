@@ -11,14 +11,59 @@
   
   $: isPublicPage = publicPages.includes($page.url.pathname);
 
-  onMount(async () => {
+  let isNavHidden = false;
+  let lastScrollY = 0;
+  let scrollTicking = false;
+  const hideThreshold = 24;
+  const revealDistance = 96;
+  let scrollUpDistance = 0;
+
+  onMount(() => {
     console.log('Layout: Initializing auth service...');
-    await authService.initialize();
-    console.log('Layout: Auth service initialized');
+    authService.initialize().then(() => {
+      console.log('Layout: Auth service initialized');
+    });
+
+    lastScrollY = window.scrollY;
+    const onScroll = () => {
+      if (scrollTicking) return;
+      scrollTicking = true;
+      window.requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const delta = currentY - lastScrollY;
+
+        if (currentY <= hideThreshold) {
+          isNavHidden = false;
+          scrollUpDistance = 0;
+        } else if (delta > 6) {
+          isNavHidden = true;
+          scrollUpDistance = 0;
+        } else if (delta < -6) {
+          if (isNavHidden) {
+            scrollUpDistance += Math.abs(delta);
+            if (scrollUpDistance >= revealDistance) {
+              isNavHidden = false;
+              scrollUpDistance = 0;
+            }
+          } else {
+            isNavHidden = false;
+          }
+        }
+
+        lastScrollY = currentY;
+        scrollTicking = false;
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   });
 
   async function handleSignOut() {
     try {
+      if (profileMenu) {
+        profileMenu.open = false;
+      }
       await authService.signOut();
       goto('/auth');
     } catch (err) {
@@ -29,12 +74,20 @@
   async function handleRetryProfile() {
     await authService.reloadProfile();
   }
+
+  let profileMenu: HTMLDetailsElement | null = null;
+
+  function closeProfileMenu() {
+    if (profileMenu) {
+      profileMenu.open = false;
+    }
+  }
 </script>
 
 <div class="app-shell">
   {#if !isPublicPage && $isAuthenticated && $barista}
     <div class="app-chrome">
-      <header class="top-nav">
+      <header class="top-nav" class:hidden={isNavHidden}>
         <div class="top-nav-inner">
           <a href="/brews" class="logo">Espresso Engineered</a>
           <nav class="top-nav-links">
@@ -53,18 +106,19 @@
             >
               Reflection
             </a>
-            <a
-              href="/profile"
-              class:active={$page.url.pathname === '/profile'}
-            >
-              Profile
-            </a>
           </nav>
           <div class="top-nav-actions">
-            <BaristaProfile compact={true} minimal={true} />
-            <button on:click={handleSignOut} class="btn-quiet">
-              Sign Out
-            </button>
+            <details class="profile-menu" bind:this={profileMenu}>
+              <summary class="profile-menu-trigger" aria-label="Open profile menu">
+                <BaristaProfile compact={true} minimal={true} />
+              </summary>
+              <div class="profile-menu-panel">
+                <a href="/profile" on:click={closeProfileMenu}>Profile</a>
+                <button on:click={handleSignOut} class="profile-menu-action">
+                  Sign Out
+                </button>
+              </div>
+            </details>
           </div>
         </div>
       </header>
