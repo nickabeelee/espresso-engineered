@@ -118,91 +118,60 @@ textarea:disabled {
 
 .app-chrome {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 240px 1fr;
+  display: flex;
+  flex-direction: column;
 }
 
-.side-rail {
+.top-nav {
   background: var(--bg-app-base);
   color: var(--text-ink-inverted);
-  padding: 2rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border-right: 1px solid rgba(214, 199, 174, 0.18);
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid rgba(214, 199, 174, 0.18);
   position: sticky;
   top: 0;
-  align-self: start;
-  height: 100vh;
+  z-index: 10;
 }
 
-.rail-top {
+.top-nav-inner {
   display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
+  align-items: center;
+  gap: 2rem;
 }
 
-.rail-nav {
+.top-nav-links {
+  flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.5rem;
 }
 
-.rail-nav a {
+.top-nav-links a {
   color: var(--text-ink-inverted-muted);
   text-decoration: none;
   font-weight: 500;
-  padding: 0.35rem 0;
-  border-left: 3px solid transparent;
-  padding-left: 0.5rem;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
   transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease;
   letter-spacing: 0.02em;
 }
 
-.rail-nav a:hover {
+.top-nav-links a:hover {
   color: var(--text-ink-inverted);
 }
 
-.rail-nav a.active {
+.top-nav-links a.active {
   color: var(--text-ink-inverted);
-  border-left-color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
 }
 
-.rail-bottom {
+.top-nav-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.side-rail .sync-indicator {
-  background: rgba(214, 199, 174, 0.12);
-  border-color: rgba(214, 199, 174, 0.25);
-}
-
-.side-rail .status-text {
-  color: var(--text-ink-inverted);
-}
-
-.side-rail .sync-details {
-  background: var(--bg-surface-secondary);
-  border-color: rgba(214, 199, 174, 0.2);
-}
-
-.side-rail .sync-details .label {
-  color: var(--text-ink-inverted-muted);
-}
-
-.side-rail .sync-details .value {
-  color: var(--text-ink-inverted);
-}
-
-.side-rail .profile-name {
-  color: var(--text-ink-inverted);
+  align-items: center;
+  gap: 0.85rem;
 }
 
 .page-main {
   min-height: 100vh;
-  padding: 2.5rem 2rem 3.5rem;
+  padding: 2rem 2rem 3.5rem;
 }
 
 .page-frame {
@@ -336,45 +305,20 @@ textarea:disabled {
 }
 
 @media (max-width: 768px) {
-  .app-chrome {
-    grid-template-columns: 1fr;
+  .top-nav {
+    padding: 1rem 1.25rem;
   }
 
-  .side-rail {
-    flex-direction: row;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 1.25rem 1rem;
-    border-right: none;
-    border-bottom: 1px solid rgba(214, 199, 174, 0.18);
-  }
-
-  .rail-top {
-    flex: 1;
-    gap: 1rem;
-  }
-
-  .rail-nav {
-    flex-direction: row;
-    gap: 1.25rem;
+  .top-nav-inner {
     flex-wrap: wrap;
+    gap: 1rem 1.5rem;
   }
 
-  .rail-nav a {
-    border-left: none;
-    border-bottom: 2px solid transparent;
-    padding-left: 0;
-    padding-bottom: 0.35rem;
-  }
-
-  .rail-nav a.active {
-    border-bottom-color: var(--accent-primary);
-  }
-
-  .rail-bottom {
-    flex-direction: row;
-    align-items: center;
-    gap: 0.75rem;
+  .top-nav-links {
+    order: 3;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
   }
 
   .page-main {

@@ -5,7 +5,6 @@
   import { goto } from '$app/navigation';
   import { authService, barista, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
   import BaristaProfile from '$lib/components/BaristaProfile.svelte';
-  import SyncStatus from '$lib/components/SyncStatus.svelte';
   
   // Pages that don't require authentication
   const publicPages = ['/auth', '/'];
@@ -35,10 +34,10 @@
 <div class="app-shell">
   {#if !isPublicPage && $isAuthenticated && $barista}
     <div class="app-chrome">
-      <aside class="side-rail">
-        <div class="rail-top">
+      <header class="top-nav">
+        <div class="top-nav-inner">
           <a href="/brews" class="logo">Espresso Engineered</a>
-          <nav class="rail-nav">
+          <nav class="top-nav-links">
             <a
               href="/brews"
               class:active={
@@ -61,16 +60,14 @@
               Profile
             </a>
           </nav>
+          <div class="top-nav-actions">
+            <BaristaProfile compact={true} minimal={true} />
+            <button on:click={handleSignOut} class="btn-quiet">
+              Sign Out
+            </button>
+          </div>
         </div>
-
-        <div class="rail-bottom">
-          <SyncStatus />
-          <BaristaProfile compact={true} />
-          <button on:click={handleSignOut} class="btn-quiet">
-            Sign Out
-          </button>
-        </div>
-      </aside>
+      </header>
 
       <main class="page-main">
         {#if $authStatus === 'profile_missing'}
