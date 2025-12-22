@@ -4,8 +4,10 @@
   import { goto } from '$app/navigation';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BrewForm from '$lib/components/BrewForm.svelte';
+  import IconButton from '$lib/components/IconButton.svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
+  import { PencilSquare, Trash, XMark } from '$lib/icons';
 
   
   let brew = null;
@@ -128,12 +130,24 @@
       
       {#if canEdit && brew}
         <div class="actions">
-          <button on:click={toggleEdit} class="btn-secondary" disabled={loading}>
-            {editing ? 'Cancel' : 'Edit'}
-          </button>
-          <button on:click={handleDelete} class="btn-danger" disabled={loading || deleting}>
-            {deleting ? 'Deleting...' : 'Delete'}
-          </button>
+          {#if editing}
+            <IconButton on:click={toggleEdit} ariaLabel="Cancel editing" title="Cancel" variant="neutral" disabled={loading}>
+              <XMark />
+            </IconButton>
+          {:else}
+            <IconButton on:click={toggleEdit} ariaLabel="Edit brew" variant="accent" disabled={loading}>
+              <PencilSquare />
+            </IconButton>
+          {/if}
+          <IconButton
+            on:click={handleDelete}
+            ariaLabel={deleting ? 'Deleting brew' : 'Delete brew'}
+            title={deleting ? 'Deleting...' : 'Delete'}
+            variant="danger"
+            disabled={loading || deleting}
+          >
+            <Trash />
+          </IconButton>
         </div>
       {/if}
     </header>
@@ -147,16 +161,40 @@
     {@const currentBrew = brew}
     <div class="brew-content">
       {#if editing}
-        <BrewForm 
-          {brew}
-          on:save={handleSave}
-          on:cancel={handleCancel}
-        />
+        <BrewForm {brew} on:save={handleSave} on:cancel={handleCancel} />
       {:else}
         <div class="brew-details">
-          <div class="detail-section">
-            <h3>Basic Information</h3>
+          <div class="detail-section card">
+            <h3>Equipment</h3>
             <div class="detail-grid">
+              <div class="detail-item">
+                <label>Machine:</label>
+                <span>{currentBrew.machine?.name || currentBrew.machine_id}</span>
+              </div>
+              <div class="detail-item">
+                <label>Grinder:</label>
+                <span>{currentBrew.grinder?.name || currentBrew.grinder_id}</span>
+              </div>
+              <div class="detail-item">
+                <label>Coffee Bag:</label>
+                <span>{currentBrew.bag?.name || currentBrew.bag_id}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section card">
+            <h3>Input Parameters</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>Dose:</label>
+                <span>{currentBrew.dose_g}g</span>
+              </div>
+              {#if currentBrew.grind_setting}
+                <div class="detail-item">
+                  <label>Grind Setting:</label>
+                  <span>{currentBrew.grind_setting}</span>
+                </div>
+              {/if}
               <div class="detail-item">
                 <label>Created:</label>
                 <span>{new Date(currentBrew.created_at).toLocaleString()}</span>
@@ -165,10 +203,12 @@
                 <label>Modified:</label>
                 <span>{new Date(currentBrew.modified_at).toLocaleString()}</span>
               </div>
-              <div class="detail-item">
-                <label>Dose:</label>
-                <span>{currentBrew.dose_g}g</span>
-              </div>
+            </div>
+          </div>
+
+          <div class="detail-section card">
+            <h3>Output Measurements</h3>
+            <div class="detail-grid">
               {#if currentBrew.yield_g}
                 <div class="detail-item">
                   <label>Yield:</label>
@@ -193,12 +233,12 @@
                   <span>{currentBrew.flow_rate_g_per_s.toFixed(1)} g/s</span>
                 </div>
               {/if}
-              {#if currentBrew.grind_setting}
-                <div class="detail-item">
-                  <label>Grind Setting:</label>
-                  <span>{currentBrew.grind_setting}</span>
-                </div>
-              {/if}
+            </div>
+          </div>
+
+          <div class="detail-section card">
+            <h3>Reflections</h3>
+            <div class="detail-grid">
               {#if currentBrew.rating}
                 <div class="detail-item">
                   <label>Rating:</label>
@@ -206,21 +246,13 @@
                 </div>
               {/if}
             </div>
-          </div>
-
-          {#if currentBrew.tasting_notes}
-            <div class="detail-section">
-              <h3>Tasting Notes</h3>
+            {#if currentBrew.tasting_notes}
               <p>{currentBrew.tasting_notes}</p>
-            </div>
-          {/if}
-
-          {#if currentBrew.reflections}
-            <div class="detail-section">
-              <h3>Reflections</h3>
+            {/if}
+            {#if currentBrew.reflections}
               <p>{currentBrew.reflections}</p>
-            </div>
-          {/if}
+            {/if}
+          </div>
 
           {#if !currentBrew.yield_g || !currentBrew.rating}
             <div class="incomplete-notice">
@@ -273,44 +305,6 @@
     gap: 0.5rem;
   }
 
-  button {
-    padding: 0.5rem 1rem;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    font-weight: 500;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-
-  .btn-primary {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-  }
-
-  .btn-primary:hover {
-    background: var(--accent-primary-dark);
-  }
-
-  .btn-secondary {
-    background: transparent;
-    color: var(--text-ink-secondary);
-    border-color: var(--border-strong);
-  }
-
-  .btn-secondary:hover {
-    background: rgba(123, 94, 58, 0.12);
-  }
-
-  .btn-danger {
-    background: rgba(122, 62, 47, 0.15);
-    color: var(--semantic-error);
-    border-color: rgba(122, 62, 47, 0.35);
-  }
-
-  .btn-danger:hover {
-    background: rgba(122, 62, 47, 0.25);
-  }
-
   .link-button {
     background: none;
     border: none;
@@ -319,11 +313,6 @@
     cursor: pointer;
     padding: 0;
     font-size: inherit;
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
   }
 
   button:disabled:hover {
@@ -340,21 +329,14 @@
     color: var(--semantic-error);
   }
 
-  .brew-content {
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid rgba(123, 94, 58, 0.2);
-    border-radius: var(--radius-md);
-    padding: 2rem;
+  .brew-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
   }
-
-
 
   .detail-section {
-    margin-bottom: 2rem;
-  }
-
-  .detail-section:last-child {
-    margin-bottom: 0;
+    padding: 1.5rem;
   }
 
   .detail-section h3 {

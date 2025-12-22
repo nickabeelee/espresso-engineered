@@ -93,7 +93,7 @@
         <input
           type="text"
           bind:value={searchTerm}
-          placeholder="Find a bean"
+          placeholder="e.g., Ethiopia Yirgacheffe"
           class="search-input"
           {disabled}
         />

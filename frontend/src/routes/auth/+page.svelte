@@ -129,7 +129,7 @@
             bind:value={email}
             required
             disabled={loading}
-            placeholder="your@email.com"
+            placeholder="e.g., name@domain.com"
           />
         </div>
 
@@ -142,7 +142,7 @@
               bind:value={password}
               required
               disabled={loading}
-              placeholder="Your password"
+              placeholder="e.g., your password"
               minlength="6"
             />
           </div>
@@ -157,7 +157,7 @@
               bind:value={confirmPassword}
               required
               disabled={loading}
-              placeholder="Confirm your password"
+              placeholder="e.g., re-enter password"
               minlength="6"
             />
           </div>
@@ -171,7 +171,7 @@
                 bind:value={firstName}
                 required
                 disabled={loading}
-                placeholder="Your first name"
+                placeholder="e.g., Ada"
               />
             </div>
             <div class="form-group">
@@ -182,7 +182,7 @@
                 bind:value={lastName}
                 required
                 disabled={loading}
-                placeholder="Your last name"
+                placeholder="e.g., Lovelace"
               />
             </div>
           </div>
@@ -194,7 +194,7 @@
               type="text"
               bind:value={displayName}
               disabled={loading}
-              placeholder="How you want to be shown to others"
+              placeholder="e.g., Ada L."
             />
             <small>Leave empty to use your first and last name</small>
           </div>

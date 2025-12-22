@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ChevronDown, Plus } from '$lib/icons';
 
   import InlineGrinderCreator from './InlineGrinderCreator.svelte';
   import { getImageUrl } from '$lib/utils/image-utils';
@@ -12,10 +14,10 @@
   let loading = true;
   let error: string | null = null;
   let showCreateForm = false;
-
-  // Search and filter
+  let isOpen = false;
   let searchTerm = '';
-  let selectedManufacturer = '';
+  let searchInput: HTMLInputElement | null = null;
+  let comboboxRoot: HTMLDivElement | null = null;
 
   onMount(() => {
     loadGrinders();
@@ -47,21 +49,17 @@
     return `${grinder.manufacturer} ${grinder.model}`;
   }
 
-  // Get unique manufacturers for filter
-  $: manufacturers = [...new Set(grinders.map(g => g.manufacturer))].sort();
+  $: selectedGrinder = grinders.find((grinder) => grinder.id === value) || null;
+  $: selectedLabel = selectedGrinder ? formatGrinderDisplay(selectedGrinder) : 'Select a grinder...';
 
-  // Filtered grinders based on search and manufacturer selection
-  $: filteredGrinders = grinders.filter(grinder => {
-    const grinderDisplay = formatGrinderDisplay(grinder);
-    
-    const matchesSearch = !searchTerm || 
-      grinderDisplay.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      grinder.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      grinder.model.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesManufacturer = !selectedManufacturer || grinder.manufacturer === selectedManufacturer;
-    
-    return matchesSearch && matchesManufacturer;
+  $: filteredGrinders = grinders.filter((grinder) => {
+    if (!searchTerm) return true;
+    const query = searchTerm.toLowerCase();
+    return (
+      formatGrinderDisplay(grinder).toLowerCase().includes(query)
+      || grinder.manufacturer.toLowerCase().includes(query)
+      || grinder.model.toLowerCase().includes(query)
+    );
   });
 
   // Sort grinders by manufacturer, then model
@@ -69,6 +67,56 @@
     const manufacturerCompare = a.manufacturer.localeCompare(b.manufacturer);
     if (manufacturerCompare !== 0) return manufacturerCompare;
     return a.model.localeCompare(b.model);
+  });
+
+  async function toggleOpen() {
+    if (disabled) return;
+    isOpen = !isOpen;
+    if (isOpen) {
+      searchTerm = '';
+      await tick();
+      searchInput?.focus();
+    }
+  }
+
+  function selectGrinder(grinder: Grinder) {
+    value = grinder.id;
+    isOpen = false;
+    searchTerm = '';
+  }
+
+  function closeIfEscape(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      isOpen = false;
+    }
+  }
+
+  function handleSearchKey(event: KeyboardEvent) {
+    if (event.key === 'Enter' && sortedGrinders.length > 0) {
+      event.preventDefault();
+      selectGrinder(sortedGrinders[0]);
+    }
+  }
+
+  function openCreateForm() {
+    isOpen = false;
+    showCreateForm = true;
+  }
+
+  function handleDocumentClick(event: MouseEvent) {
+    if (!isOpen || !comboboxRoot) return;
+    const path = event.composedPath() as EventTarget[];
+    if (!path.includes(comboboxRoot)) {
+      isOpen = false;
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener('click', handleDocumentClick);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener('click', handleDocumentClick);
   });
 </script>
 
@@ -86,116 +134,112 @@
       on:cancel={() => showCreateForm = false}
     />
   {:else}
-    <div class="selector-controls">
-      <!-- Search -->
-      <div class="search-group">
-        <input
-          type="text"
-          bind:value={searchTerm}
-          placeholder="Find a grinder"
-          class="search-input"
+    <div class="grinder-select-row">
+      <div class="grinder-combobox" class:open={isOpen} bind:this={comboboxRoot}>
+        <button
+          type="button"
+          class="grinder-combobox-trigger"
+          on:click={toggleOpen}
+          on:keydown={closeIfEscape}
           {disabled}
-        />
+        >
+          <span>{selectedLabel}</span>
+          <span class="chevron">
+            <ChevronDown size={16} />
+          </span>
+        </button>
+        {#if isOpen}
+          <div class="grinder-combobox-panel" on:keydown={closeIfEscape}>
+            <input
+              bind:this={searchInput}
+              type="text"
+              bind:value={searchTerm}
+              placeholder="e.g., Baratza Encore"
+              class="grinder-search-input"
+              {disabled}
+              on:keydown={handleSearchKey}
+            />
+            {#if grinders.length === 0}
+              <div class="combobox-empty">
+                <p>No grinders yet.</p>
+                <button type="button" on:click={openCreateForm} class="btn-primary" {disabled}>
+                  Add Your First Grinder
+                </button>
+              </div>
+            {:else if sortedGrinders.length === 0}
+              <div class="combobox-empty">
+                <p>No grinders match your search.</p>
+                <button type="button" on:click={() => { searchTerm = ''; }} class="btn-secondary" {disabled}>
+                  Clear Search
+                </button>
+              </div>
+            {:else}
+              <ul class="grinder-options">
+                {#each sortedGrinders as grinder}
+                  <li>
+                    <button
+                      type="button"
+                      class="grinder-option"
+                      on:click={() => selectGrinder(grinder)}
+                    >
+                      <span class="option-title">{formatGrinderDisplay(grinder)}</span>
+                      <span class="option-meta">{grinder.manufacturer}</span>
+                    </button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {/if}
       </div>
-
-      <!-- Manufacturer Filter -->
-      <div class="filter-group">
-        <select bind:value={selectedManufacturer} class="manufacturer-filter" {disabled}>
-          <option value="">All Manufacturers</option>
-          {#each manufacturers as manufacturer}
-            <option value={manufacturer}>{manufacturer}</option>
-          {/each}
-        </select>
-      </div>
-
-      <!-- Create New Button -->
-      <button 
+      <IconButton
         type="button"
-        on:click={() => showCreateForm = true}
-        class="create-btn"
-        {disabled}
+        on:click={openCreateForm}
+        ariaLabel="Add grinder"
+        title="Add grinder"
+        variant="accent"
+        disabled={disabled}
       >
-        + New Grinder
-      </button>
+        <Plus />
+      </IconButton>
     </div>
 
-    <!-- Grinder Selection -->
-    <div class="grinder-list">
-      {#if sortedGrinders.length === 0}
-        <div class="empty-state">
-          {#if searchTerm || selectedManufacturer}
-            <p>No grinders match your filters.</p>
-            <button 
-              type="button"
-              on:click={() => { searchTerm = ''; selectedManufacturer = ''; }}
-              class="clear-filters-btn"
-            >
-              Clear Filters
-            </button>
-          {:else}
-            <p>No grinders available.</p>
-            <button 
-              type="button"
-              on:click={() => showCreateForm = true}
-              class="create-first-btn"
-              {disabled}
-            >
-              Add Your First Grinder
-            </button>
-          {/if}
-        </div>
-      {:else}
-        <select bind:value={value} class="grinder-select" {disabled} required>
-          <option value="">Select a grinder...</option>
-          {#each sortedGrinders as grinder}
-            <option value={grinder.id}>
-              {formatGrinderDisplay(grinder)}
-            </option>
-          {/each}
-        </select>
+    {#if selectedGrinder}
+      <div class="selected-grinder-details">
+        <div class="grinder-info">
+          <h4>{formatGrinderDisplay(selectedGrinder)}</h4>
+          
+          <div class="grinder-meta">
+            <span class="manufacturer">{selectedGrinder.manufacturer}</span>
+            <span class="model">{selectedGrinder.model}</span>
+          </div>
 
-        <!-- Selected Grinder Details -->
-        {#if value}
-          {@const selectedGrinder = grinders.find(g => g.id === value)}
-          {#if selectedGrinder}
-            <div class="selected-grinder-details">
-              <div class="grinder-info">
-                <h4>{formatGrinderDisplay(selectedGrinder)}</h4>
-                
-                <div class="grinder-meta">
-                  <span class="manufacturer">{selectedGrinder.manufacturer}</span>
-                  <span class="model">{selectedGrinder.model}</span>
-                </div>
+          <div class="grinder-links">
+            {#if selectedGrinder.setting_guide_chart_url}
+              <a 
+                href={selectedGrinder.setting_guide_chart_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="guide-link"
+              >
+                📊 Setting Guide
+              </a>
+            {/if}
+          </div>
 
-                <div class="grinder-links">
-                  {#if selectedGrinder.setting_guide_chart_url}
-                    <a 
-                      href={selectedGrinder.setting_guide_chart_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      class="guide-link"
-                    >
-                      📊 Setting Guide
-                    </a>
-                  {/if}
-                </div>
-
-                {#if selectedGrinder.image_path}
-                  <div class="grinder-image">
-                    <img 
-                      src={getImageUrl(selectedGrinder.image_path, 'grinder')} 
-                      alt={formatGrinderDisplay(selectedGrinder)}
-                      loading="lazy"
-                      on:error={(e) => e.currentTarget.style.display = 'none'}
-                    />
-                  </div>
-                {/if}
-              </div>
+          {#if selectedGrinder.image_path}
+            <div class="grinder-image">
+              <img 
+                src={getImageUrl(selectedGrinder.image_path, 'grinder')} 
+                alt={formatGrinderDisplay(selectedGrinder)}
+                loading="lazy"
+                on:error={(e) => e.currentTarget.style.display = 'none'}
+              />
             </div>
           {/if}
-        {/if}
-      {/if}
-    </div>
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -235,133 +279,116 @@
     background: rgba(122, 62, 47, 0.35);
   }
 
-  .selector-controls {
+  .grinder-select-row {
     display: flex;
     gap: 0.75rem;
-    margin-bottom: 1rem;
     align-items: center;
-    flex-wrap: wrap;
   }
 
-  .search-group {
+  .grinder-combobox {
+    position: relative;
     flex: 1;
-    min-width: 150px;
   }
 
-  .search-input {
+  .grinder-combobox-trigger {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    background: var(--bg-surface-paper);
-    color: var(--text-ink-primary);
-  }
-
-  .search-input::placeholder {
-    color: var(--text-ink-muted);
-  }
-
-  .search-input:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
-  }
-
-  .filter-group {
-    min-width: 120px;
-  }
-
-  .manufacturer-filter {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    background: var(--bg-surface-paper);
-  }
-
-  .create-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .create-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .create-btn:disabled {
-    background: rgba(123, 94, 58, 0.6);
-    cursor: not-allowed;
-  }
-
-  .grinder-list {
-    width: 100%;
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: var(--text-ink-muted);
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-  }
-
-  .empty-state p {
-    margin-bottom: 1rem;
-  }
-
-  .clear-filters-btn,
-  .create-first-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .clear-filters-btn:hover,
-  .create-first-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .create-first-btn:disabled {
-    background: rgba(123, 94, 58, 0.6);
-    cursor: not-allowed;
-  }
-
-  .grinder-select {
-    width: 100%;
-    padding: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
     font-size: 1rem;
     background: var(--bg-surface-paper);
-    margin-bottom: 1rem;
+    color: var(--text-ink-primary);
+    cursor: pointer;
   }
 
-  .grinder-select:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+  .grinder-combobox-trigger:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
   }
 
-  .grinder-select:disabled {
+  .grinder-combobox-trigger:disabled {
     background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
   }
 
+  .chevron {
+    color: var(--text-ink-muted);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .grinder-combobox-panel {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    background: var(--bg-surface-paper);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    padding: 0.75rem;
+    z-index: 5;
+  }
+
+  .grinder-search-input {
+    width: 100%;
+    margin-bottom: 0.75rem;
+  }
+
+  .grinder-options {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .grinder-option {
+    width: 100%;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.6rem;
+    background: transparent;
+    color: var(--text-ink-primary);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .grinder-option:hover {
+    background: rgba(214, 199, 174, 0.24);
+    border-color: rgba(123, 94, 58, 0.25);
+  }
+
+  .option-title {
+    font-weight: 600;
+  }
+
+  .option-meta {
+    font-size: 0.85rem;
+    color: var(--text-ink-muted);
+  }
+
+  .combobox-empty {
+    text-align: center;
+    color: var(--text-ink-muted);
+    padding: 0.5rem 0 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
   .selected-grinder-details {
+    margin-top: 0.75rem;
     background: var(--bg-surface-paper-secondary);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
@@ -433,14 +460,9 @@
   }
 
   @media (max-width: 768px) {
-    .selector-controls {
+    .grinder-select-row {
       flex-direction: column;
       align-items: stretch;
-    }
-
-    .search-group,
-    .filter-group {
-      min-width: auto;
     }
 
     .grinder-meta {

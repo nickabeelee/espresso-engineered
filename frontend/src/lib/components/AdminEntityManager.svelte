@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { adminService } from '../admin-service.js';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ArrowDownTray, PencilSquare, Trash, XMark } from '$lib/icons';
 
 
   export let entityType: 'brews' | 'beans' | 'bags' | 'grinders' | 'machines' | 'roasters' | 'baristas';
@@ -304,27 +306,23 @@
                 {/each}
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   {#if entityType !== 'baristas'}
-                    {#if config.supportsNameOverride}
-                      <button 
-                        on:click={() => openNameOverrideModal(entity)}
-                        class="text-purple-600 hover:text-purple-900 mr-4"
-                        title="Override Name"
-                      >
-                        Override Name
-                      </button>
-                    {/if}
-                    <button 
-                      on:click={() => openEditModal(entity)}
-                      class="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      on:click={() => confirmDelete(entity)}
-                      class="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
+                    <div class="table-actions">
+                      {#if config.supportsNameOverride}
+                        <button
+                          on:click={() => openNameOverrideModal(entity)}
+                          class="btn-secondary"
+                          title="Override Name"
+                        >
+                          Override Name
+                        </button>
+                      {/if}
+                      <IconButton on:click={() => openEditModal(entity)} ariaLabel="Edit" title="Edit" variant="accent">
+                        <PencilSquare />
+                      </IconButton>
+                      <IconButton on:click={() => confirmDelete(entity)} ariaLabel="Delete" title="Delete" variant="danger">
+                        <Trash />
+                      </IconButton>
+                    </div>
                   {:else}
                     <span class="text-gray-400">View only</span>
                   {/if}
@@ -363,18 +361,12 @@
         </div>
 
         <div class="flex justify-end space-x-3 mt-6">
-          <button
-            on:click={closeEditModal}
-            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-          >
-            Cancel
-          </button>
-          <button
-            on:click={saveEntity}
-            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Save
-          </button>
+          <IconButton on:click={closeEditModal} ariaLabel="Cancel edit" title="Cancel" variant="neutral">
+            <XMark />
+          </IconButton>
+          <IconButton on:click={saveEntity} ariaLabel="Save" title="Save" variant="accent">
+            <ArrowDownTray />
+          </IconButton>
         </div>
       </div>
     </div>
@@ -393,18 +385,17 @@
         </p>
         
         <div class="flex justify-center space-x-3">
-          <button
+          <IconButton
             on:click={() => { showDeleteConfirm = false; entityToDelete = null; }}
-            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+            ariaLabel="Cancel deletion"
+            title="Cancel"
+            variant="neutral"
           >
-            Cancel
-          </button>
-          <button
-            on:click={deleteEntity}
-            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-          >
-            Delete
-          </button>
+            <XMark />
+          </IconButton>
+          <IconButton on:click={deleteEntity} ariaLabel="Delete" title="Delete" variant="danger">
+            <Trash />
+          </IconButton>
         </div>
       </div>
     </div>
@@ -451,7 +442,7 @@
             <input
               type="text"
               bind:value={nameOverrideData.name}
-              placeholder="Enter new name"
+              placeholder="e.g., Custom name"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
@@ -463,7 +454,7 @@
             </label>
             <textarea
               bind:value={nameOverrideData.reason}
-              placeholder="Explain why you're overriding the name..."
+              placeholder="e.g., Known alias from label"
               rows="3"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             ></textarea>
@@ -471,12 +462,9 @@
         </div>
 
         <div class="flex justify-end space-x-3 mt-6">
-          <button
-            on:click={closeNameOverrideModal}
-            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
-          >
-            Cancel
-          </button>
+          <IconButton on:click={closeNameOverrideModal} ariaLabel="Cancel override" title="Cancel" variant="neutral">
+            <XMark />
+          </IconButton>
           <button
             on:click={saveNameOverride}
             disabled={!nameOverrideData.name.trim()}
@@ -491,6 +479,13 @@
 {/if}
 
 <style>
+  .table-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+
   .animate-spin {
     animation: spin 1s linear infinite;
   }

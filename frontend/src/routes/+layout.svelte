@@ -5,6 +5,7 @@
   import { goto } from '$app/navigation';
   import { authService, barista, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
   import BaristaProfile from '$lib/components/BaristaProfile.svelte';
+  import { UserCircle } from '$lib/icons';
   
   // Pages that don't require authentication
   const publicPages = ['/auth', '/'];
@@ -110,7 +111,12 @@
           <div class="top-nav-actions">
             <details class="profile-menu" bind:this={profileMenu}>
               <summary class="profile-menu-trigger" aria-label="Open profile menu">
-                <BaristaProfile compact={true} minimal={true} />
+                <span class="profile-menu-label">
+                  <span class="profile-menu-name">
+                    <BaristaProfile compact={true} minimal={true} />
+                  </span>
+                  <UserCircle size={18} />
+                </span>
               </summary>
               <div class="profile-menu-panel">
                 <a href="/profile" on:click={closeProfileMenu}>Profile</a>
@@ -183,6 +189,18 @@
 
   .logo:hover {
     color: var(--text-ink-inverted-muted);
+  }
+
+  .profile-menu-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  @media (max-width: 640px) {
+    .profile-menu-name {
+      display: none;
+    }
   }
 
   .loading-screen {

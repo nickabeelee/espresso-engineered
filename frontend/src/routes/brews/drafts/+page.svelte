@@ -2,6 +2,8 @@
   import { barista } from '$lib/auth';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import AwaitingReflection from '$lib/components/AwaitingReflection.svelte';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { Plus } from '$lib/icons';
 </script>
 
 <svelte:head>
@@ -17,7 +19,9 @@
         <h1>Awaiting Reflection</h1>
         <p>Finish the brews that asked for more time.</p>
       </div>
-      <a href="/brews/new" class="btn-primary">New Brew</a>
+      <IconButton href="/brews/new" ariaLabel="New brew" variant="accent">
+        <Plus />
+      </IconButton>
     </div>
     <AwaitingReflection barista_id={$barista?.id} />
   </div>
