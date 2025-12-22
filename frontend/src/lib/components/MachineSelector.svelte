@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ChevronDown, Plus } from '$lib/icons';
 
   import InlineMachineCreator from './InlineMachineCreator.svelte';
   import { getImageUrl } from '$lib/utils/image-utils';
@@ -12,10 +14,10 @@
   let loading = true;
   let error: string | null = null;
   let showCreateForm = false;
-
-  // Search and filter
+  let isOpen = false;
   let searchTerm = '';
-  let selectedManufacturer = '';
+  let searchInput: HTMLInputElement | null = null;
+  let comboboxRoot: HTMLDivElement | null = null;
 
   onMount(() => {
     loadMachines();
@@ -47,28 +49,73 @@
     return `${machine.manufacturer} ${machine.model}`;
   }
 
-  // Get unique manufacturers for filter
-  $: manufacturers = [...new Set(machines.map(m => m.manufacturer))].sort();
+  $: selectedMachine = machines.find((machine) => machine.id === value) || null;
+  $: selectedLabel = selectedMachine ? formatMachineDisplay(selectedMachine) : 'Select a machine...';
 
-  // Filtered machines based on search and manufacturer selection
-  $: filteredMachines = machines.filter(machine => {
-    const machineDisplay = formatMachineDisplay(machine);
-    
-    const matchesSearch = !searchTerm || 
-      machineDisplay.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      machine.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      machine.model.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesManufacturer = !selectedManufacturer || machine.manufacturer === selectedManufacturer;
-    
-    return matchesSearch && matchesManufacturer;
+  $: filteredMachines = machines.filter((machine) => {
+    if (!searchTerm) return true;
+    const query = searchTerm.toLowerCase();
+    return (
+      formatMachineDisplay(machine).toLowerCase().includes(query)
+      || machine.manufacturer.toLowerCase().includes(query)
+      || machine.model.toLowerCase().includes(query)
+    );
   });
 
-  // Sort machines by manufacturer, then model
   $: sortedMachines = filteredMachines.sort((a, b) => {
     const manufacturerCompare = a.manufacturer.localeCompare(b.manufacturer);
     if (manufacturerCompare !== 0) return manufacturerCompare;
     return a.model.localeCompare(b.model);
+  });
+
+  async function toggleOpen() {
+    if (disabled) return;
+    isOpen = !isOpen;
+    if (isOpen) {
+      searchTerm = '';
+      await tick();
+      searchInput?.focus();
+    }
+  }
+
+  function selectMachine(machine: Machine) {
+    value = machine.id;
+    isOpen = false;
+    searchTerm = '';
+  }
+
+  function openCreateForm() {
+    isOpen = false;
+    showCreateForm = true;
+  }
+
+  function closeIfEscape(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      isOpen = false;
+    }
+  }
+
+  function handleSearchKey(event: KeyboardEvent) {
+    if (event.key === 'Enter' && sortedMachines.length > 0) {
+      event.preventDefault();
+      selectMachine(sortedMachines[0]);
+    }
+  }
+
+  function handleDocumentClick(event: MouseEvent) {
+    if (!isOpen || !comboboxRoot) return;
+    const path = event.composedPath() as EventTarget[];
+    if (!path.includes(comboboxRoot)) {
+      isOpen = false;
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener('click', handleDocumentClick);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener('click', handleDocumentClick);
   });
 </script>
 
@@ -86,116 +133,113 @@
       on:cancel={() => showCreateForm = false}
     />
   {:else}
-    <div class="selector-controls">
-      <!-- Search -->
-      <div class="search-group">
-        <input
-          type="text"
-          bind:value={searchTerm}
-          placeholder="Find a machine"
-          class="search-input"
+    <div class="machine-select-row">
+      <div class="machine-combobox" class:open={isOpen} bind:this={comboboxRoot}>
+        <button
+          type="button"
+          class="machine-combobox-trigger"
+          on:click={toggleOpen}
+          on:keydown={closeIfEscape}
           {disabled}
-        />
+        >
+          <span>{selectedLabel}</span>
+          <span class="chevron">
+            <ChevronDown size={16} />
+          </span>
+        </button>
+        {#if isOpen}
+          <div class="machine-combobox-panel" on:keydown={closeIfEscape}>
+            <input
+              bind:this={searchInput}
+              type="text"
+              bind:value={searchTerm}
+              placeholder="e.g., Linea Mini"
+              class="machine-search-input"
+              {disabled}
+              on:keydown={handleSearchKey}
+            />
+            {#if machines.length === 0}
+              <div class="combobox-empty">
+                <p>No machines yet.</p>
+                <button type="button" on:click={openCreateForm} class="btn-primary" {disabled}>
+                  Add Your First Machine
+                </button>
+              </div>
+            {:else if sortedMachines.length === 0}
+              <div class="combobox-empty">
+                <p>No machines match your search.</p>
+                <button type="button" on:click={() => { searchTerm = ''; }} class="btn-secondary" {disabled}>
+                  Clear Search
+                </button>
+              </div>
+            {:else}
+              <ul class="machine-options">
+                {#each sortedMachines as machine}
+                  <li>
+                    <button
+                      type="button"
+                      class="machine-option"
+                      on:click={() => selectMachine(machine)}
+                    >
+                      <span class="option-title">{formatMachineDisplay(machine)}</span>
+                      <span class="option-meta">{machine.manufacturer}</span>
+                    </button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {/if}
       </div>
-
-      <!-- Manufacturer Filter -->
-      <div class="filter-group">
-        <select bind:value={selectedManufacturer} class="manufacturer-filter" {disabled}>
-          <option value="">All Manufacturers</option>
-          {#each manufacturers as manufacturer}
-            <option value={manufacturer}>{manufacturer}</option>
-          {/each}
-        </select>
-      </div>
-
-      <!-- Create New Button -->
-      <button 
+      <IconButton
         type="button"
-        on:click={() => showCreateForm = true}
-        class="create-btn"
-        {disabled}
+        on:click={openCreateForm}
+        ariaLabel="Add machine"
+        title="Add machine"
+        variant="accent"
+        disabled={disabled}
       >
-        + New Machine
-      </button>
+        <Plus />
+      </IconButton>
     </div>
 
-    <!-- Machine Selection -->
-    <div class="machine-list">
-      {#if sortedMachines.length === 0}
-        <div class="empty-state">
-          {#if searchTerm || selectedManufacturer}
-            <p>No machines match your filters.</p>
-            <button 
-              type="button"
-              on:click={() => { searchTerm = ''; selectedManufacturer = ''; }}
-              class="clear-filters-btn"
-            >
-              Clear Filters
-            </button>
-          {:else}
-            <p>No machines available.</p>
-            <button 
-              type="button"
-              on:click={() => showCreateForm = true}
-              class="create-first-btn"
-              {disabled}
-            >
-              Add Your First Machine
-            </button>
-          {/if}
-        </div>
-      {:else}
-        <select bind:value={value} class="machine-select" {disabled} required>
-          <option value="">Select a machine...</option>
-          {#each sortedMachines as machine}
-            <option value={machine.id}>
-              {formatMachineDisplay(machine)}
-            </option>
-          {/each}
-        </select>
+    <!-- Selected Machine Details -->
+    {#if selectedMachine}
+      <div class="selected-machine-details">
+        <div class="machine-info">
+          <h4>{formatMachineDisplay(selectedMachine)}</h4>
+          
+          <div class="machine-meta">
+            <span class="manufacturer">{selectedMachine.manufacturer}</span>
+            <span class="model">{selectedMachine.model}</span>
+          </div>
 
-        <!-- Selected Machine Details -->
-        {#if value}
-          {@const selectedMachine = machines.find(m => m.id === value)}
-          {#if selectedMachine}
-            <div class="selected-machine-details">
-              <div class="machine-info">
-                <h4>{formatMachineDisplay(selectedMachine)}</h4>
-                
-                <div class="machine-meta">
-                  <span class="manufacturer">{selectedMachine.manufacturer}</span>
-                  <span class="model">{selectedMachine.model}</span>
-                </div>
+          <div class="machine-links">
+            {#if selectedMachine.user_manual_link}
+              <a 
+                href={selectedMachine.user_manual_link} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="manual-link"
+              >
+                📖 User Manual
+              </a>
+            {/if}
+          </div>
 
-                <div class="machine-links">
-                  {#if selectedMachine.user_manual_link}
-                    <a 
-                      href={selectedMachine.user_manual_link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      class="manual-link"
-                    >
-                      📖 User Manual
-                    </a>
-                  {/if}
-                </div>
-
-                {#if selectedMachine.image_path}
-                  <div class="machine-image">
-                    <img 
-                      src={getImageUrl(selectedMachine.image_path, 'machine')} 
-                      alt={formatMachineDisplay(selectedMachine)}
-                      loading="lazy"
-                      on:error={(e) => e.currentTarget.style.display = 'none'}
-                    />
-                  </div>
-                {/if}
-              </div>
+          {#if selectedMachine.image_path}
+            <div class="machine-image">
+              <img 
+                src={getImageUrl(selectedMachine.image_path, 'machine')} 
+                alt={formatMachineDisplay(selectedMachine)}
+                loading="lazy"
+                on:error={(e) => e.currentTarget.style.display = 'none'}
+              />
             </div>
           {/if}
-        {/if}
-      {/if}
-    </div>
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -235,133 +279,116 @@
     background: rgba(122, 62, 47, 0.35);
   }
 
-  .selector-controls {
+  .machine-select-row {
     display: flex;
     gap: 0.75rem;
-    margin-bottom: 1rem;
     align-items: center;
-    flex-wrap: wrap;
   }
 
-  .search-group {
+  .machine-combobox {
+    position: relative;
     flex: 1;
-    min-width: 150px;
   }
 
-  .search-input {
+  .machine-combobox-trigger {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    background: var(--bg-surface-paper);
-    color: var(--text-ink-primary);
-  }
-
-  .search-input::placeholder {
-    color: var(--text-ink-muted);
-  }
-
-  .search-input:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
-  }
-
-  .filter-group {
-    min-width: 120px;
-  }
-
-  .manufacturer-filter {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    background: var(--bg-surface-paper);
-  }
-
-  .create-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .create-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .create-btn:disabled {
-    background: rgba(123, 94, 58, 0.6);
-    cursor: not-allowed;
-  }
-
-  .machine-list {
-    width: 100%;
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: var(--text-ink-muted);
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-  }
-
-  .empty-state p {
-    margin-bottom: 1rem;
-  }
-
-  .clear-filters-btn,
-  .create-first-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .clear-filters-btn:hover,
-  .create-first-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .create-first-btn:disabled {
-    background: rgba(123, 94, 58, 0.6);
-    cursor: not-allowed;
-  }
-
-  .machine-select {
-    width: 100%;
-    padding: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
     font-size: 1rem;
     background: var(--bg-surface-paper);
-    margin-bottom: 1rem;
+    color: var(--text-ink-primary);
+    cursor: pointer;
   }
 
-  .machine-select:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+  .machine-combobox-trigger:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
   }
 
-  .machine-select:disabled {
+  .machine-combobox-trigger:disabled {
     background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
   }
 
+  .chevron {
+    color: var(--text-ink-muted);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .machine-combobox-panel {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    background: var(--bg-surface-paper);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    padding: 0.75rem;
+    z-index: 5;
+  }
+
+  .machine-search-input {
+    width: 100%;
+    margin-bottom: 0.75rem;
+  }
+
+  .machine-options {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .machine-option {
+    width: 100%;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.6rem;
+    background: transparent;
+    color: var(--text-ink-primary);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .machine-option:hover {
+    background: rgba(214, 199, 174, 0.24);
+    border-color: rgba(123, 94, 58, 0.25);
+  }
+
+  .option-title {
+    font-weight: 600;
+  }
+
+  .option-meta {
+    font-size: 0.85rem;
+    color: var(--text-ink-muted);
+  }
+
+  .combobox-empty {
+    text-align: center;
+    color: var(--text-ink-muted);
+    padding: 0.5rem 0 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
   .selected-machine-details {
+    margin-top: 0.75rem;
     background: var(--bg-surface-paper-secondary);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);

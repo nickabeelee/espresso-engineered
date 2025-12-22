@@ -1,0 +1,16 @@
+[build]
+  base = "."
+  command = "npm run build:shared && npm run build:frontend"
+  publish = "frontend/build"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[functions]
+  directory = "frontend/.netlify/functions"
+
+[context.production.environment]
+  VITE_NODE_ENV = "production"
+
+[context.deploy-preview.environment]
+  VITE_NODE_ENV = "preview"

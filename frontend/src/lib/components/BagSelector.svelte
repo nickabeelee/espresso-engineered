@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ChevronDown, Plus } from '$lib/icons';
 
   import InlineBagCreator from './InlineBagCreator.svelte';
 
@@ -14,10 +16,10 @@
   let loading = true;
   let error = null;
   let showCreateForm = false;
-
-  // Search and filter
+  let isOpen = false;
   let searchTerm = '';
-  let selectedBean = '';
+  let searchInput: HTMLInputElement | null = null;
+  let comboboxRoot: HTMLDivElement | null = null;
 
   onMount(() => {
     loadData();
@@ -87,8 +89,10 @@
 
   // Filter bags to show only user's bags
   $: userBags = bags.filter(bag => bag.owner_id === $barista?.id);
+  $: selectedBag = bags.find((bag) => bag.id === value) || null;
+  $: selectedLabel = selectedBag ? formatBagDisplay(selectedBag) : 'Select a bag...';
 
-  // Filtered bags based on search and bean selection
+  // Filtered bags based on search
   $: filteredBags = userBags.filter(bag => {
     const bean = getBeanInfo(bag.bean_id);
     if (!bean) return false;
@@ -100,10 +104,8 @@
       bagDisplay.toLowerCase().includes(searchTerm.toLowerCase()) ||
       bean.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       roasterName.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesBean = !selectedBean || bag.bean_id === selectedBean;
-    
-    return matchesSearch && matchesBean;
+
+    return matchesSearch;
   });
 
   // Sort bags: fresh first, then by roast date
@@ -125,6 +127,56 @@
     // Finally by creation date
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
+
+  async function toggleOpen() {
+    if (disabled) return;
+    isOpen = !isOpen;
+    if (isOpen) {
+      searchTerm = '';
+      await tick();
+      searchInput?.focus();
+    }
+  }
+
+  function selectBag(bag: Bag) {
+    value = bag.id;
+    isOpen = false;
+    searchTerm = '';
+  }
+
+  function closeIfEscape(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      isOpen = false;
+    }
+  }
+
+  function handleSearchKey(event: KeyboardEvent) {
+    if (event.key === 'Enter' && sortedBags.length > 0) {
+      event.preventDefault();
+      selectBag(sortedBags[0]);
+    }
+  }
+
+  function openCreateForm() {
+    isOpen = false;
+    showCreateForm = true;
+  }
+
+  function handleDocumentClick(event: MouseEvent) {
+    if (!isOpen || !comboboxRoot) return;
+    const path = event.composedPath() as EventTarget[];
+    if (!path.includes(comboboxRoot)) {
+      isOpen = false;
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener('click', handleDocumentClick);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener('click', handleDocumentClick);
+  });
 </script>
 
 <div class="bag-selector">
@@ -143,125 +195,121 @@
       on:cancel={() => showCreateForm = false}
     />
   {:else}
-    <div class="selector-controls">
-      <!-- Search -->
-      <div class="search-group">
-        <input
-          type="text"
-          bind:value={searchTerm}
-          placeholder="Find a bag"
-          class="search-input"
+    <div class="bag-select-row">
+      <div class="bag-combobox" class:open={isOpen} bind:this={comboboxRoot}>
+        <button
+          type="button"
+          class="bag-combobox-trigger"
+          on:click={toggleOpen}
+          on:keydown={closeIfEscape}
           {disabled}
-        />
+        >
+          <span>{selectedLabel}</span>
+          <span class="chevron">
+            <ChevronDown size={16} />
+          </span>
+        </button>
+        {#if isOpen}
+          <div class="bag-combobox-panel" on:keydown={closeIfEscape}>
+            <input
+              bind:this={searchInput}
+              type="text"
+              bind:value={searchTerm}
+              placeholder="e.g., Winter Blend"
+              class="bag-search-input"
+              {disabled}
+              on:keydown={handleSearchKey}
+            />
+            {#if userBags.length === 0}
+              <div class="combobox-empty">
+                <p>You don't have any coffee bags yet.</p>
+                <button type="button" on:click={openCreateForm} class="btn-primary" {disabled}>
+                  Add Your First Bag
+                </button>
+              </div>
+            {:else if sortedBags.length === 0}
+              <div class="combobox-empty">
+                <p>No bags match your search.</p>
+                <button type="button" on:click={() => { searchTerm = ''; }} class="btn-secondary" {disabled}>
+                  Clear Search
+                </button>
+              </div>
+            {:else}
+              <ul class="bag-options">
+                {#each sortedBags as bag}
+                  {@const bean = getBeanInfo(bag.bean_id)}
+                  <li>
+                    <button
+                      type="button"
+                      class="bag-option"
+                      on:click={() => selectBag(bag)}
+                    >
+                      <span class="option-title">{formatBagDisplay(bag)}</span>
+                      <span class="option-meta">{bean ? getRoasterName(bean.roaster_id) : 'Unknown roaster'}</span>
+                    </button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {/if}
       </div>
-
-      <!-- Bean Filter -->
-      <div class="filter-group">
-        <select bind:value={selectedBean} class="bean-filter" {disabled}>
-          <option value="">All Beans</option>
-          {#each beans as bean}
-            <option value={bean.id}>{bean.name} - {getRoasterName(bean.roaster_id)}</option>
-          {/each}
-        </select>
-      </div>
-
-      <!-- Create New Button -->
-      <button 
+      <IconButton
         type="button"
-        on:click={() => showCreateForm = true}
-        class="create-btn"
-        {disabled}
+        on:click={openCreateForm}
+        ariaLabel="Add bag"
+        title="Add bag"
+        variant="accent"
+        disabled={disabled}
       >
-        + New Bag
-      </button>
+        <Plus />
+      </IconButton>
     </div>
 
-    <!-- Bag Selection -->
-    <div class="bag-list">
-      {#if sortedBags.length === 0}
-        <div class="empty-state">
-          {#if searchTerm || selectedBean}
-            <p>No bags match your filters.</p>
-            <button 
-              type="button"
-              on:click={() => { searchTerm = ''; selectedBean = ''; }}
-              class="clear-filters-btn"
-            >
-              Clear Filters
-            </button>
-          {:else}
-            <p>You don't have any coffee bags yet.</p>
-            <button 
-              type="button"
-              on:click={() => showCreateForm = true}
-              class="create-first-btn"
-              {disabled}
-            >
-              Add Your First Bag
-            </button>
-          {/if}
-        </div>
-      {:else}
-        <select bind:value={value} class="bag-select" {disabled} required>
-          <option value="">Select a bag...</option>
-          {#each sortedBags as bag}
-            <option value={bag.id} class:expired={isExpired(bag)} class:low-weight={isLowWeight(bag)}>
-              {formatBagDisplay(bag)}
-            </option>
-          {/each}
-        </select>
+    {#if selectedBag}
+      {@const bean = getBeanInfo(selectedBag.bean_id)}
+      <div class="selected-bag-details" class:expired={isExpired(selectedBag)}>
+        <div class="bag-info">
+          <h4>{bean?.name || 'Unknown Bean'}</h4>
+          <div class="bag-meta">
+            <span class="roaster">{bean ? getRoasterName(bean.roaster_id) : 'Unknown'}</span>
+            {#if bean}
+              <span class="roast-level">{bean.roast_level}</span>
+            {/if}
+            {#if selectedBag.roast_date}
+              <span class="roast-date">
+                Roasted {new Date(selectedBag.roast_date).toLocaleDateString()}
+              </span>
+            {/if}
+            {#if selectedBag.weight_g}
+              <span class="weight" class:low={isLowWeight(selectedBag)}>
+                {selectedBag.weight_g.toFixed(0)}g remaining
+              </span>
+            {/if}
+          </div>
 
-        <!-- Selected Bag Details -->
-        {#if value}
-          {@const selectedBag = bags.find(b => b.id === value)}
-          {#if selectedBag}
-            {@const bean = getBeanInfo(selectedBag.bean_id)}
-            <div class="selected-bag-details" class:expired={isExpired(selectedBag)}>
-              <div class="bag-info">
-                <h4>{bean?.name || 'Unknown Bean'}</h4>
-                <div class="bag-meta">
-                  <span class="roaster">{bean ? getRoasterName(bean.roaster_id) : 'Unknown'}</span>
-                  {#if bean}
-                    <span class="roast-level">{bean.roast_level}</span>
-                  {/if}
-                  {#if selectedBag.roast_date}
-                    <span class="roast-date">
-                      Roasted {new Date(selectedBag.roast_date).toLocaleDateString()}
-                    </span>
-                  {/if}
-                  {#if selectedBag.weight_g}
-                    <span class="weight" class:low={isLowWeight(selectedBag)}>
-                      {selectedBag.weight_g.toFixed(0)}g remaining
-                    </span>
-                  {/if}
-                </div>
-
-                <!-- Warnings -->
-                {#if isExpired(selectedBag)}
-                  <div class="warning expired-warning">
-                    ⚠️ This coffee is over 30 days old and may be stale
-                  </div>
-                {/if}
-                {#if isLowWeight(selectedBag)}
-                  <div class="warning low-weight-warning">
-                    📉 Running low on this coffee
-                  </div>
-                {/if}
-
-                {#if selectedBag.purchase_location}
-                  <p class="purchase-info">
-                    Purchased from: {selectedBag.purchase_location}
-                    {#if selectedBag.price}
-                      (${selectedBag.price.toFixed(2)})
-                    {/if}
-                  </p>
-                {/if}
-              </div>
+          {#if isExpired(selectedBag)}
+            <div class="warning expired-warning">
+              ⚠️ This coffee is over 30 days old and may be stale
             </div>
           {/if}
-        {/if}
-      {/if}
-    </div>
+          {#if isLowWeight(selectedBag)}
+            <div class="warning low-weight-warning">
+              📉 Running low on this coffee
+            </div>
+          {/if}
+
+          {#if selectedBag.purchase_location}
+            <p class="purchase-info">
+              Purchased from: {selectedBag.purchase_location}
+              {#if selectedBag.price}
+                (${selectedBag.price.toFixed(2)})
+              {/if}
+            </p>
+          {/if}
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -301,133 +349,116 @@
     background: rgba(122, 62, 47, 0.3);
   }
 
-  .selector-controls {
+  .bag-select-row {
     display: flex;
     gap: 0.75rem;
-    margin-bottom: 1rem;
     align-items: center;
-    flex-wrap: wrap;
   }
 
-  .search-group {
+  .bag-combobox {
+    position: relative;
     flex: 1;
-    min-width: 150px;
   }
 
-  .search-input {
+  .bag-combobox-trigger {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    background: var(--bg-surface-paper);
-    color: var(--text-ink-primary);
-  }
-
-  .search-input::placeholder {
-    color: var(--text-ink-muted);
-  }
-
-  .search-input:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
-  }
-
-  .filter-group {
-    min-width: 150px;
-  }
-
-  .bean-filter {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    background: var(--bg-surface-paper);
-  }
-
-  .create-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .create-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .create-btn:disabled {
-    background: rgba(123, 94, 58, 0.4);
-    cursor: not-allowed;
-  }
-
-  .bag-list {
-    width: 100%;
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: var(--text-ink-muted);
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-  }
-
-  .empty-state p {
-    margin-bottom: 1rem;
-  }
-
-  .clear-filters-btn,
-  .create-first-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .clear-filters-btn:hover,
-  .create-first-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .create-first-btn:disabled {
-    background: rgba(123, 94, 58, 0.4);
-    cursor: not-allowed;
-  }
-
-  .bag-select {
-    width: 100%;
-    padding: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
     font-size: 1rem;
     background: var(--bg-surface-paper);
-    margin-bottom: 1rem;
+    color: var(--text-ink-primary);
+    cursor: pointer;
   }
 
-  .bag-select:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+  .bag-combobox-trigger:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
   }
 
-  .bag-select:disabled {
+  .bag-combobox-trigger:disabled {
     background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
   }
 
+  .chevron {
+    color: var(--text-ink-muted);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .bag-combobox-panel {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    background: var(--bg-surface-paper);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    padding: 0.75rem;
+    z-index: 5;
+  }
+
+  .bag-search-input {
+    width: 100%;
+    margin-bottom: 0.75rem;
+  }
+
+  .bag-options {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .bag-option {
+    width: 100%;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.6rem;
+    background: transparent;
+    color: var(--text-ink-primary);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .bag-option:hover {
+    background: rgba(214, 199, 174, 0.24);
+    border-color: rgba(123, 94, 58, 0.25);
+  }
+
+  .option-title {
+    font-weight: 600;
+  }
+
+  .option-meta {
+    font-size: 0.85rem;
+    color: var(--text-ink-muted);
+  }
+
+  .combobox-empty {
+    text-align: center;
+    color: var(--text-ink-muted);
+    padding: 0.5rem 0 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
   .selected-bag-details {
+    margin-top: 0.75rem;
     background: var(--bg-surface-paper-secondary);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
@@ -511,14 +542,9 @@
   }
 
   @media (max-width: 768px) {
-    .selector-controls {
+    .bag-select-row {
       flex-direction: column;
       align-items: stretch;
-    }
-
-    .search-group,
-    .filter-group {
-      min-width: auto;
     }
 
     .bag-meta {

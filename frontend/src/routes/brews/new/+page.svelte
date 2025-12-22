@@ -80,47 +80,6 @@
     }
   }
 
-  async function handleSaveDraft(event: CustomEvent<CreateBrewRequest>) {
-    const brewData = event.detail;
-    loading = true;
-    error = null;
-
-    try {
-      const currentBarista = $barista;
-      if (!currentBarista) {
-        throw new Error('No authenticated user');
-      }
-
-      const draft: BrewDraft = {
-        ...brewData,
-        barista_id: currentBarista.id,
-        created_at: new Date().toISOString()
-      };
-
-      if (isOnline) {
-        // Try to save as draft on server first
-        try {
-          const response = await apiClient.createBrew(draft);
-          if (response.data) {
-            goto(`/brews/${response.data.id}`);
-            return;
-          }
-        } catch (serverError) {
-          // If server fails, fall back to offline storage
-          console.warn('Server draft save failed, saving offline:', serverError);
-        }
-      }
-
-      // Save offline
-      const draftId = await OfflineStorage.saveDraft(draft);
-      goto('/brews/drafts');
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to save draft';
-    } finally {
-      loading = false;
-    }
-  }
-
   function handleCancel() {
     goto('/brews');
   }
@@ -152,12 +111,7 @@
       </div>
     {/if}
 
-    <BrewForm 
-      {prefillFromLast}
-      on:save={handleSave}
-      on:draft={handleSaveDraft}
-      on:cancel={handleCancel}
-    />
+    <BrewForm {prefillFromLast} on:save={handleSave} on:cancel={handleCancel} />
 
     {#if error}
       <div class="notice error">{error}</div>

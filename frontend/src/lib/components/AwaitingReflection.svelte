@@ -106,7 +106,7 @@
   {:else if error}
     <div class="error-state">
       <p>Error: {error}</p>
-      <button on:click={loadDraftBrews} class="btn-retry">
+      <button on:click={loadDraftBrews} class="btn-primary">
         Try Again
       </button>
     </div>
@@ -188,10 +188,10 @@
           {/if}
 
           <div class="draft-actions">
-            <a href="/brews/{brew.id}?edit=true" class="btn-complete">
+            <a href="/brews/{brew.id}?edit=true" class="btn-primary">
               Complete Brew
             </a>
-            <a href="/brews/{brew.id}" class="btn-view">
+            <a href="/brews/{brew.id}" class="btn-secondary">
               View Details
             </a>
           </div>
@@ -205,7 +205,7 @@
         <p class="batch-text">
           You have {draftBrews.length} incomplete brews
         </p>
-        <a href="/brews/drafts" class="btn-view-all">
+        <a href="/brews/drafts" class="btn-secondary">
           View All Drafts
         </a>
       </div>
@@ -268,20 +268,6 @@
   .error-state p {
     color: var(--semantic-error);
     margin-bottom: 1rem;
-  }
-
-  .btn-retry {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: none;
-    padding: 0.6rem 1.4rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .btn-retry:hover {
-    background: var(--accent-primary-dark);
   }
 
   .empty-state {
@@ -464,37 +450,6 @@
     justify-content: flex-end;
   }
 
-  .btn-complete,
-  .btn-view {
-    padding: 0.45rem 1rem;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    text-align: center;
-  }
-
-  .btn-complete {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-  }
-
-  .btn-complete:hover {
-    background: var(--accent-primary-dark);
-  }
-
-  .btn-view {
-    background: transparent;
-    color: var(--text-ink-secondary);
-    border-color: var(--border-strong);
-  }
-
-  .btn-view:hover {
-    background: rgba(123, 94, 58, 0.12);
-  }
-
   .batch-actions {
     margin-top: 2rem;
     padding: 1.5rem;
@@ -508,20 +463,6 @@
     margin: 0 0 1rem 0;
     color: var(--text-ink-secondary);
     font-weight: 500;
-  }
-
-  .btn-view-all {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    padding: 0.6rem 1.4rem;
-    border-radius: 999px;
-    text-decoration: none;
-    font-weight: 500;
-    display: inline-block;
-  }
-
-  .btn-view-all:hover {
-    background: var(--accent-primary-dark);
   }
 
   @media (max-width: 768px) {

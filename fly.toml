@@ -1,12 +1,12 @@
-# fly.toml app configuration file generated for espresso-engineered on 2025-12-20T18:30:28Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+app = "espresso-engineered"
+primary_region = "dfw"
 
 app = 'espresso-engineered'
 primary_region = 'iad'
 
-[build]
+[env]
+  PORT = "8080"
+  FRONTEND_URLS = "https://espresso-engineered.netlify.app,https://espressoengineered.com,https://www.espressoengineered.com"
 
 [http_service]
   internal_port = 8080

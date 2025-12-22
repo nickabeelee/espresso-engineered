@@ -1,5 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { Trash } from '$lib/icons';
   import { getAuthToken } from '$lib/supabase';
   
   export let currentImageUrl: string = '';
@@ -171,14 +173,15 @@
         >
           {uploading ? 'Uploading...' : 'Replace'}
         </button>
-        <button
-          type="button"
-          class="btn-danger btn-small"
+        <IconButton
           on:click={handleDelete}
+          ariaLabel="Delete image"
+          title="Delete"
+          variant="danger"
           disabled={disabled || uploading}
         >
-          Delete
-        </button>
+          <Trash />
+        </IconButton>
       </div>
     </div>
   {:else}
@@ -339,26 +342,6 @@
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
     min-width: auto;
-  }
-  
-  .btn-secondary {
-    background: var(--color-surface);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-  }
-  
-  .btn-secondary:hover:not(:disabled) {
-    background: var(--color-border);
-  }
-  
-  .btn-danger {
-    background: var(--color-error);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--color-error);
-  }
-  
-  .btn-danger:hover:not(:disabled) {
-    background: var(--color-error-dark);
   }
   
   @media (max-width: 768px) {

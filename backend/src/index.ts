@@ -21,8 +21,12 @@ const start = async () => {
     await initializeDatabase();
 
     // Register CORS
+    const frontendOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || 'http://localhost:5173')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
     await fastify.register(cors, {
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: frontendOrigins.length === 1 ? frontendOrigins[0] : frontendOrigins,
       credentials: true
     });
 

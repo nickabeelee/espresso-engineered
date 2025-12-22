@@ -31,14 +31,20 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const token = await getAuthToken();
+    const hasBody = options.body !== undefined && options.body !== null;
     
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers as Record<string, string> | undefined),
+    };
+
+    if (hasBody && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const config: RequestInit = {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
+      headers,
     };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
@@ -48,7 +54,16 @@ class ApiClient {
       throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    const text = await response.text();
+    if (!text) {
+      return undefined as T;
+    }
+
+    return JSON.parse(text) as T;
   }
 
   // Generic HTTP methods for admin service

@@ -1,0 +1,9 @@
+// Export Svelte icon components from this module.
+export { default as UserCircle } from './outline/UserCircle.svelte';
+export { default as UserCircleOutline } from './outline/UserCircle.svelte';
+export { default as Plus } from './outline/Plus.svelte';
+export { default as PencilSquare } from './outline/PencilSquare.svelte';
+export { default as Trash } from './outline/Trash.svelte';
+export { default as XMark } from './outline/XMark.svelte';
+export { default as ArrowDownTray } from './outline/ArrowDownTray.svelte';
+export { default as ChevronDown } from './outline/ChevronDown.svelte';

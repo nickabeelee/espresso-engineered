@@ -1,8 +1,11 @@
 <script lang="ts">
   import { authService, barista } from '$lib/auth';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ArrowDownTray, PencilSquare, XMark } from '$lib/icons';
 
   export let showEditForm = false;
   export let compact = false;
+  export let minimal = false;
 
   let editMode = false;
   let loading = false;
@@ -70,24 +73,13 @@
     return 'Anonymous Barista';
   }
 
-  function getInitials(barista: Barista): string {
-    const displayName = getDisplayName(barista);
-    const words = displayName.split(' ');
-    if (words.length >= 2) {
-      return `${words[0][0]}${words[1][0]}`.toUpperCase();
-    }
-    return displayName.substring(0, 2).toUpperCase();
-  }
 </script>
 
 {#if $barista}
-  <div class="barista-profile" class:compact>
+  <div class="barista-profile" class:compact class:minimal>
     {#if compact}
       <!-- Compact display for header/navigation -->
       <div class="profile-compact">
-        <div class="profile-avatar">
-          {getInitials($barista)}
-        </div>
         <span class="profile-name">
           {getDisplayName($barista)}
         </span>
@@ -95,9 +87,6 @@
     {:else}
       <!-- Full profile display -->
       <div class="profile-header">
-        <div class="profile-avatar large">
-          {getInitials($barista)}
-        </div>
         <div class="profile-info">
           <h2>{getDisplayName($barista)}</h2>
           <p class="profile-meta">
@@ -105,13 +94,11 @@
           </p>
         </div>
         {#if showEditForm}
-          <button 
-            on:click={startEdit} 
-            class="edit-button"
-            disabled={editMode}
-          >
-            Edit Profile
-          </button>
+          <div class="profile-actions">
+            <IconButton on:click={startEdit} ariaLabel="Edit profile" variant="accent" disabled={editMode}>
+              <PencilSquare />
+            </IconButton>
+          </div>
         {/if}
       </div>
 
@@ -126,7 +113,7 @@
               type="text"
               bind:value={firstName}
               disabled={loading}
-              placeholder="Your first name"
+              placeholder="e.g., Ada"
             />
           </div>
 
@@ -137,7 +124,7 @@
               type="text"
               bind:value={lastName}
               disabled={loading}
-              placeholder="Your last name"
+              placeholder="e.g., Lovelace"
             />
           </div>
 
@@ -148,7 +135,7 @@
               type="text"
               bind:value={displayName}
               disabled={loading}
-              placeholder="How you want to be shown to others"
+              placeholder="e.g., Ada L."
             />
             <small>Leave empty to use your first and last name</small>
           </div>
@@ -162,12 +149,18 @@
           {/if}
 
           <div class="form-actions">
-            <button type="submit" disabled={loading} class="save-button">
-              {loading ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button type="button" on:click={cancelEdit} disabled={loading} class="cancel-button">
-              Cancel
-            </button>
+            <IconButton
+              type="submit"
+              ariaLabel={loading ? 'Saving profile' : 'Save profile'}
+              title={loading ? 'Saving...' : 'Save changes'}
+              variant="accent"
+              disabled={loading}
+            >
+              <ArrowDownTray />
+            </IconButton>
+            <IconButton type="button" on:click={cancelEdit} ariaLabel="Cancel profile edit" title="Cancel" variant="neutral" disabled={loading}>
+              <XMark />
+            </IconButton>
           </div>
         </form>
       {/if}
@@ -192,38 +185,18 @@
     background: none;
     box-shadow: none;
     padding: 0;
+    border: none;
   }
 
   .profile-compact {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
   }
 
   .profile-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
     margin-bottom: 1.5rem;
-  }
-
-  .profile-avatar {
-    width: 40px;
-    height: 40px;
-    background: radial-gradient(circle at top, rgba(176, 138, 90, 0.8), rgba(64, 43, 21, 0.9));
-    color: var(--text-ink-inverted);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-
-  .profile-avatar.large {
-    width: 60px;
-    height: 60px;
-    font-size: 1.2rem;
   }
 
   .profile-info h2 {
@@ -243,24 +216,14 @@
     font-weight: 500;
   }
 
-  .edit-button {
-    background: var(--accent-primary);
+  .barista-profile.compact .profile-name {
     color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
+    letter-spacing: 0.02em;
     font-size: 0.9rem;
+  }
+
+  .profile-actions {
     margin-left: auto;
-  }
-
-  .edit-button:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .edit-button:disabled {
-    background: rgba(123, 94, 58, 0.4);
-    cursor: not-allowed;
   }
 
   .edit-form {
@@ -335,43 +298,6 @@
   .form-actions {
     display: flex;
     gap: 0.75rem;
-  }
-
-  .save-button {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.6rem 1.4rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-
-  .save-button:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .save-button:disabled {
-    background: rgba(123, 94, 58, 0.4);
-    cursor: not-allowed;
-  }
-
-  .cancel-button {
-    background: transparent;
-    color: var(--text-ink-secondary);
-    border: 1px solid var(--border-strong);
-    padding: 0.6rem 1.4rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-
-  .cancel-button:hover:not(:disabled) {
-    background: rgba(123, 94, 58, 0.12);
-  }
-
-  .cancel-button:disabled {
-    cursor: not-allowed;
   }
 
   .profile-loading {

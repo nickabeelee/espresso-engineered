@@ -1,6 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { XMark } from '$lib/icons';
 
   import ImageUpload from './ImageUpload.svelte';
 
@@ -188,7 +190,7 @@
         id="setting-guide"
         type="url"
         bind:value={setting_guide_chart_url}
-        placeholder="https://example.com/grind-settings.pdf"
+        placeholder="e.g., https://example.com/grind-settings.pdf"
         disabled={loading}
       />
       {#if validationErrors.setting_guide_chart_url}
@@ -236,10 +238,10 @@
     {/if}
 
     <div class="form-actions">
-      <button type="button" on:click={handleCancel} class="btn-cancel" disabled={loading}>
-        Cancel
-      </button>
-      <button type="submit" class="btn-create" disabled={loading}>
+      <IconButton type="button" on:click={handleCancel} ariaLabel="Cancel grinder" title="Cancel" variant="neutral" disabled={loading}>
+        <XMark />
+      </IconButton>
+      <button type="submit" class="btn-primary" disabled={loading}>
         {loading ? 'Creating...' : 'Create Grinder'}
       </button>
     </div>
@@ -446,39 +448,6 @@
     gap: 0.75rem;
     justify-content: flex-end;
     margin-top: 0.5rem;
-  }
-
-  button {
-    padding: 0.45rem 1.1rem;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    font-weight: 500;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.2s;
-  }
-
-  .btn-cancel {
-    background: rgba(123, 94, 58, 0.6);
-    color: var(--text-ink-inverted);
-  }
-
-  .btn-cancel:hover:not(:disabled) {
-    background: rgba(123, 94, 58, 0.75);
-  }
-
-  .btn-create {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-  }
-
-  .btn-create:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
   }
 
   @media (max-width: 768px) {

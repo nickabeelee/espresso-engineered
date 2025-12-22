@@ -47,16 +47,16 @@
   <div class="auth-guard-loading">
     <p>We couldn't find your barista profile.</p>
     <div class="auth-guard-actions">
-      <button on:click={handleRetry}>Retry</button>
-      <button on:click={handleSignOut}>Sign out</button>
+      <button on:click={handleRetry} class="btn-primary">Retry</button>
+      <button on:click={handleSignOut} class="btn-secondary">Sign out</button>
     </div>
   </div>
 {:else if $authStatus === 'error'}
   <div class="auth-guard-loading">
     <p>{ $authError || 'Authentication failed. Please try again.' }</p>
     <div class="auth-guard-actions">
-      <button on:click={handleRetry}>Retry</button>
-      <button on:click={handleSignOut}>Sign out</button>
+      <button on:click={handleRetry} class="btn-primary">Retry</button>
+      <button on:click={handleSignOut} class="btn-secondary">Sign out</button>
     </div>
   </div>
 {:else if requireAuth && !$isAuthenticated}
@@ -110,18 +110,4 @@
     gap: 0.75rem;
   }
 
-  .auth-guard-actions button {
-    background: transparent;
-    color: var(--text-ink-secondary);
-    border: 1px solid var(--border-strong);
-    padding: 0.45rem 1rem;
-    border-radius: 999px;
-    cursor: pointer;
-  }
-
-  .auth-guard-actions button:first-child {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border-color: var(--accent-primary);
-  }
 </style>

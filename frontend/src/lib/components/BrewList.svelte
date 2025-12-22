@@ -119,7 +119,7 @@
         <input
           type="text"
           bind:value={searchTerm}
-          placeholder="Search brews..."
+          placeholder="e.g., marzipan"
           class="search-input"
         />
       </div>
@@ -138,7 +138,7 @@
           type="date"
           bind:value={dateFromFilter}
           class="filter-input"
-          placeholder="From date"
+          placeholder="e.g., 2025-01-15"
         />
       </div>
 
@@ -147,15 +147,15 @@
           type="date"
           bind:value={dateToFilter}
           class="filter-input"
-          placeholder="To date"
+          placeholder="e.g., 2025-02-15"
         />
       </div>
 
-      <button on:click={applyFilters} class="btn-filter">
+      <button on:click={applyFilters} class="btn-primary">
         Apply
       </button>
 
-      <button on:click={clearFilters} class="btn-clear">
+      <button on:click={clearFilters} class="btn-secondary">
         Clear
       </button>
     </div>
@@ -177,7 +177,7 @@
   {#if error}
     <div class="error-state">
       <p>Error: {error}</p>
-      <button on:click={() => loadBrews()} class="btn-retry">
+      <button on:click={() => loadBrews()} class="btn-primary">
         Try Again
       </button>
     </div>
@@ -266,9 +266,9 @@
         {/if}
 
         <div class="brew-actions">
-          <a href="/brews/{brew.id}" class="btn-view">View</a>
+          <a href="/brews/{brew.id}" class="btn-secondary">View</a>
           {#if isDraft(brew)}
-            <a href="/brews/{brew.id}?edit=true" class="btn-complete">Complete</a>
+            <a href="/brews/{brew.id}?edit=true" class="btn-primary">Complete</a>
           {/if}
         </div>
       </div>
@@ -278,7 +278,7 @@
   <!-- Load More -->
   {#if hasMore && !loading}
     <div class="load-more">
-      <button on:click={loadMore} class="btn-load-more">
+      <button on:click={loadMore} class="btn-primary">
         Load More Brews
       </button>
     </div>
@@ -345,35 +345,6 @@
     font-size: 0.9rem;
   }
 
-  .btn-filter,
-  .btn-clear {
-    padding: 0.45rem 1.1rem;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-
-  .btn-filter {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-  }
-
-  .btn-filter:hover {
-    background: var(--accent-primary-dark);
-  }
-
-  .btn-clear {
-    background: transparent;
-    color: var(--text-ink-secondary);
-    border-color: var(--border-strong);
-  }
-
-  .btn-clear:hover {
-    background: rgba(123, 94, 58, 0.12);
-  }
-
   .results-summary {
     margin-bottom: 1rem;
     color: var(--text-ink-muted);
@@ -402,24 +373,6 @@
   .empty-state p {
     color: var(--text-ink-muted);
     margin-bottom: 1.5rem;
-  }
-
-  .btn-retry,
-  .btn-primary {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.6rem 1.4rem;
-    border-radius: 999px;
-    text-decoration: none;
-    display: inline-block;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .btn-retry:hover,
-  .btn-primary:hover {
-    background: var(--accent-primary-dark);
   }
 
   .brew-grid {
@@ -539,55 +492,10 @@
     justify-content: flex-end;
   }
 
-  .btn-view,
-  .btn-complete {
-    padding: 0.45rem 1rem;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    text-align: center;
-  }
-
-  .btn-view {
-    background: transparent;
-    color: var(--text-ink-secondary);
-    border-color: var(--border-strong);
-  }
-
-  .btn-view:hover {
-    background: rgba(123, 94, 58, 0.12);
-  }
-
-  .btn-complete {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-  }
-
-  .btn-complete:hover {
-    background: var(--accent-primary-dark);
-  }
-
   .load-more,
   .loading-more {
     text-align: center;
     margin-top: 2rem;
-  }
-
-  .btn-load-more {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: none;
-    padding: 0.6rem 1.8rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .btn-load-more:hover {
-    background: var(--accent-primary-dark);
   }
 
   .loading-more {
