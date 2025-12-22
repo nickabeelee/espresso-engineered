@@ -25,6 +25,16 @@ import type {
 // API base URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
+function stripNullish<T extends Record<string, unknown>>(data: T): Partial<T> {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return data;
+  }
+
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== null && value !== undefined)
+  ) as Partial<T>;
+}
+
 class ApiClient {
   private async makeRequest<T>(
     endpoint: string, 
@@ -150,9 +160,10 @@ class ApiClient {
   }
 
   async updateBrew(id: string, brew: Partial<UpdateBrewRequest>): Promise<ApiResponse<Brew>> {
+    const sanitizedBrew = stripNullish(brew);
     return this.makeRequest<ApiResponse<Brew>>(`/brews/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(brew),
+      body: JSON.stringify(sanitizedBrew),
     });
   }
 
@@ -163,9 +174,10 @@ class ApiClient {
   }
 
   async completeBrew(id: string, completionData: Partial<Brew>): Promise<ApiResponse<Brew>> {
+    const sanitizedCompletion = stripNullish(completionData);
     return this.makeRequest<ApiResponse<Brew>>(`/brews/${id}/complete`, {
       method: 'POST',
-      body: JSON.stringify(completionData),
+      body: JSON.stringify(sanitizedCompletion),
     });
   }
 
