@@ -302,7 +302,7 @@ textarea:disabled {
 .btn-danger,
 .btn-success {
   --button-bg: transparent;
-  --button-border: transparent;
+  --button-border: var(--border-subtle);
   --button-ink: var(--text-ink-secondary);
   --button-hover-bg: rgba(74, 58, 44, 0.2);
   --button-active-bg: rgba(74, 58, 44, 0.28);
@@ -366,6 +366,7 @@ textarea:disabled {
 }
 
 .btn-primary {
+  --button-border: var(--accent-primary);
   --button-ink: var(--accent-primary);
   --button-hover-bg: rgba(176, 138, 90, 0.26);
   --button-active-bg: rgba(176, 138, 90, 0.34);
@@ -373,10 +374,12 @@ textarea:disabled {
 }
 
 .btn-secondary {
+  --button-border: var(--border-subtle);
   --button-ink: var(--text-ink-secondary);
 }
 
 .btn-danger {
+  --button-border: var(--semantic-error);
   --button-ink: var(--semantic-error);
   --button-hover-bg: rgba(122, 62, 47, 0.28);
   --button-active-bg: rgba(122, 62, 47, 0.36);
@@ -384,6 +387,7 @@ textarea:disabled {
 }
 
 .btn-success {
+  --button-border: var(--semantic-success);
   --button-ink: var(--semantic-success);
   --button-hover-bg: rgba(85, 98, 74, 0.28);
   --button-active-bg: rgba(85, 98, 74, 0.36);
@@ -391,6 +395,7 @@ textarea:disabled {
 }
 
 .btn-quiet {
+  --button-border: var(--text-ink-inverted-muted);
   --button-ink: var(--text-ink-inverted);
   --button-hover-bg: rgba(214, 199, 174, 0.16);
   --button-active-bg: rgba(214, 199, 174, 0.24);
