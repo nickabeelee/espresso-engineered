@@ -56,17 +56,25 @@
     }
   });
 
+  function normalizeNumber(value: number | null | undefined): number | undefined {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+      return undefined;
+    }
+
+    return value;
+  }
+
   function loadBrewData(brewData: Brew) {
     machine_id = brewData.machine_id;
     grinder_id = brewData.grinder_id;
     bag_id = brewData.bag_id;
     dose_g = brewData.dose_g;
-    yield_g = brewData.yield_g;
-    brew_time_s = brewData.brew_time_s;
-    grind_setting = brewData.grind_setting || '';
-    rating = brewData.rating;
-    tasting_notes = brewData.tasting_notes || '';
-    reflections = brewData.reflections || '';
+    yield_g = normalizeNumber(brewData.yield_g);
+    brew_time_s = normalizeNumber(brewData.brew_time_s);
+    grind_setting = brewData.grind_setting ?? '';
+    rating = normalizeNumber(brewData.rating);
+    tasting_notes = brewData.tasting_notes ?? '';
+    reflections = brewData.reflections ?? '';
   }
 
   async function loadPrefillData() {
@@ -121,14 +129,14 @@
     if (!dose_g || dose_g <= 0) {
       validationErrors.dose_g = 'Dose must be greater than 0';
     }
-    if (yield_g !== undefined && yield_g < 0) {
-      validationErrors.yield_g = 'Yield cannot be negative';
+    if (yield_g !== undefined && yield_g <= 0) {
+      validationErrors.yield_g = 'Yield must be greater than 0';
     }
-    if (brew_time_s !== undefined && brew_time_s < 0) {
-      validationErrors.brew_time_s = 'Brew time cannot be negative';
+    if (brew_time_s !== undefined && brew_time_s <= 0) {
+      validationErrors.brew_time_s = 'Brew time must be greater than 0';
     }
-    if (rating !== undefined && (rating < 0 || rating > 10)) {
-      validationErrors.rating = 'Rating must be between 0 and 10';
+    if (rating !== undefined && (rating < 1 || rating > 10)) {
+      validationErrors.rating = 'Rating must be between 1 and 10';
     }
 
     return Object.keys(validationErrors).length === 0;
@@ -147,10 +155,10 @@
       grinder_id,
       bag_id,
       dose_g,
-      yield_g,
-      brew_time_s,
+      yield_g: normalizeNumber(yield_g),
+      brew_time_s: normalizeNumber(brew_time_s),
       grind_setting: grind_setting.trim() || undefined,
-      rating,
+      rating: normalizeNumber(rating),
       tasting_notes: tasting_notes.trim() || undefined,
       reflections: reflections.trim() || undefined
     };
@@ -299,7 +307,7 @@
             type="number"
             bind:value={yield_g}
             step="0.1"
-            min="0"
+            min="0.1"
             placeholder="e.g., 36"
             disabled={loading}
           />
@@ -315,7 +323,7 @@
             type="number"
             bind:value={brew_time_s}
             step="0.1"
-            min="0"
+            min="0.1"
             placeholder="e.g., 28"
             disabled={loading}
           />
@@ -349,12 +357,12 @@
       <h3>Evaluation</h3>
       
       <div class="form-group">
-        <label for="rating">Rating (0-10)</label>
+        <label for="rating">Rating (1-10)</label>
         <input
           id="rating"
           type="number"
           bind:value={rating}
-          min="0"
+          min="1"
           max="10"
           step="1"
           placeholder="e.g., 8"
