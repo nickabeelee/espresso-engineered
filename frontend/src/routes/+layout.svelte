@@ -6,6 +6,7 @@
   import { authService, barista, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
   import BaristaProfile from '$lib/components/BaristaProfile.svelte';
   import { UserCircle } from '$lib/icons';
+  import logoInverted from '../assets/brand/espresso-engineered-logo-inverted.svg';
   
   // Pages that don't require authentication
   const publicPages = ['/auth', '/'];
@@ -90,7 +91,10 @@
     <div class="app-chrome">
       <header class="top-nav" class:hidden={isNavHidden}>
         <div class="top-nav-inner">
-          <a href="/brews" class="logo">Espresso Engineered</a>
+          <a href="/brews" class="logo">
+            <img src={logoInverted} alt="Espresso Engineered" class="logo-mark" />
+            <span class="logo-text">Espresso Engineered</span>
+          </a>
           <nav class="top-nav-links">
             <a
               href="/brews"
@@ -179,12 +183,21 @@
 
 <style>
   .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
     font-size: 1.05rem;
     font-weight: 500;
     color: var(--text-ink-inverted);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     text-decoration: none;
+  }
+
+  .logo-mark {
+    width: auto;
+    height: 28px;
+    display: block;
   }
 
   .logo:hover {

@@ -180,6 +180,7 @@ textarea:disabled {
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  margin-left: auto;
 }
 
 .profile-menu {
@@ -510,8 +511,13 @@ textarea:disabled {
     gap: 1rem 1.5rem;
   }
 
+  .top-nav-actions {
+    order: 2;
+  }
+
   .top-nav-links {
     order: 3;
+    flex: 0 0 100%;
     width: 100%;
     flex-wrap: wrap;
     gap: 1rem 1.5rem;
