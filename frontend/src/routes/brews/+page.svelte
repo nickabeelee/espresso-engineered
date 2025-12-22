@@ -2,6 +2,8 @@
   import { barista } from '$lib/auth';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BrewList from '$lib/components/BrewList.svelte';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { Plus } from '$lib/icons';
 </script>
 
 <svelte:head>
@@ -17,7 +19,9 @@
         <h1>Brews</h1>
         <p>Recent brews and returning drafts.</p>
       </div>
-      <a href="/brews/new" class="btn-primary">New Brew</a>
+      <IconButton href="/brews/new" ariaLabel="New brew" variant="accent">
+        <Plus />
+      </IconButton>
     </div>
     <BrewList barista_id={$barista?.id} />
   </div>

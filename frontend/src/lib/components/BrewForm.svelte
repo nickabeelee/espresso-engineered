@@ -4,6 +4,8 @@
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import { debounceAsync } from '$lib/utils/debounce';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ArrowDownTray, XMark } from '$lib/icons';
 
   import BeanSelector from './BeanSelector.svelte';
   import BagSelector from './BagSelector.svelte';
@@ -16,7 +18,6 @@
 
   const dispatch = createEventDispatcher<{
     save: CreateBrewRequest;
-    draft: CreateBrewRequest;
     cancel: void;
   }>();
 
@@ -157,29 +158,6 @@
     dispatch('save', brewData);
   }
 
-  function handleSaveDraft() {
-    if (!machine_id || !grinder_id || !bag_id || !dose_g) {
-      error = 'Required fields: machine, grinder, bag, and dose';
-      return;
-    }
-
-    const brewData: CreateBrewRequest = {
-      machine_id,
-      grinder_id,
-      bag_id,
-      dose_g,
-      grind_setting: grind_setting.trim() || undefined,
-      // Include any output data that was entered
-      yield_g,
-      brew_time_s,
-      rating,
-      tasting_notes: tasting_notes.trim() || undefined,
-      reflections: reflections.trim() || undefined
-    };
-
-    dispatch('draft', brewData);
-  }
-
   function handleCancel() {
     dispatch('cancel');
   }
@@ -246,7 +224,7 @@
     {/if}
 
     <!-- Equipment Selection -->
-    <div class="form-section">
+    <div class="form-section card">
       <h3>Equipment</h3>
       
       <div class="form-group">
@@ -275,7 +253,7 @@
     </div>
 
     <!-- Input Parameters -->
-    <div class="form-section">
+    <div class="form-section card">
       <h3>Input Parameters</h3>
       
       <div class="form-row">
@@ -287,7 +265,7 @@
             bind:value={dose_g}
             step="0.1"
             min="0"
-            placeholder="18"
+            placeholder="e.g., 18"
             disabled={loading}
             required
           />
@@ -310,7 +288,7 @@
     </div>
 
     <!-- Output Measurements -->
-    <div class="form-section">
+    <div class="form-section card">
       <h3>Output Measurements</h3>
       
       <div class="form-row">
@@ -322,7 +300,7 @@
             bind:value={yield_g}
             step="0.1"
             min="0"
-            placeholder="36"
+            placeholder="e.g., 36"
             disabled={loading}
           />
           {#if validationErrors.yield_g}
@@ -338,7 +316,7 @@
             bind:value={brew_time_s}
             step="0.1"
             min="0"
-            placeholder="28"
+            placeholder="e.g., 28"
             disabled={loading}
           />
           {#if validationErrors.brew_time_s}
@@ -367,7 +345,7 @@
     </div>
 
     <!-- Evaluation -->
-    <div class="form-section">
+    <div class="form-section card">
       <h3>Evaluation</h3>
       
       <div class="form-group">
@@ -379,7 +357,7 @@
           min="0"
           max="10"
           step="1"
-          placeholder="8"
+          placeholder="e.g., 8"
           disabled={loading}
         />
         {#if validationErrors.rating}
@@ -393,7 +371,7 @@
           id="tasting_notes"
           bind:value={tasting_notes}
           rows="3"
-          placeholder="Describe the flavors..."
+          placeholder="e.g., notes of cacao and orange"
           disabled={loading}
         />
       </div>
@@ -404,7 +382,7 @@
           id="reflections"
           bind:value={reflections}
           rows="3"
-          placeholder="What worked? What would you change?"
+          placeholder="e.g., What worked? What would you change?"
           disabled={loading}
         />
       </div>
@@ -412,17 +390,18 @@
 
     <!-- Form Actions -->
     <div class="form-actions">
-      <button type="button" on:click={handleCancel} class="btn-secondary" disabled={loading}>
-        Cancel
-      </button>
-      {#if !brew}
-        <button type="button" on:click={handleSaveDraft} class="btn-draft" disabled={loading}>
-          Save as Draft
-        </button>
-      {/if}
-      <button type="submit" class="btn-primary" disabled={loading}>
-        {loading ? 'Saving...' : (brew ? 'Save Changes' : 'Save Brew')}
-      </button>
+      <IconButton type="button" on:click={handleCancel} ariaLabel="Cancel brew" title="Cancel" variant="neutral" disabled={loading}>
+        <XMark />
+      </IconButton>
+      <IconButton
+        type="submit"
+        ariaLabel={loading ? 'Saving brew' : (brew ? 'Save changes' : 'Save brew')}
+        title={loading ? 'Saving...' : (brew ? 'Save changes' : 'Save brew')}
+        variant="accent"
+        disabled={loading}
+      >
+        <ArrowDownTray />
+      </IconButton>
     </div>
   </form>
 </div>
@@ -544,20 +523,4 @@
     border-top: 1px solid var(--border-subtle);
   }
 
-  button {
-    padding: 0.6rem 1.4rem;
-    border-radius: 999px;
-    font-weight: 500;
-    font-size: 0.95rem;
-  }
-
-  .btn-draft {
-    background: rgba(176, 138, 90, 0.15);
-    color: var(--text-ink-secondary);
-    border: 1px solid rgba(176, 138, 90, 0.4);
-  }
-
-  .btn-draft:hover:not(:disabled) {
-    background: rgba(176, 138, 90, 0.25);
-  }
 </style>

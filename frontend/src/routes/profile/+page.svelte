@@ -3,6 +3,8 @@
   import { authService, barista, isAuthenticated } from '$lib/auth';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BaristaProfile from '$lib/components/BaristaProfile.svelte';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ArrowDownTray, XMark } from '$lib/icons';
 
   let passwordChangeMode = false;
   let currentPassword = '';
@@ -111,7 +113,7 @@
                 bind:value={currentPassword}
                 required
                 disabled={passwordLoading}
-                placeholder="Enter your current password"
+                placeholder="e.g., current password"
               />
             </div>
 
@@ -123,7 +125,7 @@
                 bind:value={newPassword}
                 required
                 disabled={passwordLoading}
-                placeholder="Enter your new password"
+                placeholder="e.g., new password"
                 minlength="6"
               />
             </div>
@@ -136,7 +138,7 @@
                 bind:value={confirmNewPassword}
                 required
                 disabled={passwordLoading}
-                placeholder="Confirm your new password"
+                placeholder="e.g., re-enter new password"
                 minlength="6"
               />
             </div>
@@ -150,12 +152,18 @@
             {/if}
 
             <div class="form-actions">
-              <button type="submit" disabled={passwordLoading} class="btn-primary save-button">
-                {passwordLoading ? 'Updating...' : 'Update Password'}
-              </button>
-              <button type="button" on:click={cancelPasswordChange} disabled={passwordLoading} class="btn-secondary cancel-button">
-                Cancel
-              </button>
+              <IconButton
+                type="submit"
+                ariaLabel={passwordLoading ? 'Updating password' : 'Save password'}
+                title={passwordLoading ? 'Updating...' : 'Save password'}
+                variant="accent"
+                disabled={passwordLoading}
+              >
+                <ArrowDownTray />
+              </IconButton>
+              <IconButton type="button" on:click={cancelPasswordChange} ariaLabel="Cancel password change" title="Cancel" variant="neutral" disabled={passwordLoading}>
+                <XMark />
+              </IconButton>
             </div>
           </form>
         {/if}

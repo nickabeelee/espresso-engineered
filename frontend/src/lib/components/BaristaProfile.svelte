@@ -1,5 +1,7 @@
 <script lang="ts">
   import { authService, barista } from '$lib/auth';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ArrowDownTray, PencilSquare, XMark } from '$lib/icons';
 
   export let showEditForm = false;
   export let compact = false;
@@ -92,13 +94,11 @@
           </p>
         </div>
         {#if showEditForm}
-          <button 
-            on:click={startEdit} 
-            class="edit-button"
-            disabled={editMode}
-          >
-            Edit Profile
-          </button>
+          <div class="profile-actions">
+            <IconButton on:click={startEdit} ariaLabel="Edit profile" variant="accent" disabled={editMode}>
+              <PencilSquare />
+            </IconButton>
+          </div>
         {/if}
       </div>
 
@@ -113,7 +113,7 @@
               type="text"
               bind:value={firstName}
               disabled={loading}
-              placeholder="Your first name"
+              placeholder="e.g., Ada"
             />
           </div>
 
@@ -124,7 +124,7 @@
               type="text"
               bind:value={lastName}
               disabled={loading}
-              placeholder="Your last name"
+              placeholder="e.g., Lovelace"
             />
           </div>
 
@@ -135,7 +135,7 @@
               type="text"
               bind:value={displayName}
               disabled={loading}
-              placeholder="How you want to be shown to others"
+              placeholder="e.g., Ada L."
             />
             <small>Leave empty to use your first and last name</small>
           </div>
@@ -149,12 +149,18 @@
           {/if}
 
           <div class="form-actions">
-            <button type="submit" disabled={loading} class="save-button">
-              {loading ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button type="button" on:click={cancelEdit} disabled={loading} class="cancel-button">
-              Cancel
-            </button>
+            <IconButton
+              type="submit"
+              ariaLabel={loading ? 'Saving profile' : 'Save profile'}
+              title={loading ? 'Saving...' : 'Save changes'}
+              variant="accent"
+              disabled={loading}
+            >
+              <ArrowDownTray />
+            </IconButton>
+            <IconButton type="button" on:click={cancelEdit} ariaLabel="Cancel profile edit" title="Cancel" variant="neutral" disabled={loading}>
+              <XMark />
+            </IconButton>
           </div>
         </form>
       {/if}
@@ -216,24 +222,8 @@
     font-size: 0.9rem;
   }
 
-  .edit-button {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.9rem;
+  .profile-actions {
     margin-left: auto;
-  }
-
-  .edit-button:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .edit-button:disabled {
-    background: rgba(123, 94, 58, 0.4);
-    cursor: not-allowed;
   }
 
   .edit-form {
@@ -308,43 +298,6 @@
   .form-actions {
     display: flex;
     gap: 0.75rem;
-  }
-
-  .save-button {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.6rem 1.4rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-
-  .save-button:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .save-button:disabled {
-    background: rgba(123, 94, 58, 0.4);
-    cursor: not-allowed;
-  }
-
-  .cancel-button {
-    background: transparent;
-    color: var(--text-ink-secondary);
-    border: 1px solid var(--border-strong);
-    padding: 0.6rem 1.4rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-
-  .cancel-button:hover:not(:disabled) {
-    background: rgba(123, 94, 58, 0.12);
-  }
-
-  .cancel-button:disabled {
-    cursor: not-allowed;
   }
 
   .profile-loading {
