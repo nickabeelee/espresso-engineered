@@ -27,6 +27,18 @@
     });
 
     lastScrollY = window.scrollY;
+    const onDocumentClick = (event: MouseEvent) => {
+      if (!profileMenu?.open) {
+        return;
+      }
+
+      if (event.target instanceof Node && profileMenu.contains(event.target)) {
+        return;
+      }
+
+      profileMenu.open = false;
+    };
+
     const onScroll = () => {
       if (scrollTicking) return;
       scrollTicking = true;
@@ -58,7 +70,11 @@
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    document.addEventListener('click', onDocumentClick);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('click', onDocumentClick);
+    };
   });
 
   async function handleSignOut() {
