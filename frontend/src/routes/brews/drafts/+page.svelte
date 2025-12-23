@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { barista } from '$lib/auth';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import AwaitingReflection from '$lib/components/AwaitingReflection.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
@@ -23,7 +22,7 @@
         <Plus />
       </IconButton>
     </div>
-    <AwaitingReflection barista_id={$barista?.id} />
+    <AwaitingReflection />
   </div>
 </AuthGuard>
 

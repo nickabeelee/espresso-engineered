@@ -3,8 +3,6 @@
   import { apiClient } from '$lib/api-client';
 
 
-  export let barista_id: string;
-
   let draftBrews: Brew[] = [];
   let loading = true;
   let error: string | null = null;
@@ -20,9 +18,7 @@
       error = null;
 
       const response = await apiClient.getDraftBrews();
-      draftBrews = response.data.filter(brew => 
-        brew.barista_id === barista_id && (!brew.yield_g || !brew.rating)
-      );
+      draftBrews = response.data;
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load draft brews';
       console.error('Failed to load draft brews:', err);
@@ -49,8 +45,6 @@
 
   function getMissingFields(brew: Brew): string[] {
     const missing: string[] = [];
-    if (!brew.yield_g) missing.push('Yield');
-    if (!brew.brew_time_s) missing.push('Brew Time');
     if (!brew.rating) missing.push('Rating');
     if (!brew.tasting_notes) missing.push('Tasting Notes');
     if (!brew.reflections) missing.push('Reflections');
@@ -58,10 +52,8 @@
   }
 
   function getCompletionPercentage(brew: Brew): number {
-    const totalFields = 5; // yield, brew_time, rating, tasting_notes, reflections
+    const totalFields = 3; // rating, tasting_notes, reflections
     const completedFields = [
-      brew.yield_g,
-      brew.brew_time_s,
       brew.rating,
       brew.tasting_notes,
       brew.reflections
@@ -297,14 +289,14 @@
   .draft-card {
     background: var(--bg-surface-paper);
     border: 1px solid rgba(123, 94, 58, 0.2);
-    border-left: 3px solid var(--accent-primary);
     border-radius: var(--radius-md);
-    padding: 1.25rem;
-    transition: box-shadow var(--motion-fast);
+    padding: 1.5rem;
+    transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
   }
 
   .draft-card:hover {
     box-shadow: var(--shadow-soft);
+    border-color: var(--accent-primary);
   }
 
   .draft-header {

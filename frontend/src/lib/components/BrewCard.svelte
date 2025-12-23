@@ -14,7 +14,7 @@
   }
 
   function isDraft(entry: Brew): boolean {
-    return !entry.yield_g || !entry.rating;
+    return !entry.rating || !entry.tasting_notes || !entry.reflections;
   }
 
   function getBrewTitle(entry: Brew): string {
@@ -25,9 +25,14 @@
 
 <article class="brew-card">
   <div class="brew-header">
-    <h3 class="brew-title">
-      <a href="/brews/{brew.id}">{getBrewTitle(brew)}</a>
-    </h3>
+    <div class="brew-heading">
+      <h3 class="brew-title">
+        <a href="/brews/{brew.id}">{getBrewTitle(brew)}</a>
+      </h3>
+      <span class="brew-date">
+        {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
+      </span>
+    </div>
     <div class="brew-chips">
       <span class="status-chip" class:draft={isDraft(brew)} class:complete={!isDraft(brew)}>
         {isDraft(brew) ? 'Draft' : 'Complete'}
@@ -36,12 +41,6 @@
         <span class="barista-chip">{baristaName}</span>
       {/if}
     </div>
-  </div>
-
-  <div class="brew-meta">
-    <span class="brew-date">
-      {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
-    </span>
   </div>
 
   <div class="brew-details">
@@ -123,6 +122,12 @@
     gap: 0.75rem;
   }
 
+  .brew-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
   .brew-title {
     margin: 0;
     font-size: 1.25rem;
@@ -135,6 +140,11 @@
 
   .brew-title a:hover {
     color: var(--accent-primary);
+  }
+
+  .brew-date {
+    color: var(--text-ink-muted);
+    font-size: 0.9rem;
   }
 
   .brew-chips {
