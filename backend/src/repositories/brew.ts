@@ -39,7 +39,7 @@ export class BrewRepository extends BaseRepository<Brew> {
   /**
    * Update a brew with calculated fields
    */
-  async update(id: string, data: Partial<Brew>, baristaId: string): Promise<Brew> {
+  async update(id: string, data: Partial<Brew>, baristaId?: string): Promise<Brew> {
     const brewData = {
       ...data,
       ...this.calculateFields(data)
@@ -166,7 +166,7 @@ export class BrewRepository extends BaseRepository<Brew> {
       tasting_notes?: string;
       reflections?: string;
     },
-    baristaId: string
+    baristaId?: string
   ): Promise<Brew> {
     // First verify this is actually a draft
     const existing = await this.findById(id, baristaId);
