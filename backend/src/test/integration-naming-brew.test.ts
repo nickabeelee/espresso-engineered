@@ -3,8 +3,8 @@
  * Tests end-to-end brew creation workflow with automatic naming
  * 
  * Requirements tested:
- * - 2.1: Brew name format "{barista's display_name} {bean_name} {local_time_to_minute}"
- * - 2.2: Time formatting as "HH:MM" in 24-hour format
+ * - 2.1: Brew name format "{barista's display_name}'s {ordinal?} {time_of_day} {bean_name} {local_date}"
+ * - 2.2: Time of day bucketing and ordinal handling
  * - 2.3: Bean name extraction from bag relationships
  * - 2.4: Special character preservation in brew names
  * - 2.5: Automatic name setting in brew.name field
@@ -157,8 +157,10 @@ describe('Brew Creation Integration Tests', () => {
       
       testBrewId = result.data.id;
 
-      // Validate name format: "{barista's display_name} {bean_name} {HH:MM}"
-      expect(result.data.name).toMatch(/^Brew Tester Colombian Supremo \d{2}:\d{2}( UTC)?$/);
+      // Validate name format: "{barista's display_name}'s {ordinal?} {timeOfDay} {bean_name} {date}"
+      expect(result.data.name).toMatch(
+        /^Brew Tester[’']s? (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening) Colombian Supremo \d{4}-\d{2}-\d{2}$/
+      );
       
       // Verify name is stored in database
       const { data: brewData, error } = await supabase
@@ -203,11 +205,10 @@ describe('Brew Creation Integration Tests', () => {
       
       testBrewId = result.data.id;
 
-      // Name should be generated with timezone-aware time
-      expect(result.data.name).toMatch(/^Brew Tester Colombian Supremo \d{2}:\d{2}$/);
-      
-      // Should not have UTC indicator when timezone is provided
-      expect(result.data.name).not.toContain('UTC');
+      // Name should be generated with timezone-aware context
+      expect(result.data.name).toMatch(
+        /^Brew Tester[’']s? (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening) Colombian Supremo \d{4}-\d{2}-\d{2}$/
+      );
     });
   });
 

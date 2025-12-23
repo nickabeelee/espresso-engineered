@@ -171,10 +171,11 @@ describe('NamingService Foundation', () => {
 
     it('should generate brew name with fallbacks when database queries fail', async () => {
       const result = await namingService.generateBrewName('barista-123', 'bag-456');
-      
+
       // Should use fallback values when database is not available
-      // Time will vary, so just check the structure - now includes UTC indicator
-      expect(result).toMatch(/^Anonymous Unknown Bean \d{2}:\d{2}( UTC)?$/);
+      expect(result).toMatch(
+        /^Anonymous[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening) Unknown Bean \d{4}-\d{2}-\d{2}$/
+      );
     });
 
     it('should preserve special characters in names', () => {

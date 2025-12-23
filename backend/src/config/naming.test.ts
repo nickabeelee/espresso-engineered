@@ -36,12 +36,13 @@ describe('Naming Configuration', () => {
 
     it('should have correct brew template configuration', () => {
       expect(DEFAULT_NAMING_CONFIG.brewTemplate.pattern).toBe(
-        '{baristaDisplayName} {beanName} {brewTime}'
+        "{baristaDisplayName}'s {ordinal} {timeOfDay} {beanName} {brewDate}"
       );
       expect(DEFAULT_NAMING_CONFIG.brewTemplate.fallbacks).toEqual({
         baristaDisplayName: 'Anonymous',
         beanName: 'Unknown Bean',
-        brewTime: '00:00'
+        timeOfDay: 'brew',
+        brewDate: 'Unknown Date'
       });
     });
 
@@ -72,13 +73,13 @@ describe('Naming Configuration', () => {
 
     it('should have brew templates', () => {
       expect(NAMING_TEMPLATES.BREW.STANDARD).toBe(
-        '{baristaDisplayName} {beanName} {brewTime}'
+        "{baristaDisplayName}'s {ordinal} {timeOfDay} {beanName} {brewDate}"
       );
       expect(NAMING_TEMPLATES.BREW.WITH_RATING).toBe(
-        '{baristaDisplayName} {beanName} {brewTime} ({rating}★)'
+        "{baristaDisplayName}'s {ordinal} {timeOfDay} {beanName} {brewDate} ({rating}★)"
       );
       expect(NAMING_TEMPLATES.BREW.SIMPLE).toBe(
-        '{baristaDisplayName} {beanName}'
+        "{baristaDisplayName}'s {timeOfDay} {beanName}"
       );
     });
   });

@@ -369,6 +369,10 @@
             <h3>Input Parameters</h3>
             <div class="detail-grid">
               <div class="detail-item">
+                <label>Name:</label>
+                <span>{currentBrew.name || 'Untitled Brew'}</span>
+              </div>
+              <div class="detail-item">
                 <label>Dose:</label>
                 <span>{currentBrew.dose_g}g</span>
               </div>
