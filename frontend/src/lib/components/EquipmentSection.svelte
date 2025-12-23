@@ -6,6 +6,8 @@
   import ImageUpload from '$lib/components/ImageUpload.svelte';
   import { ArrowDownTray, PencilSquare, Trash, XMark } from '$lib/icons';
   import { getImageUrl } from '$lib/utils/image-utils';
+  import { buildEquipmentUsageStats, formatMostUsedBy } from '$lib/utils/usage-stats';
+  import type { Barista } from '@shared/types';
 
   export let equipmentType: 'machine' | 'grinder';
   export let showForm = true;
@@ -44,6 +46,7 @@
   let validationErrors: Record<string, string> = {};
   let editingId: string | null = null;
   let usageById: Record<string, number> = {};
+  let mostUsedBy: Record<string, Barista | undefined> = {};
   let isAdmin = false;
 
   let manufacturer = '';
@@ -73,17 +76,21 @@
 
   async function loadUsageStats() {
     try {
-      const response = await apiClient.getBrews();
-      const usageMap: Record<string, number> = {};
+      const [brewsResponse, baristasResponse] = await Promise.all([
+        apiClient.getBrews(),
+        apiClient.getBaristas()
+      ]);
 
-      response.data.forEach((brew) => {
-        const equipmentId = equipmentType === 'machine' ? brew.machine_id : brew.grinder_id;
-        usageMap[equipmentId] = (usageMap[equipmentId] ?? 0) + 1;
-      });
+      const { usageCounts, topBaristaByEquipment } = buildEquipmentUsageStats(
+        brewsResponse.data,
+        baristasResponse.data
+      );
 
-      usageById = usageMap;
+      usageById = usageCounts;
+      mostUsedBy = topBaristaByEquipment;
     } catch (err) {
       usageById = {};
+      mostUsedBy = {};
     }
   }
 
@@ -498,7 +505,7 @@
               <div class="item-usage">
                 <span>{usageById[item.id] ?? 0} brews</span>
                 <span class="separator">/</span>
-                <span>Most used by {$barista?.display_name ?? 'You'}</span>
+                <span>Most used by {formatMostUsedBy(item.id, usageById, mostUsedBy)}</span>
               </div>
               {#if getLinkValue(item)}
                 <a href={getLinkValue(item)} target="_blank" rel="noopener noreferrer" class="item-link">

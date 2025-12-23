@@ -9,6 +9,8 @@
   import { barista } from '$lib/auth';
   import { PencilSquare, Trash, XMark } from '$lib/icons';
   import { getImageUrl } from '$lib/utils/image-utils';
+  import { buildEquipmentUsageStats, formatMostUsedBy } from '$lib/utils/usage-stats';
+  import type { Barista } from '@shared/types';
 
   
   let brew = null;
@@ -25,6 +27,7 @@
   let bean: Bean | null = null;
   let roaster: Roaster | null = null;
   let usageById: Record<string, number> = {};
+  let mostUsedBy: Record<string, Barista | undefined> = {};
 
   $: brewId = $page.params.id;
 
@@ -67,14 +70,16 @@
         bagsResponse,
         beansResponse,
         roastersResponse,
-        brewsResponse
+        brewsResponse,
+        baristasResponse
       ] = await Promise.all([
         apiClient.getMachines(),
         apiClient.getGrinders(),
         apiClient.getBags(),
         apiClient.getBeans(),
         apiClient.getRoasters(),
-        apiClient.getBrews()
+        apiClient.getBrews(),
+        apiClient.getBaristas()
       ]);
 
       machine = machinesResponse.data.find((item) => item.id === currentBrew.machine_id) || null;
@@ -82,11 +87,13 @@
       bag = bagsResponse.data.find((item) => item.id === currentBrew.bag_id) || null;
       bean = bag ? beansResponse.data.find((item) => item.id === bag.bean_id) || null : null;
       roaster = bean ? roastersResponse.data.find((item) => item.id === bean.roaster_id) || null : null;
-      usageById = brewsResponse.data.reduce<Record<string, number>>((acc, entry) => {
-        acc[entry.machine_id] = (acc[entry.machine_id] ?? 0) + 1;
-        acc[entry.grinder_id] = (acc[entry.grinder_id] ?? 0) + 1;
-        return acc;
-      }, {});
+      const { usageCounts, topBaristaByEquipment } = buildEquipmentUsageStats(
+        brewsResponse.data,
+        baristasResponse.data
+      );
+
+      usageById = usageCounts;
+      mostUsedBy = topBaristaByEquipment;
     } catch (err) {
       machine = null;
       grinder = null;
@@ -94,6 +101,7 @@
       bean = null;
       roaster = null;
       usageById = {};
+      mostUsedBy = {};
     } finally {
       equipmentLoading = false;
     }
@@ -264,7 +272,9 @@
                       </div>
                       <div class="equipment-chips">
                         <span class="equipment-chip">{usageById[machine.id] ?? 0} brews</span>
-                        <span class="equipment-chip">Most used by {$barista?.display_name ?? 'You'}</span>
+                        <span class="equipment-chip">
+                          Most used by {formatMostUsedBy(machine.id, usageById, mostUsedBy)}
+                        </span>
                       </div>
                     {:else}
                       <p class="equipment-fallback">ID: {currentBrew.machine_id}</p>
@@ -308,7 +318,9 @@
                       </div>
                       <div class="equipment-chips">
                         <span class="equipment-chip">{usageById[grinder.id] ?? 0} brews</span>
-                        <span class="equipment-chip">Most used by {$barista?.display_name ?? 'You'}</span>
+                        <span class="equipment-chip">
+                          Most used by {formatMostUsedBy(grinder.id, usageById, mostUsedBy)}
+                        </span>
                       </div>
                     {:else}
                       <p class="equipment-fallback">ID: {currentBrew.grinder_id}</p>
