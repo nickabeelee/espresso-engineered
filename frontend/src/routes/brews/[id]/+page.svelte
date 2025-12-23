@@ -8,6 +8,7 @@
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import { PencilSquare, Trash, XMark } from '$lib/icons';
+  import { getImageUrl } from '$lib/utils/image-utils';
 
   
   let brew = null;
@@ -16,6 +17,14 @@
   let editing = false;
   let canEdit = false;
   let deleting = false;
+  let equipmentLoading = false;
+
+  let machine: Machine | null = null;
+  let grinder: Grinder | null = null;
+  let bag: Bag | null = null;
+  let bean: Bean | null = null;
+  let roaster: Roaster | null = null;
+  let usageById: Record<string, number> = {};
 
   $: brewId = $page.params.id;
 
@@ -36,7 +45,8 @@
         
         // Check if current user can edit this brew
         const currentBarista = $barista;
-        canEdit = currentBarista?.id === brew.barista_id;
+        canEdit = currentBarista?.id === brew.barista_id || Boolean(currentBarista?.is_admin);
+        await loadEquipmentDetails(brew);
       } else {
         throw new Error('Brew not found');
       }
@@ -44,6 +54,48 @@
       error = err instanceof Error ? err.message : 'Failed to load brew';
     } finally {
       loading = false;
+    }
+  }
+
+  async function loadEquipmentDetails(currentBrew: Brew) {
+    equipmentLoading = true;
+
+    try {
+      const [
+        machinesResponse,
+        grindersResponse,
+        bagsResponse,
+        beansResponse,
+        roastersResponse,
+        brewsResponse
+      ] = await Promise.all([
+        apiClient.getMachines(),
+        apiClient.getGrinders(),
+        apiClient.getBags(),
+        apiClient.getBeans(),
+        apiClient.getRoasters(),
+        apiClient.getBrews()
+      ]);
+
+      machine = machinesResponse.data.find((item) => item.id === currentBrew.machine_id) || null;
+      grinder = grindersResponse.data.find((item) => item.id === currentBrew.grinder_id) || null;
+      bag = bagsResponse.data.find((item) => item.id === currentBrew.bag_id) || null;
+      bean = bag ? beansResponse.data.find((item) => item.id === bag.bean_id) || null : null;
+      roaster = bean ? roastersResponse.data.find((item) => item.id === bean.roaster_id) || null : null;
+      usageById = brewsResponse.data.reduce<Record<string, number>>((acc, entry) => {
+        acc[entry.machine_id] = (acc[entry.machine_id] ?? 0) + 1;
+        acc[entry.grinder_id] = (acc[entry.grinder_id] ?? 0) + 1;
+        return acc;
+      }, {});
+    } catch (err) {
+      machine = null;
+      grinder = null;
+      bag = null;
+      bean = null;
+      roaster = null;
+      usageById = {};
+    } finally {
+      equipmentLoading = false;
     }
   }
 
@@ -63,6 +115,7 @@
       const response = await apiClient.updateBrew(brew.id, brewData);
       if (response.data) {
         brew = response.data;
+        await loadEquipmentDetails(brew);
         editing = false;
       } else {
         throw new Error('Failed to update brew');
@@ -112,6 +165,21 @@
     }
     
     return fields;
+  }
+
+  function formatEquipmentName(item: Machine | Grinder): string {
+    const parts = [item.manufacturer, item.model].filter(Boolean);
+    return parts.join(' ');
+  }
+
+  function formatBagTitle(bag: Bag | null, bean: Bean | null): string {
+    if (bag?.name && bag.name.trim()) {
+      return bag.name;
+    }
+    if (bean?.name) {
+      return bean.name;
+    }
+    return 'Unknown Bag';
   }
 </script>
 
@@ -166,20 +234,135 @@
         <div class="brew-details">
           <div class="detail-section card">
             <h3>Equipment</h3>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <label>Machine:</label>
-                <span>{currentBrew.machine?.name || currentBrew.machine_id}</span>
+            {#if equipmentLoading}
+              <div class="loading equipment-loading">Loading equipment details...</div>
+            {:else}
+              <div class="equipment-grid">
+                <article class="equipment-card">
+                  <div class="equipment-card-main">
+                    <div class="equipment-card-header">
+                      <div>
+                        <p class="equipment-kicker">Machine</p>
+                        <h4>{machine ? formatEquipmentName(machine) : 'Unknown Machine'}</h4>
+                      </div>
+                      {#if machine?.user_manual_link}
+                        <a
+                          class="equipment-link"
+                          href={machine.user_manual_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Manual
+                        </a>
+                      {/if}
+                    </div>
+                    {#if machine}
+                      <div class="equipment-meta">
+                        <span>{machine.manufacturer}</span>
+                        <span class="separator">/</span>
+                        <span>{machine.model}</span>
+                      </div>
+                      <div class="equipment-chips">
+                        <span class="equipment-chip">{usageById[machine.id] ?? 0} brews</span>
+                        <span class="equipment-chip">Most used by {$barista?.display_name ?? 'You'}</span>
+                      </div>
+                    {:else}
+                      <p class="equipment-fallback">ID: {currentBrew.machine_id}</p>
+                    {/if}
+                  </div>
+                  {#if machine?.image_path}
+                    <div class="equipment-image">
+                      <img
+                        src={getImageUrl(machine.image_path, 'machine')}
+                        alt={formatEquipmentName(machine)}
+                        loading="lazy"
+                        on:error={(e) => (e.currentTarget.style.display = 'none')}
+                      />
+                    </div>
+                  {/if}
+                </article>
+
+                <article class="equipment-card">
+                  <div class="equipment-card-main">
+                    <div class="equipment-card-header">
+                      <div>
+                        <p class="equipment-kicker">Grinder</p>
+                        <h4>{grinder ? formatEquipmentName(grinder) : 'Unknown Grinder'}</h4>
+                      </div>
+                      {#if grinder?.setting_guide_chart_url}
+                        <a
+                          class="equipment-link"
+                          href={grinder.setting_guide_chart_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Setting guide
+                        </a>
+                      {/if}
+                    </div>
+                    {#if grinder}
+                      <div class="equipment-meta">
+                        <span>{grinder.manufacturer}</span>
+                        <span class="separator">/</span>
+                        <span>{grinder.model}</span>
+                      </div>
+                      <div class="equipment-chips">
+                        <span class="equipment-chip">{usageById[grinder.id] ?? 0} brews</span>
+                        <span class="equipment-chip">Most used by {$barista?.display_name ?? 'You'}</span>
+                      </div>
+                    {:else}
+                      <p class="equipment-fallback">ID: {currentBrew.grinder_id}</p>
+                    {/if}
+                    {#if currentBrew.grind_setting}
+                      <p class="equipment-subnote">Grind setting: {currentBrew.grind_setting}</p>
+                    {/if}
+                  </div>
+                  {#if grinder?.image_path}
+                    <div class="equipment-image">
+                      <img
+                        src={getImageUrl(grinder.image_path, 'grinder')}
+                        alt={formatEquipmentName(grinder)}
+                        loading="lazy"
+                        on:error={(e) => (e.currentTarget.style.display = 'none')}
+                      />
+                    </div>
+                  {/if}
+                </article>
+
+                <article class="equipment-card">
+                  <div class="equipment-card-main">
+                    <div class="equipment-card-header">
+                      <div>
+                        <p class="equipment-kicker">Coffee Bag</p>
+                        <h4>{formatBagTitle(bag, bean)}</h4>
+                      </div>
+                    </div>
+                    {#if bag}
+                      <div class="equipment-meta">
+                        <span>{roaster?.name || 'Unknown roaster'}</span>
+                        {#if bean?.roast_level}
+                          <span class="separator">/</span>
+                          <span>{bean.roast_level}</span>
+                        {/if}
+                      </div>
+                      <div class="equipment-tags">
+                        {#if bag.roast_date}
+                          <span class="equipment-tag">Roasted {new Date(bag.roast_date).toLocaleDateString()}</span>
+                        {/if}
+                        {#if bag.weight_g}
+                          <span class="equipment-tag">{bag.weight_g.toFixed(0)}g remaining</span>
+                        {/if}
+                        {#if bag.purchase_location}
+                          <span class="equipment-tag">From {bag.purchase_location}</span>
+                        {/if}
+                      </div>
+                    {:else}
+                      <p class="equipment-fallback">ID: {currentBrew.bag_id}</p>
+                    {/if}
+                  </div>
+                </article>
               </div>
-              <div class="detail-item">
-                <label>Grinder:</label>
-                <span>{currentBrew.grinder?.name || currentBrew.grinder_id}</span>
-              </div>
-              <div class="detail-item">
-                <label>Coffee Bag:</label>
-                <span>{currentBrew.bag?.name || currentBrew.bag_id}</span>
-              </div>
-            </div>
+            {/if}
           </div>
 
           <div class="detail-section card">
@@ -351,6 +534,132 @@
     gap: 1rem;
   }
 
+  .equipment-loading {
+    text-align: left;
+    padding: 0.75rem 0;
+  }
+
+  .equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+
+  .equipment-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    background: rgba(228, 214, 191, 0.6);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+  }
+
+  .equipment-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex: 1;
+  }
+
+  .equipment-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .equipment-card-header h4 {
+    margin: 0.2rem 0 0 0;
+    font-size: 1.05rem;
+    color: var(--text-ink-primary);
+  }
+
+  .equipment-kicker {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-ink-muted);
+  }
+
+  .equipment-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-ink-muted);
+    font-size: 0.9rem;
+  }
+
+  .equipment-meta .separator {
+    color: var(--text-ink-muted);
+  }
+
+  .equipment-link {
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+    text-decoration: none;
+    margin-top: 0.35rem;
+  }
+
+  .equipment-link:hover {
+    text-decoration: underline;
+  }
+
+  .equipment-subnote {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-ink-secondary);
+  }
+
+  .equipment-fallback {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-ink-muted);
+    word-break: break-all;
+  }
+
+  .equipment-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+  }
+
+  .equipment-tag,
+  .equipment-chip {
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: rgba(123, 94, 58, 0.15);
+    color: var(--text-ink-secondary);
+  }
+
+  .equipment-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+  }
+
+  .equipment-image {
+    flex-shrink: 0;
+    width: 110px;
+    height: 82px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    background: rgba(123, 94, 58, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .equipment-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+  }
+
   .detail-item {
     display: flex;
     flex-direction: column;
@@ -384,5 +693,22 @@
 
   .incomplete-notice p {
     margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .equipment-card {
+      flex-direction: column;
+    }
+
+    .equipment-card-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .equipment-image {
+      width: 100%;
+      height: auto;
+      max-height: 160px;
+    }
   }
 </style>

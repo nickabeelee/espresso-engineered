@@ -60,6 +60,9 @@ export class BrewRepository extends BaseRepository<Brew> {
     }
 
     // Apply other filters
+    if (filters.barista_id) {
+      query = query.eq('barista_id', filters.barista_id);
+    }
     if (filters.machine_id) {
       query = query.eq('machine_id', filters.machine_id);
     }
@@ -90,9 +93,12 @@ export class BrewRepository extends BaseRepository<Brew> {
     }
     if (filters.is_draft !== undefined) {
       if (filters.is_draft) {
-        query = query.is('yield_g', null);
+        query = query.or('rating.is.null,tasting_notes.is.null,reflections.is.null');
       } else {
-        query = query.not('yield_g', 'is', null);
+        query = query
+          .not('rating', 'is', null)
+          .not('tasting_notes', 'is', null)
+          .not('reflections', 'is', null);
       }
     }
 
@@ -109,14 +115,14 @@ export class BrewRepository extends BaseRepository<Brew> {
   }
 
   /**
-   * Get draft brews (missing yield_g) for a barista
+   * Get draft brews (missing rating, tasting_notes, or reflections) for a barista
    */
   async findDrafts(baristaId: string): Promise<Brew[]> {
     const { data, error } = await supabase
       .from('brew')
       .select('*')
       .eq('barista_id', baristaId)
-      .is('yield_g', null)
+      .or('rating.is.null,tasting_notes.is.null,reflections.is.null')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -164,8 +170,8 @@ export class BrewRepository extends BaseRepository<Brew> {
   ): Promise<Brew> {
     // First verify this is actually a draft
     const existing = await this.findById(id, baristaId);
-    if (existing.yield_g !== null) {
-      throw new Error('Brew is not a draft - already has yield measurement');
+    if (existing.rating !== null && existing.tasting_notes && existing.reflections) {
+      throw new Error('Brew is not a draft - reflections are already complete');
     }
 
     return this.update(id, outputData, baristaId);

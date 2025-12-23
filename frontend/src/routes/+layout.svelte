@@ -127,6 +127,12 @@
             >
               Reflection
             </a>
+            <a
+              href="/equipment"
+              class:active={$page.url.pathname === '/equipment' || $page.url.pathname.startsWith('/equipment/')}
+            >
+              Equipment
+            </a>
           </nav>
           <div class="top-nav-actions">
             <details class="profile-menu" bind:this={profileMenu}>

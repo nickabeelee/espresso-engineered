@@ -3,8 +3,6 @@
   import { apiClient } from '$lib/api-client';
 
 
-  export let barista_id: string;
-
   let draftBrews: Brew[] = [];
   let loading = true;
   let error: string | null = null;
@@ -20,9 +18,7 @@
       error = null;
 
       const response = await apiClient.getDraftBrews();
-      draftBrews = response.data.filter(brew => 
-        brew.barista_id === barista_id && (!brew.yield_g || !brew.rating)
-      );
+      draftBrews = response.data;
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load draft brews';
       console.error('Failed to load draft brews:', err);
@@ -49,8 +45,6 @@
 
   function getMissingFields(brew: Brew): string[] {
     const missing: string[] = [];
-    if (!brew.yield_g) missing.push('Yield');
-    if (!brew.brew_time_s) missing.push('Brew Time');
     if (!brew.rating) missing.push('Rating');
     if (!brew.tasting_notes) missing.push('Tasting Notes');
     if (!brew.reflections) missing.push('Reflections');
@@ -58,10 +52,8 @@
   }
 
   function getCompletionPercentage(brew: Brew): number {
-    const totalFields = 5; // yield, brew_time, rating, tasting_notes, reflections
+    const totalFields = 3; // rating, tasting_notes, reflections
     const completedFields = [
-      brew.yield_g,
-      brew.brew_time_s,
       brew.rating,
       brew.tasting_notes,
       brew.reflections
@@ -115,88 +107,90 @@
       <h3>{emptyMessage}</h3>
     </div>
   {:else}
-    <div class="draft-list">
-      {#each draftBrews as brew (brew.id)}
-        <div class="draft-card">
-          <div class="draft-header">
-            <div class="brew-info">
-              <h3 class="brew-title">{getBrewTitle(brew)}</h3>
-              <span class="brew-date">
-                {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
-              </span>
-            </div>
-            
-            <div class="completion-badge">
-              <div class="completion-circle" style="--percentage: {getCompletionPercentage(brew)}%">
-                <span class="completion-text">{getCompletionPercentage(brew)}%</span>
+    <div class="draft-list-shell">
+      <div class="draft-list">
+        {#each draftBrews as brew (brew.id)}
+          <div class="draft-card">
+            <div class="draft-header">
+              <div class="brew-info">
+                <h3 class="brew-title">{getBrewTitle(brew)}</h3>
+                <span class="brew-date">
+                  {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
+                </span>
+              </div>
+              
+              <div class="completion-badge">
+                <div class="completion-circle" style="--percentage: {getCompletionPercentage(brew)}%">
+                  <span class="completion-text">{getCompletionPercentage(brew)}%</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="brew-summary">
-            <div class="summary-item">
-              <span class="label">Dose:</span>
-              <span class="value">{brew.dose_g.toFixed(1)}g</span>
-            </div>
-            
-            {#if brew.grind_setting}
+            <div class="brew-summary">
               <div class="summary-item">
-                <span class="label">Grind:</span>
-                <span class="value">{brew.grind_setting}</span>
+                <span class="label">Dose:</span>
+                <span class="value">{brew.dose_g.toFixed(1)}g</span>
               </div>
-            {/if}
+              
+              {#if brew.grind_setting}
+                <div class="summary-item">
+                  <span class="label">Grind:</span>
+                  <span class="value">{brew.grind_setting}</span>
+                </div>
+              {/if}
 
-            {#if brew.yield_g}
-              <div class="summary-item">
-                <span class="label">Yield:</span>
-                <span class="value">{brew.yield_g.toFixed(1)}g</span>
-              </div>
-            {/if}
+              {#if brew.yield_g}
+                <div class="summary-item">
+                  <span class="label">Yield:</span>
+                  <span class="value">{brew.yield_g.toFixed(1)}g</span>
+                </div>
+              {/if}
 
-            {#if brew.brew_time_s}
-              <div class="summary-item">
-                <span class="label">Time:</span>
-                <span class="value">{brew.brew_time_s.toFixed(1)}s</span>
-              </div>
-            {/if}
-          </div>
-
-          <div class="missing-fields">
-            <h4>Missing:</h4>
-            <div class="missing-list">
-              {#each getMissingFields(brew) as field}
-                <span class="missing-tag">{field}</span>
-              {/each}
+              {#if brew.brew_time_s}
+                <div class="summary-item">
+                  <span class="label">Time:</span>
+                  <span class="value">{brew.brew_time_s.toFixed(1)}s</span>
+                </div>
+              {/if}
             </div>
-          </div>
 
-          <!-- Quick Rating -->
-          {#if !brew.rating}
-            <div class="quick-actions">
-              <span class="quick-label">Quick Rating:</span>
-              <div class="rating-buttons">
-                {#each [6, 7, 8, 9, 10] as rating}
-                  <button 
-                    class="rating-btn"
-                    on:click={() => handleQuickRating(brew, rating)}
-                  >
-                    {rating}
-                  </button>
+            <div class="missing-fields">
+              <h4>Missing:</h4>
+              <div class="missing-list">
+                {#each getMissingFields(brew) as field}
+                  <span class="missing-tag">{field}</span>
                 {/each}
               </div>
             </div>
-          {/if}
 
-          <div class="draft-actions">
-            <a href="/brews/{brew.id}?edit=true" class="btn-primary">
-              Complete Brew
-            </a>
-            <a href="/brews/{brew.id}" class="btn-secondary">
-              View Details
-            </a>
+            <!-- Quick Rating -->
+            {#if !brew.rating}
+              <div class="quick-actions">
+                <span class="quick-label">Quick Rating:</span>
+                <div class="rating-buttons">
+                  {#each [6, 7, 8, 9, 10] as rating}
+                    <button 
+                      class="rating-btn"
+                      on:click={() => handleQuickRating(brew, rating)}
+                    >
+                      {rating}
+                    </button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+
+            <div class="draft-actions">
+              <a href="/brews/{brew.id}?edit=true" class="btn-primary">
+                Complete Brew
+              </a>
+              <a href="/brews/{brew.id}" class="btn-secondary">
+                View Details
+              </a>
+            </div>
           </div>
-        </div>
-      {/each}
+        {/each}
+      </div>
     </div>
 
     <!-- Batch Actions -->
@@ -285,17 +279,24 @@
     gap: 1.25rem;
   }
 
-  .draft-card {
+  .draft-list-shell {
     background: var(--bg-surface-paper-secondary);
     border: 1px solid rgba(123, 94, 58, 0.2);
-    border-left: 3px solid var(--accent-primary);
     border-radius: var(--radius-md);
-    padding: 1.25rem;
-    transition: box-shadow var(--motion-fast);
+    padding: 1.5rem;
+  }
+
+  .draft-card {
+    background: var(--bg-surface-paper);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
   }
 
   .draft-card:hover {
     box-shadow: var(--shadow-soft);
+    border-color: var(--accent-primary);
   }
 
   .draft-header {
@@ -344,7 +345,7 @@
     content: '';
     width: 45px;
     height: 45px;
-    background: var(--bg-surface-paper-secondary);
+    background: var(--bg-surface-paper);
     border-radius: 50%;
     position: absolute;
   }

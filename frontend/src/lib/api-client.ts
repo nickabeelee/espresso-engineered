@@ -13,6 +13,7 @@ import type {
   Grinder,
   Machine,
   Roaster,
+  Barista,
   CreateBeanRequest,
   CreateBagRequest,
   CreateGrinderRequest,
@@ -237,6 +238,20 @@ class ApiClient {
     });
   }
 
+  async updateGrinder(id: string, grinder: Partial<CreateGrinderRequest>): Promise<ApiResponse<Grinder>> {
+    const sanitizedGrinder = stripNullish(grinder);
+    return this.makeRequest<ApiResponse<Grinder>>(`/grinders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(sanitizedGrinder),
+    });
+  }
+
+  async deleteGrinder(id: string): Promise<ApiResponse<void>> {
+    return this.makeRequest<ApiResponse<void>>(`/grinders/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getMachines(): Promise<ListResponse<Machine>> {
     return this.makeRequest<ListResponse<Machine>>('/machines');
   }
@@ -245,6 +260,20 @@ class ApiClient {
     return this.makeRequest<ApiResponse<Machine>>('/machines', {
       method: 'POST',
       body: JSON.stringify(machine),
+    });
+  }
+
+  async updateMachine(id: string, machine: Partial<CreateMachineRequest>): Promise<ApiResponse<Machine>> {
+    const sanitizedMachine = stripNullish(machine);
+    return this.makeRequest<ApiResponse<Machine>>(`/machines/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(sanitizedMachine),
+    });
+  }
+
+  async deleteMachine(id: string): Promise<ApiResponse<void>> {
+    return this.makeRequest<ApiResponse<void>>(`/machines/${id}`, {
+      method: 'DELETE',
     });
   }
 
@@ -257,6 +286,10 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(roaster),
     });
+  }
+
+  async getBaristas(): Promise<ListResponse<Barista>> {
+    return this.makeRequest<ListResponse<Barista>>('/baristas');
   }
 }
 
@@ -282,8 +315,13 @@ export const {
   previewBagName,
   getGrinders,
   createGrinder,
+  updateGrinder,
+  deleteGrinder,
   getMachines,
   createMachine,
+  updateMachine,
+  deleteMachine,
   getRoasters,
-  createRoaster
+  createRoaster,
+  getBaristas
 } = apiClient;
