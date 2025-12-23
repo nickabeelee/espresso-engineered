@@ -1,15 +1,11 @@
 import { Barista } from '../types/index.js';
 import { supabase } from '../config/supabase.js';
-import { 
-  detectTimezone, 
-  isValidTimezone, 
-  formatTimeWithTimezone, 
-  handleDSTTransition,
-  TimezoneDetectionResult 
+import {
+  detectTimezone,
+  TimezoneDetectionResult
 } from '../utils/timezone.js';
-import { normalizeTimeFormatting } from '../utils/time-normalization.js';
 import { namingLogger } from '../utils/naming-logger.js';
-import { 
+import {
   NamingErrorHandler, 
   NamingTimeoutError, 
   NamingDatabaseError,
@@ -51,6 +47,9 @@ export interface BrewNamingContext {
   createdAt: Date;
   timezone?: string;
   timezoneDetection?: TimezoneDetectionResult;
+  brewSequence: number;
+  timeOfDay: string;
+  brewDate: string;
 }
 
 /**
@@ -99,7 +98,7 @@ export class NamingService {
   private performanceMonitor: NamingPerformanceMonitor;
 
   constructor(
-    config?: Partial<NamingServiceConfig>, 
+    config?: Partial<NamingServiceConfig>,
     cacheManager?: NamingCacheManager,
     performanceMonitor?: NamingPerformanceMonitor
   ) {
@@ -113,11 +112,12 @@ export class NamingService {
         }
       },
       brewTemplate: {
-        pattern: '{baristaDisplayName} {beanName} {brewTime}',
+        pattern: "{baristaDisplayName}'s {ordinal} {timeOfDay} {beanName} {brewDate}",
         fallbacks: {
           baristaDisplayName: 'Anonymous',
           beanName: 'Unknown Bean',
-          brewTime: '00:00'
+          timeOfDay: 'brew',
+          brewDate: 'Unknown Date'
         }
       },
       dateFormat: 'YYYY-MM-DD',
@@ -703,13 +703,20 @@ export class NamingService {
     // Use detected timezone or fallback
     const timezone = timezoneDetection.detected || timezoneDetection.fallback;
 
+    const brewSequence = await this.getBrewSequenceForDay(baristaId, createdAt, timezone);
+    const timeOfDay = this.getTimeOfDayLabel(createdAt, timezone);
+    const brewDate = this.formatBrewDate(createdAt, timezone);
+
     return {
       baristaDisplayName,
       baristaFirstName,
       beanName,
       createdAt,
       timezone,
-      timezoneDetection
+      timezoneDetection,
+      brewSequence,
+      timeOfDay,
+      brewDate
     };
   }
 
@@ -746,25 +753,37 @@ export class NamingService {
    */
   private applyBrewTemplate(context: BrewNamingContext): string {
     const template = this.config.brewTemplate;
-    let name = template.pattern;
+    const baristaName = this.preserveSpecialCharacters(
+      context.baristaDisplayName || context.baristaFirstName || template.fallbacks.baristaDisplayName
+    );
 
-    // Replace barista display name with fallback if needed
-    // Special characters in names are preserved exactly
-    const baristaName = context.baristaDisplayName || 
-                       context.baristaFirstName || 
-                       template.fallbacks.baristaDisplayName;
-    name = name.replace('{baristaDisplayName}', this.preserveSpecialCharacters(baristaName));
+    const beanName = this.preserveSpecialCharacters(context.beanName || template.fallbacks.beanName);
 
-    // Replace bean name with fallback if needed
-    // Special characters in bean names are preserved exactly
-    const beanName = context.beanName || template.fallbacks.beanName;
-    name = name.replace('{beanName}', this.preserveSpecialCharacters(beanName));
+    const ordinal = this.formatOrdinalLabel(context.brewSequence);
+    const timeOfDay = context.timeOfDay || template.fallbacks.timeOfDay;
+    const brewDate = context.brewDate || template.fallbacks.brewDate;
 
-    // Replace brew time with formatted time
-    const brewTime = this.formatBrewTime(context.createdAt, context.timezone, context.timezoneDetection);
-    name = name.replace('{brewTime}', brewTime);
+    const parts = [
+      `${baristaName}'s`,
+      ordinal,
+      timeOfDay,
+      beanName,
+      brewDate
+    ].filter((part) => Boolean(part && part.toString().trim().length));
 
-    return name;
+    // If template is customized, honor placeholders while still removing empty ordinal spacing
+    if (template.pattern.includes('{')) {
+      let name = template.pattern;
+      name = name.replace('{baristaDisplayName}', baristaName);
+      name = name.replace('{ordinal}', ordinal);
+      name = name.replace('{timeOfDay}', timeOfDay);
+      name = name.replace('{beanName}', beanName);
+      name = name.replace('{brewDate}', brewDate);
+      // Collapse duplicate spaces from optional ordinal
+      return name.replace(/\s{2,}/g, ' ').trim();
+    }
+
+    return parts.join(' ').trim();
   }
 
   /**
@@ -968,47 +987,130 @@ export class NamingService {
   }
 
   /**
-   * Format brew time as HH:MM in 24-hour format with timezone awareness
-   * Handles DST transitions and provides clear indication when timezone is unavailable
-   * Ensures cross-environment consistency by using server-side formatting
+   * Format brew date as a short, timezone-aware string (YYYY-MM-DD)
    */
-  private formatBrewTime(createdAt: Date, timezone?: string, timezoneDetection?: TimezoneDetectionResult): string {
+  private formatBrewDate(createdAt: Date, timezone?: string): string {
     try {
-      // Use detected timezone or default - ensure server-side consistency
-      let effectiveTimezone = timezone || this.config.defaultTimezone;
-      
-      // Use normalized time formatting for cross-environment consistency
-      const normalizedResult = normalizeTimeFormatting(createdAt, effectiveTimezone, {
-        fallbackTimezone: this.config.defaultTimezone,
-        format: 'HH:MM',
-        strictValidation: true,
-        preserveContext: true
+      const effectiveTimezone = timezone || this.config.defaultTimezone;
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: effectiveTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
       });
 
-      // Log warnings for debugging
-      if (normalizedResult.warnings.length > 0) {
-        console.warn('Time normalization warnings:', normalizedResult.warnings);
-      }
-
-      // Preserve timezone context for debugging and consistency validation
-      if (timezoneDetection) {
-        this.preserveTimezoneContext(normalizedResult.timezone, timezoneDetection, createdAt);
-        
-        // Add UTC indicator when using fallback to maintain transparency
-        if (timezoneDetection.source === 'fallback' || 
-            timezoneDetection.confidence === 'low' ||
-            normalizedResult.isNormalized) {
-          // Add UTC indicator when using fallback or normalization occurred
-          if (normalizedResult.timezone === 'UTC') {
-            return normalizedResult.formattedTime + ' UTC';
-          }
-        }
-      }
-
-      return normalizedResult.formattedTime;
+      return formatter.format(createdAt);
     } catch (error) {
-      console.warn(`Failed to format brew time for timezone ${timezone}:`, error);
-      return this.config.brewTemplate.fallbacks.brewTime;
+      console.warn(`Failed to format brew date for timezone ${timezone}:`, error);
+      return this.config.brewTemplate.fallbacks.brewDate;
+    }
+  }
+
+  /**
+   * Determine the time of day label based on the brew timestamp
+   */
+  private getTimeOfDayLabel(createdAt: Date, timezone?: string): string {
+    try {
+      const effectiveTimezone = timezone || this.config.defaultTimezone;
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: effectiveTimezone,
+        hour: 'numeric',
+        hour12: false
+      });
+
+      const hourPart = formatter.formatToParts(createdAt).find((part) => part.type === 'hour');
+      const hour = hourPart ? parseInt(hourPart.value, 10) : createdAt.getUTCHours();
+
+      if (hour >= 5 && hour < 12) {
+        return 'morning';
+      }
+      if (hour >= 12 && hour < 17) {
+        return 'afternoon';
+      }
+
+      return 'evening';
+    } catch (error) {
+      console.warn(`Failed to determine time of day for timezone ${timezone}:`, error);
+      return this.config.brewTemplate.fallbacks.timeOfDay;
+    }
+  }
+
+  /**
+   * Get the brew sequence number for the day to build ordinal labels
+   */
+  private async getBrewSequenceForDay(baristaId: string, createdAt: Date, timezone?: string): Promise<number> {
+    const { start, end } = this.getDayBounds(createdAt, timezone || this.config.defaultTimezone);
+
+    return NamingErrorHandler.handleDatabaseOperation(
+      async () => {
+        const { count, error } = await supabase
+          .from('brew')
+          .select('id', { count: 'exact', head: true })
+          .eq('barista_id', baristaId)
+          .gte('created_at', start.toISOString())
+          .lt('created_at', end.toISOString());
+
+        if (error) {
+          throw new NamingDatabaseError('select', 'brew', new Error(error.message));
+        }
+
+        return (count || 0) + 1;
+      },
+      1,
+      {
+        operationName: 'getBrewSequenceForDay',
+        table: 'brew',
+        query: `SELECT count(*) FROM brew WHERE barista_id = '${baristaId}' AND created_at >= '${start.toISOString()}' AND created_at < '${end.toISOString()}'`,
+        entityType: 'brew',
+        entityId: baristaId
+      }
+    );
+  }
+
+  /**
+   * Calculate the UTC day bounds for the provided timezone-local date
+   */
+  private getDayBounds(date: Date, timezone: string): { start: Date; end: Date } {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+
+    const parts = formatter.formatToParts(date);
+    const year = parseInt(parts.find((p) => p.type === 'year')?.value || `${date.getUTCFullYear()}`, 10);
+    const month = parseInt(parts.find((p) => p.type === 'month')?.value || `${date.getUTCMonth() + 1}`, 10) - 1;
+    const day = parseInt(parts.find((p) => p.type === 'day')?.value || `${date.getUTCDate()}`, 10);
+
+    const start = new Date(Date.UTC(year, month, day, 0, 0, 0));
+    const end = new Date(Date.UTC(year, month, day + 1, 0, 0, 0));
+
+    return { start, end };
+  }
+
+  /**
+   * Format ordinal labels for the sequence (first brew has no ordinal)
+   */
+  private formatOrdinalLabel(sequence: number): string {
+    if (sequence <= 1) {
+      return '';
+    }
+
+    const remainder = sequence % 100;
+    if (remainder >= 11 && remainder <= 13) {
+      return `${sequence}th`;
+    }
+
+    switch (sequence % 10) {
+      case 1:
+        return `${sequence}st`;
+      case 2:
+        return `${sequence}nd`;
+      case 3:
+        return `${sequence}rd`;
+      default:
+        return `${sequence}th`;
     }
   }
 

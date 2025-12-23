@@ -94,38 +94,40 @@ export async function brewRoutes(fastify: FastifyInstance) {
       
       const validatedBrewData = validateSchema(createBrewSchema, brewData) as CreateBrewRequest;
 
-      // Generate automatic name before database insertion with timezone information
+      // Generate automatic name before database insertion with timezone information (unless provided)
       let generatedName: string | undefined = undefined;
-      try {
-        generatedName = await namingService.generateBrewName(
-          authRequest.barista!.id,
-          validatedBrewData.bag_id,
-          new Date(),
-          _timezone ? {
-            browserTimezone: _timezone.browserTimezone,
-            userTimezone: _timezone.userTimezone
-          } : undefined
-        );
-      } catch (error) {
-        // Log naming failure but continue with creation
-        request.log.warn({ error }, 'Failed to generate brew name');
-        
-        if (error instanceof NamingError) {
-          request.log.warn({
-            entityType: error.entityType,
-            entityId: error.entityId,
-            cause: error.cause?.message
-          }, `Naming error for brew creation: ${error.message}`);
+      if (!validatedBrewData.name) {
+        try {
+          generatedName = await namingService.generateBrewName(
+            authRequest.barista!.id,
+            validatedBrewData.bag_id,
+            new Date(),
+            _timezone ? {
+              browserTimezone: _timezone.browserTimezone,
+              userTimezone: _timezone.userTimezone
+            } : undefined
+          );
+        } catch (error) {
+          // Log naming failure but continue with creation
+          request.log.warn({ error }, 'Failed to generate brew name');
+
+          if (error instanceof NamingError) {
+            request.log.warn({
+              entityType: error.entityType,
+              entityId: error.entityId,
+              cause: error.cause?.message
+            }, `Naming error for brew creation: ${error.message}`);
+          }
+
+          // Set name to undefined if naming fails completely
+          generatedName = undefined;
         }
-        
-        // Set name to undefined if naming fails completely
-        generatedName = undefined;
       }
 
       // Create brew with generated name and calculated fields
       const brewDataWithName = {
         ...validatedBrewData,
-        name: generatedName
+        name: validatedBrewData.name ?? generatedName
       };
       
       const brew = await brewRepository.create(brewDataWithName, authRequest.barista!.id);
@@ -255,8 +257,37 @@ export async function brewRoutes(fastify: FastifyInstance) {
       const brewData = validateSchema(updateBrewSchema, request.body);
       const ownerId = authRequest.barista?.is_admin ? undefined : authRequest.barista!.id;
 
+      const existingBrew = await brewRepository.findById(id, ownerId);
+
+      let updatedName: string | undefined;
+      const bagIdForNaming = brewData.bag_id ?? existingBrew.bag_id;
+      const shouldRegenerateName =
+        brewData.name === undefined &&
+        bagIdForNaming !== undefined &&
+        ((brewData.bag_id !== undefined && brewData.bag_id !== existingBrew.bag_id) || !existingBrew.name);
+
+      if (brewData.name !== undefined) {
+        updatedName = brewData.name;
+      } else if (shouldRegenerateName) {
+        try {
+          updatedName = await namingService.generateBrewName(
+            existingBrew.barista_id,
+            bagIdForNaming,
+            new Date(existingBrew.created_at)
+          );
+        } catch (error) {
+          request.log.warn({ error }, 'Failed to regenerate brew name during update');
+          updatedName = existingBrew.name;
+        }
+      }
+
+      const brewUpdatePayload = {
+        ...brewData,
+        ...(updatedName !== undefined ? { name: updatedName } : {})
+      };
+
       // Update brew with calculated fields
-      const brew = await brewRepository.update(id, brewData, ownerId);
+      const brew = await brewRepository.update(id, brewUpdatePayload, ownerId);
       
       return { data: brew };
     } catch (error) {

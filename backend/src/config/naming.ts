@@ -13,11 +13,12 @@ export const DEFAULT_NAMING_CONFIG: NamingServiceConfig = {
     }
   },
   brewTemplate: {
-    pattern: '{baristaDisplayName} {beanName} {brewTime}',
+    pattern: "{baristaDisplayName}'s {ordinal} {timeOfDay} {beanName} {brewDate}",
     fallbacks: {
       baristaDisplayName: 'Anonymous',
       beanName: 'Unknown Bean',
-      brewTime: '00:00'
+      timeOfDay: 'brew',
+      brewDate: 'Unknown Date'
     }
   },
   dateFormat: 'YYYY-MM-DD',
@@ -37,9 +38,9 @@ export const NAMING_TEMPLATES = {
     WITH_WEIGHT: "{ownerDisplayName}'s {beanName} {roastDate} ({weight}g)"
   },
   BREW: {
-    STANDARD: '{baristaDisplayName} {beanName} {brewTime}',
-    WITH_RATING: '{baristaDisplayName} {beanName} {brewTime} ({rating}★)',
-    SIMPLE: '{baristaDisplayName} {beanName}'
+    STANDARD: "{baristaDisplayName}'s {ordinal} {timeOfDay} {beanName} {brewDate}",
+    WITH_RATING: "{baristaDisplayName}'s {ordinal} {timeOfDay} {beanName} {brewDate} ({rating}★)",
+    SIMPLE: "{baristaDisplayName}'s {timeOfDay} {beanName}"
   }
 } as const;
 
