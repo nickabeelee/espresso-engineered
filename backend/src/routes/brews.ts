@@ -147,6 +147,7 @@ export async function brewRoutes(fastify: FastifyInstance) {
       
       // Parse and validate filters
       const filters: BrewFilters = {};
+      if (queryParams.barista_id) filters.barista_id = queryParams.barista_id;
       if (queryParams.machine_id) filters.machine_id = queryParams.machine_id;
       if (queryParams.grinder_id) filters.grinder_id = queryParams.grinder_id;
       if (queryParams.bag_id) filters.bag_id = queryParams.bag_id;
@@ -161,8 +162,7 @@ export async function brewRoutes(fastify: FastifyInstance) {
         filters.is_draft = queryParams.is_draft === 'true';
       }
 
-      // Get brews for the authenticated barista
-      const brews = await brewRepository.findWithFilters(filters, authRequest.barista!.id);
+      const brews = await brewRepository.findWithFilters(filters);
 
       return {
         data: brews,
@@ -227,10 +227,9 @@ export async function brewRoutes(fastify: FastifyInstance) {
     preHandler: authenticateRequest
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const authRequest = request as AuthenticatedRequest;
       const { id } = request.params as { id: string };
       
-      const brew = await brewRepository.findById(id, authRequest.barista!.id);
+      const brew = await brewRepository.findById(id);
       
       return { data: brew };
     } catch (error) {
@@ -254,9 +253,10 @@ export async function brewRoutes(fastify: FastifyInstance) {
       const authRequest = request as AuthenticatedRequest;
       const { id } = request.params as { id: string };
       const brewData = validateSchema(updateBrewSchema, request.body);
+      const ownerId = authRequest.barista?.is_admin ? undefined : authRequest.barista!.id;
 
       // Update brew with calculated fields
-      const brew = await brewRepository.update(id, brewData, authRequest.barista!.id);
+      const brew = await brewRepository.update(id, brewData, ownerId);
       
       return { data: brew };
     } catch (error) {
@@ -280,9 +280,10 @@ export async function brewRoutes(fastify: FastifyInstance) {
       const authRequest = request as AuthenticatedRequest;
       const { id } = request.params as { id: string };
       const outputData = validateSchema(completeDraftSchema, request.body);
+      const ownerId = authRequest.barista?.is_admin ? undefined : authRequest.barista!.id;
 
       // Complete the draft with output measurements
-      const brew = await brewRepository.completeDraft(id, outputData, authRequest.barista!.id);
+      const brew = await brewRepository.completeDraft(id, outputData, ownerId);
       
       return { data: brew };
     } catch (error) {
@@ -312,8 +313,9 @@ export async function brewRoutes(fastify: FastifyInstance) {
     try {
       const authRequest = request as AuthenticatedRequest;
       const { id } = request.params as { id: string };
+      const ownerId = authRequest.barista?.is_admin ? undefined : authRequest.barista!.id;
       
-      await brewRepository.delete(id, authRequest.barista!.id);
+      await brewRepository.delete(id, ownerId);
       
       return reply.status(204).send();
     } catch (error) {

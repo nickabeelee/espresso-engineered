@@ -13,6 +13,7 @@ import type {
   Grinder,
   Machine,
   Roaster,
+  Barista,
   CreateBeanRequest,
   CreateBagRequest,
   CreateGrinderRequest,
@@ -286,6 +287,10 @@ class ApiClient {
       body: JSON.stringify(roaster),
     });
   }
+
+  async getBaristas(): Promise<ListResponse<Barista>> {
+    return this.makeRequest<ListResponse<Barista>>('/baristas');
+  }
 }
 
 // Export singleton instance
@@ -317,5 +322,6 @@ export const {
   updateMachine,
   deleteMachine,
   getRoasters,
-  createRoaster
+  createRoaster,
+  getBaristas
 } = apiClient;

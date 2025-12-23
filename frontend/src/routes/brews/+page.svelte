@@ -23,7 +23,7 @@
         <Plus />
       </IconButton>
     </div>
-    <BrewList barista_id={$barista?.id} />
+    <BrewList />
   </div>
 </AuthGuard>
 

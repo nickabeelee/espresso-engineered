@@ -60,6 +60,9 @@ export class BrewRepository extends BaseRepository<Brew> {
     }
 
     // Apply other filters
+    if (filters.barista_id) {
+      query = query.eq('barista_id', filters.barista_id);
+    }
     if (filters.machine_id) {
       query = query.eq('machine_id', filters.machine_id);
     }

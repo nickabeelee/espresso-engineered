@@ -45,7 +45,7 @@
         
         // Check if current user can edit this brew
         const currentBarista = $barista;
-        canEdit = currentBarista?.id === brew.barista_id;
+        canEdit = currentBarista?.id === brew.barista_id || Boolean(currentBarista?.is_admin);
         await loadEquipmentDetails(brew);
       } else {
         throw new Error('Brew not found');

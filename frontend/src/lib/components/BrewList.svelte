@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
+  import BrewCard from '$lib/components/BrewCard.svelte';
+  import { MagnifyingGlass } from '$lib/icons';
 
 
   export let barista_id: string | undefined = undefined;
@@ -9,19 +11,19 @@
   export let limit = 20;
 
   let brews: Brew[] = [];
+  let baristas: Barista[] = [];
   let loading = true;
   let error: string | null = null;
   let hasMore = false;
   let currentPage = 1;
+  let onlyMyBrews = false;
 
   // Filter state
   let searchTerm = '';
-  let ratingFilter: number | undefined = undefined;
-  let dateFromFilter = '';
-  let dateToFilter = '';
 
   onMount(() => {
     loadBrews();
+    loadBaristas();
   });
 
   async function loadBrews(page = 1, append = false) {
@@ -29,12 +31,10 @@
       loading = true;
       error = null;
 
+      const effectiveBaristaId = onlyMyBrews ? $barista?.id : barista_id;
       const filters: BrewFilters = {
-        ...(barista_id && { barista_id }),
-        ...(showDrafts && { is_draft: true }),
-        ...(ratingFilter && { rating_min: ratingFilter }),
-        ...(dateFromFilter && { date_from: dateFromFilter }),
-        ...(dateToFilter && { date_to: dateToFilter })
+        ...(effectiveBaristaId && { barista_id: effectiveBaristaId }),
+        ...(showDrafts && { is_draft: true })
       };
 
       const pagination: PaginationParams = {
@@ -62,6 +62,15 @@
     }
   }
 
+  async function loadBaristas() {
+    try {
+      const response = await apiClient.getBaristas();
+      baristas = response.data;
+    } catch (err) {
+      baristas = [];
+    }
+  }
+
   function loadMore() {
     if (!loading && hasMore) {
       loadBrews(currentPage + 1, true);
@@ -75,25 +84,12 @@
 
   function clearFilters() {
     searchTerm = '';
-    ratingFilter = undefined;
-    dateFromFilter = '';
-    dateToFilter = '';
+    onlyMyBrews = false;
     applyFilters();
   }
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString();
-  }
-
-  function formatTime(dateString: string): string {
-    return new Date(dateString).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  }
-
-  function isDraft(brew: Brew): boolean {
-    return !brew.yield_g || !brew.rating;
   }
 
   function getBrewTitle(brew: Brew): string {
@@ -109,6 +105,11 @@
         (brew.reflections && brew.reflections.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     : brews;
+
+  $: baristasById = baristas.reduce<Record<string, Barista>>((acc, entry) => {
+    acc[entry.id] = entry;
+    return acc;
+  }, {});
 </script>
 
 <div class="brew-list">
@@ -116,44 +117,29 @@
   <div class="filters">
     <div class="filter-row">
       <div class="search-group">
+        <div class="search-field">
+          <span class="search-icon" aria-hidden="true">
+            <MagnifyingGlass size={18} />
+          </span>
+          <input
+            type="text"
+            bind:value={searchTerm}
+            placeholder="e.g., marzipan"
+            class="search-input"
+          />
+        </div>
+      </div>
+
+      <label class="quick-toggle">
         <input
-          type="text"
-          bind:value={searchTerm}
-          placeholder="e.g., marzipan"
-          class="search-input"
+          type="checkbox"
+          bind:checked={onlyMyBrews}
+          on:change={applyFilters}
+          disabled={!$barista?.id}
         />
-      </div>
-
-      <div class="filter-group">
-        <select bind:value={ratingFilter} class="filter-select">
-          <option value={undefined}>All Ratings</option>
-          <option value={8}>8+ Stars</option>
-          <option value={6}>6+ Stars</option>
-          <option value={4}>4+ Stars</option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <input
-          type="date"
-          bind:value={dateFromFilter}
-          class="filter-input"
-          placeholder="e.g., 2025-01-15"
-        />
-      </div>
-
-      <div class="filter-group">
-        <input
-          type="date"
-          bind:value={dateToFilter}
-          class="filter-input"
-          placeholder="e.g., 2025-02-15"
-        />
-      </div>
-
-      <button on:click={applyFilters} class="btn-primary">
-        Apply
-      </button>
+        <span class="toggle-track" aria-hidden="true"></span>
+        <span class="toggle-label">Only my brews</span>
+      </label>
 
       <button on:click={clearFilters} class="btn-secondary">
         Clear
@@ -198,82 +184,16 @@
   {/if}
 
   <!-- Brew Cards -->
-  <div class="brew-grid">
-    {#each filteredBrews as brew (brew.id)}
-      <div class="brew-card" class:draft={isDraft(brew)}>
-        <div class="brew-header">
-          <h3 class="brew-title">
-            <a href="/brews/{brew.id}">{getBrewTitle(brew)}</a>
-          </h3>
-          {#if isDraft(brew)}
-            <span class="draft-badge">Draft</span>
-          {/if}
-        </div>
-
-        <div class="brew-meta">
-          <span class="brew-date">
-            {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
-          </span>
-        </div>
-
-        <div class="brew-details">
-          <div class="detail-row">
-            <span class="label">Dose:</span>
-            <span class="value">{brew.dose_g.toFixed(1)}g</span>
-          </div>
-
-          {#if brew.yield_g}
-            <div class="detail-row">
-              <span class="label">Yield:</span>
-              <span class="value">{brew.yield_g.toFixed(1)}g</span>
-            </div>
-          {/if}
-
-          {#if brew.ratio}
-            <div class="detail-row">
-              <span class="label">Ratio:</span>
-              <span class="value">1:{brew.ratio.toFixed(2)}</span>
-            </div>
-          {/if}
-
-          {#if brew.brew_time_s}
-            <div class="detail-row">
-              <span class="label">Time:</span>
-              <span class="value">{brew.brew_time_s.toFixed(1)}s</span>
-            </div>
-          {/if}
-
-          {#if brew.rating}
-            <div class="detail-row">
-              <span class="label">Rating:</span>
-              <span class="value rating">
-                {'★'.repeat(Math.floor(brew.rating))}
-                {brew.rating % 1 !== 0 ? '½' : ''}
-                <span class="rating-number">({brew.rating}/10)</span>
-              </span>
-            </div>
-          {/if}
-        </div>
-
-        {#if brew.tasting_notes}
-          <div class="brew-notes">
-            <p class="notes-preview">
-              {brew.tasting_notes.length > 100 
-                ? brew.tasting_notes.substring(0, 100) + '...' 
-                : brew.tasting_notes}
-            </p>
-          </div>
-        {/if}
-
-        <div class="brew-actions">
-          <a href="/brews/{brew.id}" class="btn-secondary">View</a>
-          {#if isDraft(brew)}
-            <a href="/brews/{brew.id}?edit=true" class="btn-primary">Complete</a>
-          {/if}
-        </div>
-      </div>
-    {/each}
+  {#if filteredBrews.length > 0}
+    <div class="brew-grid-shell">
+    <div class="brew-grid">
+      {#each filteredBrews as brew (brew.id)}
+        {@const baristaRecord = baristasById[brew.barista_id]}
+        <BrewCard brew={brew} baristaName={baristaRecord?.display_name ?? 'Unknown barista'} />
+      {/each}
+    </div>
   </div>
+  {/if}
 
   <!-- Load More -->
   {#if hasMore && !loading}
@@ -317,9 +237,24 @@
     min-width: 200px;
   }
 
+  .search-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    color: var(--text-ink-muted);
+    display: inline-flex;
+    align-items: center;
+    pointer-events: none;
+  }
+
   .search-input {
     width: 100%;
-    padding: 0.6rem 0.75rem;
+    padding: 0.6rem 0.75rem 0.6rem 2.3rem;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
     font-size: 1rem;
@@ -343,6 +278,69 @@
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
+  }
+
+  .quick-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-ink-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .quick-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .toggle-track {
+    width: 44px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(123, 94, 58, 0.2);
+    border: 1px solid rgba(123, 94, 58, 0.35);
+    position: relative;
+    transition: background var(--motion-fast), border-color var(--motion-fast);
+  }
+
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--bg-surface-paper);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: transform var(--motion-fast);
+  }
+
+  .quick-toggle input:checked + .toggle-track {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+  }
+
+  .quick-toggle input:checked + .toggle-track::after {
+    transform: translateX(20px);
+  }
+
+  .quick-toggle input:focus-visible + .toggle-track {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+
+  .quick-toggle input:disabled + .toggle-track {
+    opacity: 0.5;
+  }
+
+  .quick-toggle input:disabled ~ .toggle-label {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   .results-summary {
@@ -381,115 +379,11 @@
     gap: 1.5rem;
   }
 
-  .brew-card {
+  .brew-grid-shell {
     background: var(--bg-surface-paper-secondary);
     border: 1px solid rgba(123, 94, 58, 0.2);
     border-radius: var(--radius-md);
     padding: 1.5rem;
-    transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
-  }
-
-  .brew-card:hover {
-    box-shadow: var(--shadow-soft);
-    border-color: var(--accent-primary);
-  }
-
-  .brew-card.draft {
-    border-left: 3px solid var(--accent-primary);
-    background: var(--bg-surface-paper);
-  }
-
-  .brew-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 0.75rem;
-  }
-
-  .brew-title {
-    margin: 0;
-    font-size: 1.25rem;
-  }
-
-  .brew-title a {
-    color: var(--text-ink-primary);
-    text-decoration: none;
-  }
-
-  .brew-title a:hover {
-    color: var(--accent-primary);
-  }
-
-  .draft-badge {
-    background: rgba(176, 138, 90, 0.25);
-    color: var(--text-ink-secondary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .brew-meta {
-    margin-bottom: 1rem;
-    color: var(--text-ink-muted);
-    font-size: 0.9rem;
-  }
-
-  .brew-details {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .detail-row .label {
-    font-weight: 500;
-    color: var(--text-ink-secondary);
-    font-size: 0.9rem;
-  }
-
-  .detail-row .value {
-    color: var(--text-ink-primary);
-    font-weight: 600;
-  }
-
-  .value.rating {
-    color: var(--accent-primary);
-  }
-
-  .rating-number {
-    color: var(--text-ink-muted);
-    font-weight: normal;
-    font-size: 0.8rem;
-    margin-left: 0.25rem;
-  }
-
-  .brew-notes {
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    background: rgba(123, 94, 58, 0.08);
-    border-radius: var(--radius-sm);
-    border-left: 3px solid var(--accent-primary);
-  }
-
-  .notes-preview {
-    margin: 0;
-    color: var(--text-ink-secondary);
-    font-size: 0.9rem;
-    line-height: 1.4;
-    font-style: italic;
-  }
-
-  .brew-actions {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
   }
 
   .load-more,
@@ -514,10 +408,6 @@
     }
 
     .brew-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .brew-details {
       grid-template-columns: 1fr;
     }
   }
