@@ -407,6 +407,7 @@
   .bag-search-input {
     width: 100%;
     margin-bottom: 0.75rem;
+    font-size: 16px;
   }
 
   .bag-options {
