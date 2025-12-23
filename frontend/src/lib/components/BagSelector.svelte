@@ -47,11 +47,20 @@
     }
   }
 
-  function handleBagCreated(event: CustomEvent<Bag>) {
+  async function handleBagCreated(event: CustomEvent<Bag>) {
     const newBag = event.detail;
-    bags = [newBag, ...bags];
-    value = newBag.id;
     showCreateForm = false;
+    value = newBag.id;
+
+    // Refresh selectors to include any newly created beans/roasters
+    // (e.g., when a bean is created inline while creating a bag).
+    await loadData();
+
+    // Ensure the newly created bag remains selected even if the list reloads
+    // without it (e.g., if caching fails).
+    if (!bags.find(bag => bag.id === newBag.id)) {
+      bags = [newBag, ...bags];
+    }
   }
 
   function getBeanInfo(beanId: string): Bean | undefined {
