@@ -7,6 +7,7 @@ import cors from '@fastify/cors';
 import { errorHandler } from './middleware/error.js';
 import { authenticateRequest } from './middleware/auth.js';
 import { initializeDatabase } from './config/database.js';
+import { isOriginAllowed, parseAllowedOriginSuffixes } from './utils/origin-validation.js';
 
 async function testServerStartup() {
   console.log('🚀 Testing server startup...');
@@ -23,10 +24,14 @@ async function testServerStartup() {
     await initializeDatabase();
     console.log('   ✅ Database initialized');
 
-    // Register CORS
+    // Register CORS (suffix-based to match production config).
+    const allowedOriginSuffixes = parseAllowedOriginSuffixes();
     console.log('2. Registering CORS...');
     await fastify.register(cors, {
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin: (origin, callback) => {
+        const allowed = isOriginAllowed(origin, allowedOriginSuffixes);
+        callback(null, allowed);
+      },
       credentials: true
     });
     console.log('   ✅ CORS registered');

@@ -250,6 +250,6 @@ HOST=0.0.0.0
 NODE_ENV=production
 LOG_LEVEL=info
 
-# Frontend URL for CORS
-FRONTEND_URL=http://localhost:5173
+# Allowed origin suffixes for CORS (comma-separated, lowercase, leading dots)
+ALLOWED_ORIGIN_SUFFIXES=.espressoengineered.com,.netlify.app
 ```
