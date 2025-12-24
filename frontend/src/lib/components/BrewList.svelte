@@ -77,6 +77,10 @@
     }
   }
 
+  function refreshBrews() {
+    loadBrews(1, false);
+  }
+
   function applyFilters() {
     currentPage = 1;
     loadBrews();
@@ -148,15 +152,20 @@
   </div>
 
   <!-- Results Summary -->
-  <div class="results-summary">
-    {#if loading && brews.length === 0}
-      <span>Loading brews...</span>
-    {:else}
-      <span>
-        {filteredBrews.length} brew{filteredBrews.length !== 1 ? 's' : ''}
-        {#if showDrafts}(drafts){/if}
-      </span>
-    {/if}
+  <div class="results-header">
+    <div class="results-summary">
+      {#if loading && brews.length === 0}
+        <span>Loading brews...</span>
+      {:else}
+        <span>
+          {filteredBrews.length} brew{filteredBrews.length !== 1 ? 's' : ''}
+          {#if showDrafts}(drafts){/if}
+        </span>
+      {/if}
+    </div>
+    <button type="button" class="btn-secondary" on:click={refreshBrews} disabled={loading}>
+      Refresh
+    </button>
   </div>
 
   <!-- Error State -->
@@ -343,8 +352,15 @@
     cursor: not-allowed;
   }
 
-  .results-summary {
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
     margin-bottom: 1rem;
+  }
+
+  .results-summary {
     color: var(--text-ink-muted);
     font-size: 0.9rem;
   }
@@ -405,6 +421,11 @@
 
     .search-group {
       min-width: auto;
+    }
+
+    .results-header {
+      flex-direction: column;
+      align-items: flex-start;
     }
 
     .brew-grid {
