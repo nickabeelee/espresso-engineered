@@ -44,7 +44,7 @@ describe('NamingService Foundation', () => {
       // Test valid date
       const validDate = '2023-12-01';
       const formatted = service.formatRoastDate(validDate);
-      expect(formatted).toBe('2023-12-01');
+      expect(formatted).toBe('12/01/23');
     });
 
     it('should handle invalid roast date with fallback', () => {
@@ -95,7 +95,7 @@ describe('NamingService Foundation', () => {
       };
 
       const result = service.applyBagTemplate(context);
-      expect(result).toBe("John Doe's Ethiopian Yirgacheffe 2023-12-01");
+      expect(result).toBe("John Doe's Ethiopian Yirgacheffe 12/01/23");
     });
 
     it('should apply bag template with fallbacks', () => {
@@ -119,11 +119,14 @@ describe('NamingService Foundation', () => {
         baristaDisplayName: 'Jane Smith',
         beanName: 'Colombian Supremo',
         createdAt: new Date('2023-12-01T09:15:00Z'),
-        timezone: 'UTC'
+        timezone: 'UTC',
+        brewSequence: 1,
+        timeOfDay: 'morning',
+        brewDate: '12/01/23'
       };
 
       const result = service.applyBrewTemplate(context);
-      expect(result).toBe('Jane Smith Colombian Supremo 09:15');
+      expect(result).toBe("Jane Smith's morning Colombian Supremo 12/01/23");
     });
 
     it('should apply brew template with fallbacks', () => {
@@ -133,11 +136,14 @@ describe('NamingService Foundation', () => {
         baristaDisplayName: '',
         baristaFirstName: 'Jane',
         beanName: '',
-        createdAt: new Date('2023-12-01T09:15:00Z')
+        createdAt: new Date('2023-12-01T09:15:00Z'),
+        brewSequence: 1,
+        timeOfDay: '',
+        brewDate: ''
       };
 
       const result = service.applyBrewTemplate(context);
-      expect(result).toBe('Jane Unknown Bean 09:15');
+      expect(result).toBe("Jane's brew Unknown Bean Unknown Date");
     });
   });
 
@@ -166,7 +172,7 @@ describe('NamingService Foundation', () => {
       const result = await namingService.generateBagName('owner-123', 'bean-456', '2023-12-01');
       
       // Should use fallback values when database is not available
-      expect(result).toBe("Anonymous's Unknown Bean 2023-12-01");
+      expect(result).toBe("Anonymous's Unknown Bean 12/01/23");
     });
 
     it('should generate brew name with fallbacks when database queries fail', async () => {
@@ -174,7 +180,7 @@ describe('NamingService Foundation', () => {
 
       // Should use fallback values when database is not available
       expect(result).toMatch(
-        /^Anonymous[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Unknown Bean \d{4}-\d{2}-\d{2}$/
+        /^Anonymous[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Unknown Bean \d{2}\/\d{2}\/\d{2}$/
       );
     });
 

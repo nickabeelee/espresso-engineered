@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
+
   export let brew: Brew;
   export let baristaName: string | null = null;
 
@@ -21,28 +23,52 @@
     if (entry.name) return entry.name;
     return `Brew ${formatDate(entry.created_at)}`;
   }
+
+  function handleCardClick() {
+    goto(`/brews/${brew.id}`);
+  }
+
+  function handleCardKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      goto(`/brews/${brew.id}`);
+    }
+  }
 </script>
 
-<article class="brew-card">
+<article
+  class="brew-card"
+  role="link"
+  tabindex="0"
+  aria-label={`View ${getBrewTitle(brew)}`}
+  on:click={handleCardClick}
+  on:keydown={handleCardKeydown}
+>
   <div class="brew-header">
-    <div class="brew-heading">
-      <h3 class="brew-title">
-        <a href="/brews/{brew.id}">{getBrewTitle(brew)}</a>
-      </h3>
-      <span class="brew-date">
-        {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
-      </span>
-    </div>
-  <div class="brew-chips">
-      <span class="status-chip" class:draft={isDraft(brew)} class:complete={!isDraft(brew)}>
-        {isDraft(brew) ? 'Draft' : 'Complete'}
-      </span>
+    <div class="brew-chips">
       {#if baristaName}
         <span class="barista-chip">{baristaName}</span>
       {/if}
-      {#if isDraft(brew)}
-        <a href="/brews/{brew.id}?edit=true" class="action-link">Complete</a>
-      {/if}
+      <div class="status-group">
+        {#if isDraft(brew)}
+          <a
+            href="/brews/{brew.id}?edit=true"
+            class="action-link"
+            on:click|stopPropagation
+          >
+            Complete
+          </a>
+        {/if}
+        <span class="status-chip" class:draft={isDraft(brew)} class:complete={!isDraft(brew)}>
+          {isDraft(brew) ? 'Draft' : 'Complete'}
+        </span>
+      </div>
+    </div>
+    <div class="brew-heading">
+      <h3 class="brew-title">{getBrewTitle(brew)}</h3>
+      <span class="brew-date">
+        {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
+      </span>
     </div>
   </div>
 
@@ -104,6 +130,7 @@
     border-radius: var(--radius-md);
     padding: 1.5rem;
     transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
+    cursor: pointer;
   }
 
   .brew-card:hover {
@@ -111,10 +138,14 @@
     border-color: var(--accent-primary);
   }
 
+  .brew-card:focus-visible {
+    outline: 2px solid rgba(176, 138, 90, 0.4);
+    outline-offset: 2px;
+  }
+
   .brew-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    flex-direction: column;
     margin-bottom: 0.75rem;
     gap: 0.75rem;
   }
@@ -130,13 +161,8 @@
     font-size: 1.05rem;
   }
 
-  .brew-title a {
+  .brew-title {
     color: var(--text-ink-primary);
-    text-decoration: none;
-  }
-
-  .brew-title a:hover {
-    color: var(--accent-primary);
   }
 
   .brew-date {
@@ -146,9 +172,18 @@
 
   .brew-chips {
     display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .status-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-left: auto;
   }
 
   .status-chip {
@@ -172,6 +207,7 @@
   }
 
   .barista-chip {
+    display: inline-block;
     padding: 0.2rem 0.75rem;
     border-radius: 999px;
     font-size: 0.75rem;
@@ -179,7 +215,7 @@
     background: rgba(123, 94, 58, 0.12);
     color: var(--text-ink-secondary);
     border: 1px solid rgba(123, 94, 58, 0.25);
-    min-width: 8.5rem;
+    max-width: 14rem;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
@@ -195,7 +231,7 @@
   .brew-details {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.5rem;
+    gap: 0.5rem 1.25rem;
     margin-bottom: 1rem;
   }
 
@@ -203,6 +239,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
   }
 
   .detail-row .label {
@@ -218,17 +255,21 @@
 
   .value.rating {
     color: var(--accent-primary);
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    white-space: nowrap;
   }
 
   .rating-number {
     color: var(--text-ink-muted);
     font-weight: normal;
     font-size: 0.8rem;
-    margin-left: 0.25rem;
+    margin-left: 0;
   }
 
   .brew-notes {
-    margin-bottom: 1rem;
+    margin-bottom: 0;
     padding: 0.75rem;
     background: rgba(123, 94, 58, 0.08);
     border-radius: var(--radius-sm);
@@ -264,11 +305,11 @@
     }
 
     .brew-chips {
-      align-items: flex-start;
+      align-items: center;
     }
 
     .barista-chip {
-      min-width: 100%;
+      max-width: 100%;
     }
   }
 </style>

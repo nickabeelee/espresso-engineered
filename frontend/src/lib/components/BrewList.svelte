@@ -3,7 +3,8 @@
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import BrewCard from '$lib/components/BrewCard.svelte';
-  import { MagnifyingGlass } from '$lib/icons';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ArrowPath, MagnifyingGlass } from '$lib/icons';
 
 
   export let barista_id: string | undefined = undefined;
@@ -163,9 +164,15 @@
         </span>
       {/if}
     </div>
-    <button type="button" class="btn-secondary" on:click={refreshBrews} disabled={loading}>
-      Refresh
-    </button>
+    <IconButton
+      type="button"
+      ariaLabel="Refresh brews"
+      title="Refresh"
+      on:click={refreshBrews}
+      disabled={loading}
+    >
+      <ArrowPath />
+    </IconButton>
   </div>
 
   <!-- Error State -->

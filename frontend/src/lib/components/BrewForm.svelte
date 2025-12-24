@@ -270,7 +270,7 @@
           type="text"
           bind:value={name}
           on:input={markNameTouched}
-          placeholder={previewName || 'Name your brew'}
+          placeholder={previewName || 'Automatically generated brew name for you'}
           disabled={loading}
         />
         <small>

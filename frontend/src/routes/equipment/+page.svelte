@@ -1,25 +1,8 @@
 <script lang="ts">
-  import { tick } from 'svelte';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import EquipmentSection from '$lib/components/EquipmentSection.svelte';
-  import { Plus } from '$lib/icons';
 
   let activeType: 'machine' | 'grinder' = 'machine';
-  let showMachineForm = true;
-  let showGrinderForm = true;
-
-  async function focusForm(type: 'machine' | 'grinder') {
-    activeType = type;
-    if (type === 'machine') {
-      showMachineForm = true;
-    } else {
-      showGrinderForm = true;
-    }
-
-    await tick();
-    const form = document.getElementById(`${type}-form`);
-    form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
 </script>
 
 <svelte:head>
@@ -34,16 +17,6 @@
         <p class="voice-line">Keep what serves you close.</p>
         <h1>Equipment</h1>
         <p>Machines and grinders ready when you are.</p>
-      </div>
-      <div class="equipment-actions">
-        <button class="btn-primary" type="button" on:click={() => focusForm('machine')}>
-          <Plus />
-          Machine
-        </button>
-        <button class="btn-primary" type="button" on:click={() => focusForm('grinder')}>
-          <Plus />
-          Grinder
-        </button>
       </div>
     </div>
 
@@ -68,9 +41,9 @@
 
     <div class="equipment-sections">
       {#if activeType === 'machine'}
-        <EquipmentSection equipmentType="machine" bind:showForm={showMachineForm} />
+        <EquipmentSection equipmentType="machine" />
       {:else}
-        <EquipmentSection equipmentType="grinder" bind:showForm={showGrinderForm} />
+        <EquipmentSection equipmentType="grinder" />
       {/if}
     </div>
   </div>
@@ -81,13 +54,6 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
-  }
-
-  .equipment-actions {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    justify-content: flex-end;
   }
 
   .equipment-tabs {
@@ -128,11 +94,6 @@
   }
 
   @media (max-width: 768px) {
-    .equipment-actions {
-      width: 100%;
-      justify-content: flex-start;
-    }
-
     .equipment-tabs {
       width: 100%;
       justify-content: space-between;
