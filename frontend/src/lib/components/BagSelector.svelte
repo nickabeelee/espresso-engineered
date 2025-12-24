@@ -3,7 +3,7 @@
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ChevronDown, Plus } from '$lib/icons';
+  import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
 
   import InlineBagCreator from './InlineBagCreator.svelte';
 
@@ -220,15 +220,20 @@
         </button>
         {#if isOpen}
           <div class="bag-combobox-panel" on:keydown={closeIfEscape}>
-            <input
-              bind:this={searchInput}
-              type="text"
-              bind:value={searchTerm}
-              placeholder="e.g., Winter Blend"
-              class="bag-search-input"
-              {disabled}
-              on:keydown={handleSearchKey}
-            />
+            <div class="search-field">
+              <span class="search-icon" aria-hidden="true">
+                <MagnifyingGlass size={18} />
+              </span>
+              <input
+                bind:this={searchInput}
+                type="text"
+                bind:value={searchTerm}
+                placeholder="e.g., Winter Blend"
+                class="bag-search-input"
+                {disabled}
+                on:keydown={handleSearchKey}
+              />
+            </div>
             {#if userBags.length === 0}
               <div class="combobox-empty">
                 <p>You don't have any coffee bags yet.</p>
@@ -413,10 +418,26 @@
     z-index: 5;
   }
 
+  .search-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    color: var(--text-ink-muted);
+    display: inline-flex;
+    align-items: center;
+    pointer-events: none;
+  }
+
   .bag-search-input {
     width: 100%;
     margin-bottom: 0.75rem;
     font-size: 16px;
+    padding: 0.6rem 0.75rem 0.6rem 2.3rem;
   }
 
   .bag-options {

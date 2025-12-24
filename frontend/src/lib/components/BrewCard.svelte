@@ -33,12 +33,15 @@
         {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
       </span>
     </div>
-    <div class="brew-chips">
+  <div class="brew-chips">
       <span class="status-chip" class:draft={isDraft(brew)} class:complete={!isDraft(brew)}>
         {isDraft(brew) ? 'Draft' : 'Complete'}
       </span>
       {#if baristaName}
         <span class="barista-chip">{baristaName}</span>
+      {/if}
+      {#if isDraft(brew)}
+        <a href="/brews/{brew.id}?edit=true" class="action-link">Complete</a>
       {/if}
     </div>
   </div>
@@ -92,12 +95,6 @@
     </div>
   {/if}
 
-  <div class="brew-actions">
-    <a href="/brews/{brew.id}" class="btn-secondary">View</a>
-    {#if isDraft(brew)}
-      <a href="/brews/{brew.id}?edit=true" class="btn-primary">Complete</a>
-    {/if}
-  </div>
 </article>
 
 <style>
@@ -130,7 +127,7 @@
 
   .brew-title {
     margin: 0;
-    font-size: 1.25rem;
+    font-size: 1.05rem;
   }
 
   .brew-title a {
@@ -175,13 +172,18 @@
   }
 
   .barista-chip {
-    padding: 0.2rem 0.5rem;
+    padding: 0.2rem 0.75rem;
     border-radius: 999px;
     font-size: 0.75rem;
     font-weight: 600;
     background: rgba(123, 94, 58, 0.12);
     color: var(--text-ink-secondary);
     border: 1px solid rgba(123, 94, 58, 0.25);
+    min-width: 8.5rem;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .brew-meta {
@@ -241,19 +243,32 @@
     font-style: italic;
   }
 
-  .brew-actions {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
+  .action-link {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    text-decoration: none;
+  }
+
+  .action-link:hover {
+    text-decoration: underline;
   }
 
   @media (max-width: 768px) {
+    .brew-title {
+      font-size: 1rem;
+    }
+
     .brew-details {
       grid-template-columns: 1fr;
     }
 
     .brew-chips {
       align-items: flex-start;
+    }
+
+    .barista-chip {
+      min-width: 100%;
     }
   }
 </style>
