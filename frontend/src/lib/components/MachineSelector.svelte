@@ -142,7 +142,7 @@
           on:keydown={closeIfEscape}
           {disabled}
         >
-          <span>{selectedLabel}</span>
+          <span class:selection-placeholder={!selectedMachine}>{selectedLabel}</span>
           <span class="chevron">
             <ChevronDown size={16} />
           </span>
@@ -343,11 +343,14 @@
     position: relative;
     display: flex;
     align-items: center;
+    margin-bottom: 0.75rem;
   }
 
   .search-icon {
     position: absolute;
+    top: 50%;
     left: 0.75rem;
+    transform: translateY(-50%);
     color: var(--text-ink-muted);
     display: inline-flex;
     align-items: center;
@@ -356,9 +359,12 @@
 
   .machine-search-input {
     width: 100%;
-    margin-bottom: 0.75rem;
     font-size: 16px;
     padding: 0.6rem 0.75rem 0.6rem 2.3rem;
+  }
+  .selection-placeholder {
+    color: var(--text-ink-muted);
+    opacity: var(--text-placeholder-opacity);
   }
 
   .machine-options {

@@ -1,6 +1,7 @@
 name: Deploy Backend to Fly.io
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - release
@@ -19,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: release
 
       - name: Setup Flyctl
         uses: superfly/flyctl-actions/setup-flyctl@v1

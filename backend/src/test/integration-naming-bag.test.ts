@@ -4,7 +4,7 @@
  * 
  * Requirements tested:
  * - 1.1: Bag name format "{owner's display_name}'s {bean_name} {roast_date}"
- * - 1.2: Roast date formatting as "YYYY-MM-DD"
+ * - 1.2: Roast date formatting as "MM/DD/YY"
  * - 1.3: Fallback to "Unknown Roast" for missing roast dates
  * - 1.4: Special character preservation in bag names
  * - 1.5: Automatic name setting in bag.name field
@@ -132,7 +132,7 @@ describe('Bag Creation Integration Tests', () => {
       testBagId = result.data.id;
 
       // Validate name format: "{owner's display_name}'s {bean_name} {roast_date}"
-      expect(result.data.name).toBe("Test Barista's Ethiopian Yirgacheffe 2023-12-01");
+      expect(result.data.name).toBe("Test Barista's Ethiopian Yirgacheffe 12/01/23");
       
       // Verify name is stored in database
       const { data: bagData, error } = await supabase
@@ -142,7 +142,7 @@ describe('Bag Creation Integration Tests', () => {
         .single();
 
       expect(error).toBeNull();
-      expect(bagData?.name).toBe("Test Barista's Ethiopian Yirgacheffe 2023-12-01");
+      expect(bagData?.name).toBe("Test Barista's Ethiopian Yirgacheffe 12/01/23");
     });
 
     it('should handle missing roast date with fallback', async () => {
@@ -204,7 +204,7 @@ describe('Bag Creation Integration Tests', () => {
       testBagId = result.data.id;
 
       // Special characters should be preserved
-      expect(result.data.name).toBe("Test Barista's Café Münchën Naïve 2023-12-01");
+      expect(result.data.name).toBe("Test Barista's Café Münchën Naïve 12/01/23");
       
       // Clean up special bean
       await supabase.from('bean').delete().eq('id', specialBean!.id);
@@ -254,7 +254,7 @@ describe('Bag Creation Integration Tests', () => {
 
       // Preview and final names should match exactly
       expect(createResult.data.name).toBe(previewName);
-      expect(previewName).toBe("Test Barista's Ethiopian Yirgacheffe 2023-12-15");
+      expect(previewName).toBe("Test Barista's Ethiopian Yirgacheffe 12/15/23");
     });
 
     it('should handle preview with missing roast date', async () => {
@@ -319,7 +319,7 @@ describe('Bag Creation Integration Tests', () => {
       const result = await response.json() as ApiResponse;
       
       // Should use first_name
-      expect(result.data.name).toBe("FirstOnly's Ethiopian Yirgacheffe 2023-12-01");
+      expect(result.data.name).toBe("FirstOnly's Ethiopian Yirgacheffe 12/01/23");
       
       // Clean up
       await supabase.from('bag').delete().eq('id', result.data.id);
@@ -369,7 +369,7 @@ describe('Bag Creation Integration Tests', () => {
       const result = await response.json() as ApiResponse;
       
       // Should use "Anonymous" fallback
-      expect(result.data.name).toBe("Anonymous's Ethiopian Yirgacheffe 2023-12-01");
+      expect(result.data.name).toBe("Anonymous's Ethiopian Yirgacheffe 12/01/23");
       
       // Clean up
       await supabase.from('bag').delete().eq('id', result.data.id);
@@ -422,9 +422,9 @@ describe('Bag Creation Integration Tests', () => {
   describe('Date Formatting', () => {
     it('should format various date formats correctly', async () => {
       const testDates = [
-        { input: '2023-01-15', expected: '2023-01-15' },
-        { input: '2023-12-31', expected: '2023-12-31' },
-        { input: '2024-02-29', expected: '2024-02-29' } // Leap year
+        { input: '2023-01-15', expected: '01/15/23' },
+        { input: '2023-12-31', expected: '12/31/23' },
+        { input: '2024-02-29', expected: '02/29/24' } // Leap year
       ];
 
       for (const testCase of testDates) {
@@ -495,7 +495,7 @@ describe('Bag Creation Integration Tests', () => {
       expect(error).toBeNull();
       expect(bagData?.name).toBeDefined();
       expect(bagData?.name).toBe(result.data.name);
-      expect(bagData?.name).toBe("Test Barista's Ethiopian Yirgacheffe 2023-12-20");
+      expect(bagData?.name).toBe("Test Barista's Ethiopian Yirgacheffe 12/20/23");
     });
   });
 });

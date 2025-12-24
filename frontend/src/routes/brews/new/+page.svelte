@@ -3,6 +3,8 @@
   import { goto } from '$app/navigation';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BrewForm from '$lib/components/BrewForm.svelte';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { XMark } from '$lib/icons';
   import { apiClient } from '$lib/api-client';
   import { OfflineStorage, ConnectivityManager } from '$lib/offline-storage';
   import { syncService } from '$lib/sync-service';
@@ -98,7 +100,15 @@
         <h1>New Brew</h1>
         <p>Record the session as it unfolds.</p>
       </div>
-      <a href="/brews" class="btn-secondary">Back</a>
+      <IconButton
+        on:click={handleCancel}
+        ariaLabel="Back to brews"
+        title="Close"
+        variant="neutral"
+        disabled={loading}
+      >
+        <XMark />
+      </IconButton>
     </div>
 
     {#if prefillFromLast}

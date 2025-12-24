@@ -21,7 +21,7 @@ export const DEFAULT_NAMING_CONFIG: NamingServiceConfig = {
       brewDate: 'Unknown Date'
     }
   },
-  dateFormat: 'YYYY-MM-DD',
+  dateFormat: 'MM/DD/YY',
   timeFormat: 'HH:MM',
   defaultTimezone: 'UTC',
   maxRetries: 3,
@@ -70,7 +70,7 @@ export const NAMING_FALLBACKS = {
  */
 export const NAMING_FORMATS = {
   DATE: {
-    ROAST_DATE: 'YYYY-MM-DD',
+    ROAST_DATE: 'MM/DD/YY',
     ISO_DATE: 'YYYY-MM-DDTHH:mm:ss.sssZ'
   },
   TIME: {

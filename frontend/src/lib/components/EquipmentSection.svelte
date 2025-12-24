@@ -4,7 +4,7 @@
   import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
   import ImageUpload from '$lib/components/ImageUpload.svelte';
-  import { ArrowDownTray, PencilSquare, Trash, XMark } from '$lib/icons';
+  import { ArrowDownTray, ArrowPath, PencilSquare, Trash, XMark } from '$lib/icons';
   import { getImageUrl } from '$lib/utils/image-utils';
   import { buildEquipmentUsageStats, formatMostUsedBy } from '$lib/utils/usage-stats';
   import type { Barista } from '@shared/types';
@@ -453,9 +453,15 @@
   <div class="list-section card">
     <div class="list-header">
       <h3>{selectedConfig.title}</h3>
-      <button type="button" class="btn-secondary" on:click={loadItems} disabled={loading}>
-        Refresh
-      </button>
+      <IconButton
+        type="button"
+        ariaLabel={`Refresh ${selectedConfig.title}`}
+        title="Refresh"
+        on:click={loadItems}
+        disabled={loading}
+      >
+        <ArrowPath />
+      </IconButton>
     </div>
 
     {#if error}
