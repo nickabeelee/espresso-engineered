@@ -6,5 +6,6 @@ export { default as PencilSquare } from './outline/PencilSquare.svelte';
 export { default as Trash } from './outline/Trash.svelte';
 export { default as XMark } from './outline/XMark.svelte';
 export { default as ArrowDownTray } from './outline/ArrowDownTray.svelte';
+export { default as ArrowPath } from './outline/ArrowPath.svelte';
 export { default as ChevronDown } from './outline/ChevronDown.svelte';
 export { default as MagnifyingGlass } from './outline/MagnifyingGlass.svelte';

@@ -47,7 +47,7 @@ describe('Naming Configuration', () => {
     });
 
     it('should have correct format settings', () => {
-      expect(DEFAULT_NAMING_CONFIG.dateFormat).toBe('YYYY-MM-DD');
+      expect(DEFAULT_NAMING_CONFIG.dateFormat).toBe('MM/DD/YY');
       expect(DEFAULT_NAMING_CONFIG.timeFormat).toBe('HH:MM');
       expect(DEFAULT_NAMING_CONFIG.defaultTimezone).toBe('UTC');
     });
@@ -107,7 +107,7 @@ describe('Naming Configuration', () => {
 
   describe('NAMING_FORMATS', () => {
     it('should have date formats', () => {
-      expect(NAMING_FORMATS.DATE.ROAST_DATE).toBe('YYYY-MM-DD');
+      expect(NAMING_FORMATS.DATE.ROAST_DATE).toBe('MM/DD/YY');
       expect(NAMING_FORMATS.DATE.ISO_DATE).toBe('YYYY-MM-DDTHH:mm:ss.sssZ');
     });
 

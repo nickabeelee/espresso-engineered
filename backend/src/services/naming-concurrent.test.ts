@@ -72,7 +72,7 @@ describe('NamingService Concurrent Creation Safety', () => {
       // All results should be identical
       expect(results).toHaveLength(5);
       results.forEach(result => {
-        expect(result).toBe("Test Barista's Test Bean 2024-01-01");
+        expect(result).toBe("Test Barista's Test Bean 01/01/24");
       });
 
       // Database should only be queried once for each entity due to deduplication
@@ -134,7 +134,9 @@ describe('NamingService Concurrent Creation Safety', () => {
       // All results should be generated successfully
       expect(results).toHaveLength(3);
       results.forEach(result => {
-        expect(result).toMatch(/Test Barista Test Bean \d{2}:\d{2}/);
+        expect(result).toMatch(
+          /^Test Barista[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Test Bean \d{2}\/\d{2}\/\d{2}$/
+        );
       });
 
       // Each request should have its own database queries since timestamps differ
@@ -190,7 +192,9 @@ describe('NamingService Concurrent Creation Safety', () => {
       // All results should be identical - may include UTC indicator due to time normalization
       expect(results).toHaveLength(4);
       results.forEach(result => {
-        expect(result).toMatch(/^Test Barista Test Bean 10:00( UTC)?$/);
+        expect(result).toMatch(
+          /^Test Barista[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Test Bean \d{2}\/\d{2}\/\d{2}$/
+        );
       });
 
       // Database should only be queried once due to deduplication
@@ -254,11 +258,11 @@ describe('NamingService Concurrent Creation Safety', () => {
       expect(results[1].status).toBe('fulfilled');
       
       if (results[0].status === 'fulfilled') {
-        expect(results[0].value).toBe("Test Barista's Test Bean 2024-01-01");
+        expect(results[0].value).toBe("Test Barista's Test Bean 01/01/24");
       }
       
       if (results[1].status === 'fulfilled') {
-        expect(results[1].value).toBe("Anonymous's Test Bean 2024-01-01"); // Uses fallback
+        expect(results[1].value).toBe("Anonymous's Test Bean 01/01/24"); // Uses fallback
       }
     });
   });
@@ -375,7 +379,9 @@ describe('NamingService Concurrent Creation Safety', () => {
       // All requests should succeed
       expect(results).toHaveLength(50);
       results.forEach(result => {
-        expect(result).toMatch(/Test Barista Test Bean \d{2}:\d{2}/);
+        expect(result).toMatch(
+          /^Test Barista[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Test Bean \d{2}\/\d{2}\/\d{2}$/
+        );
       });
 
       // Each request should have made its own database calls (no deduplication due to different timestamps)
@@ -448,16 +454,20 @@ describe('NamingService Concurrent Creation Safety', () => {
       expect(results).toHaveLength(4);
       
       // Bag names should follow bag format
-      expect(results[0]).toBe("Mixed Tester's Mixed Bean 2024-01-01");
-      expect(results[1]).toBe("Mixed Tester's Mixed Bean 2024-01-02");
+      expect(results[0]).toBe("Mixed Tester's Mixed Bean 01/01/24");
+      expect(results[1]).toBe("Mixed Tester's Mixed Bean 01/02/24");
       
       // Brew names should follow brew format
-      expect(results[2]).toMatch(/Mixed Tester Mixed Bean \d{2}:\d{2}/);
-      expect(results[3]).toMatch(/Mixed Tester Mixed Bean \d{2}:\d{2}/);
+      expect(results[2]).toMatch(
+        /^Mixed Tester[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Mixed Bean \d{2}\/\d{2}\/\d{2}$/
+      );
+      expect(results[3]).toMatch(
+        /^Mixed Tester[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Mixed Bean \d{2}\/\d{2}\/\d{2}$/
+      );
       
       // Verify no cross-contamination between formats
-      expect(results[2]).not.toContain("'s"); // Brew names don't have possessive
-      expect(results[3]).not.toContain("'s"); // Brew names don't have possessive
+      expect(results[2]).toMatch(/Tester[’']s/);
+      expect(results[3]).toMatch(/Tester[’']s/);
     });
   });
 

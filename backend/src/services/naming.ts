@@ -966,7 +966,7 @@ export class NamingService {
   }
 
   /**
-   * Format roast date as YYYY-MM-DD or return fallback
+   * Format roast date as MM/DD/YY or return fallback
    */
   private formatRoastDate(roastDate?: string): string {
     if (!roastDate) {
@@ -979,22 +979,27 @@ export class NamingService {
         return this.config.bagTemplate.fallbacks.roastDate;
       }
 
-      // Format as YYYY-MM-DD
-      return date.toISOString().split('T')[0];
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        year: '2-digit',
+        month: '2-digit',
+        day: '2-digit'
+      });
+
+      return formatter.format(date);
     } catch {
       return this.config.bagTemplate.fallbacks.roastDate;
     }
   }
 
   /**
-   * Format brew date as a short, timezone-aware string (YYYY-MM-DD)
+   * Format brew date as a short, timezone-aware string (MM/DD/YY)
    */
   private formatBrewDate(createdAt: Date, timezone?: string): string {
     try {
       const effectiveTimezone = timezone || this.config.defaultTimezone;
-      const formatter = new Intl.DateTimeFormat('en-CA', {
+      const formatter = new Intl.DateTimeFormat('en-US', {
         timeZone: effectiveTimezone,
-        year: 'numeric',
+        year: '2-digit',
         month: '2-digit',
         day: '2-digit'
       });

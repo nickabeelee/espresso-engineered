@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { adminService } from '../admin-service.js';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ArrowDownTray, PencilSquare, Trash, XMark } from '$lib/icons';
+  import { ArrowDownTray, ArrowPath, PencilSquare, Trash, XMark } from '$lib/icons';
 
 
   export let entityType: 'brews' | 'beans' | 'bags' | 'grinders' | 'machines' | 'roasters' | 'baristas';
@@ -249,12 +249,14 @@
       </h1>
       <p class="text-gray-600 mt-1">View and manage all {config.title.toLowerCase()} in the system</p>
     </div>
-    <button 
+    <IconButton
       on:click={loadEntities}
-      class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+      ariaLabel={`Refresh ${config.title.toLowerCase()}`}
+      title="Refresh"
+      disabled={loading}
     >
-      Refresh
-    </button>
+      <ArrowPath />
+    </IconButton>
   </div>
 
   {#if error}
