@@ -189,6 +189,10 @@
     }
     return 'Unknown Bag';
   }
+
+  function handleClose() {
+    goto('/brews');
+  }
 </script>
 
 <svelte:head>
@@ -200,12 +204,14 @@
   <div class="brew-detail-page">
     <header>
       <div>
-        <a href="/brews" class="back-link">Back to Brews</a>
         <h1>{brew?.name || 'Untitled Brew'}</h1>
       </div>
       
-      {#if canEdit && brew}
-        <div class="actions">
+      <div class="actions">
+        <IconButton on:click={handleClose} ariaLabel="Back to brews" title="Close" variant="neutral" disabled={loading}>
+          <XMark />
+        </IconButton>
+        {#if canEdit && brew}
           {#if editing}
             <IconButton on:click={toggleEdit} ariaLabel="Cancel editing" title="Cancel" variant="neutral" disabled={loading}>
               <XMark />
@@ -224,8 +230,8 @@
           >
             <Trash />
           </IconButton>
-        </div>
-      {/if}
+        {/if}
+      </div>
     </header>
 
   {#if loading}
@@ -479,18 +485,6 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 1.5rem;
-  }
-
-  .back-link {
-    color: var(--accent-primary);
-    text-decoration: none;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .back-link:hover {
-    color: var(--accent-primary-dark);
   }
 
   h1 {
