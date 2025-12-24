@@ -159,7 +159,7 @@ describe('Brew Creation Integration Tests', () => {
 
       // Validate name format: "{barista's display_name}'s {ordinal?} {timeOfDay} {bean_name} {date}"
       expect(result.data.name).toMatch(
-        /^Brew Tester[’']s? (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening) Colombian Supremo \d{4}-\d{2}-\d{2}$/
+        /^Brew Tester[’']s? (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Colombian Supremo \d{4}-\d{2}-\d{2}$/
       );
       
       // Verify name is stored in database
@@ -207,7 +207,7 @@ describe('Brew Creation Integration Tests', () => {
 
       // Name should be generated with timezone-aware context
       expect(result.data.name).toMatch(
-        /^Brew Tester[’']s? (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening) Colombian Supremo \d{4}-\d{2}-\d{2}$/
+        /^Brew Tester[’']s? (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Colombian Supremo \d{4}-\d{2}-\d{2}$/
       );
     });
   });

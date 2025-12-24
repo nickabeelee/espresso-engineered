@@ -257,6 +257,7 @@
   .auth-page {
     display: flex;
     justify-content: center;
+    padding: 2.5rem 1.5rem;
   }
 
   .auth-container {

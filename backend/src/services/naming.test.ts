@@ -174,7 +174,7 @@ describe('NamingService Foundation', () => {
 
       // Should use fallback values when database is not available
       expect(result).toMatch(
-        /^Anonymous[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening) Unknown Bean \d{4}-\d{2}-\d{2}$/
+        /^Anonymous[’']s (\d+(?:st|nd|rd|th) )?(morning|afternoon|evening|night) Unknown Bean \d{4}-\d{2}-\d{2}$/
       );
     });
 
