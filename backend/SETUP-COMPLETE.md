@@ -11,7 +11,7 @@ SUPABASE_URL=https://fobpgsqvotpeagrczcsq.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_6RWwU7zleaS3JujVUycBgw_LdagzHTm
 PORT=8080
 HOST=0.0.0.0
-FRONTEND_URL=http://localhost:5173
+ALLOWED_ORIGIN_SUFFIXES=.espressoengineered.com,.netlify.app
 NODE_ENV=development
 LOG_LEVEL=info
 ```

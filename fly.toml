@@ -6,7 +6,7 @@ primary_region = "dfw"
 
 [env]
   PORT = "8080"
-  FRONTEND_URLS = "https://espresso-engineered.netlify.app,https://espressoengineered.com,https://www.espressoengineered.com"
+  ALLOWED_ORIGIN_SUFFIXES = ".espressoengineered.com,.netlify.app"
 
 [[services]]
   internal_port = 8080

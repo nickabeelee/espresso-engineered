@@ -82,7 +82,7 @@ flyctl launch --no-deploy
 flyctl secrets set \
   SUPABASE_URL=your-supabase-url \
   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
-  FRONTEND_URL=https://your-frontend-domain
+  ALLOWED_ORIGIN_SUFFIXES=.espressoengineered.com,.netlify.app
 ```
 
 4. Deploy:

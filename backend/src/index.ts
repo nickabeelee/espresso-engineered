@@ -7,6 +7,7 @@ import multipart from '@fastify/multipart';
 import { errorHandler } from './middleware/error.js';
 import { authenticateRequest, optionalAuthentication } from './middleware/auth.js';
 import { initializeDatabase } from './config/database.js';
+import { isOriginAllowed, parseAllowedOriginSuffixes } from './utils/origin-validation.js';
 
 const fastify = Fastify({
   logger: {
@@ -20,13 +21,13 @@ const start = async () => {
     // Initialize database connection
     await initializeDatabase();
 
-    // Register CORS
-    const frontendOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || 'http://localhost:5173')
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter(Boolean);
+    // Register CORS (suffix-based to support Netlify previews without per-deploy config).
+    const allowedOriginSuffixes = parseAllowedOriginSuffixes();
     await fastify.register(cors, {
-      origin: frontendOrigins.length === 1 ? frontendOrigins[0] : frontendOrigins,
+      origin: (origin, callback) => {
+        const allowed = isOriginAllowed(origin, allowedOriginSuffixes);
+        callback(null, allowed);
+      },
       credentials: true
     });
 
