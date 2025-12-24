@@ -703,8 +703,8 @@ export class NamingService {
     // Use detected timezone or fallback
     const timezone = timezoneDetection.detected || timezoneDetection.fallback;
 
-    const brewSequence = await this.getBrewSequenceForDay(baristaId, createdAt, timezone);
     const timeOfDay = this.getTimeOfDayLabel(createdAt, timezone);
+    const brewSequence = await this.getBrewSequenceForDayAndTimeOfDay(baristaId, createdAt, timeOfDay, timezone);
     const brewDate = this.formatBrewDate(createdAt, timezone);
 
     return {
@@ -1012,14 +1012,7 @@ export class NamingService {
   private getTimeOfDayLabel(createdAt: Date, timezone?: string): string {
     try {
       const effectiveTimezone = timezone || this.config.defaultTimezone;
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: effectiveTimezone,
-        hour: 'numeric',
-        hour12: false
-      });
-
-      const hourPart = formatter.formatToParts(createdAt).find((part) => part.type === 'hour');
-      const hour = hourPart ? parseInt(hourPart.value, 10) : createdAt.getUTCHours();
+      const { hour } = this.getLocalDateParts(createdAt, effectiveTimezone);
 
       if (hour >= 5 && hour < 12) {
         return 'morning';
@@ -1027,8 +1020,11 @@ export class NamingService {
       if (hour >= 12 && hour < 17) {
         return 'afternoon';
       }
+      if (hour >= 17 && hour < 22) {
+        return 'evening';
+      }
 
-      return 'evening';
+      return 'night';
     } catch (error) {
       console.warn(`Failed to determine time of day for timezone ${timezone}:`, error);
       return this.config.brewTemplate.fallbacks.timeOfDay;
@@ -1036,35 +1032,76 @@ export class NamingService {
   }
 
   /**
-   * Get the brew sequence number for the day to build ordinal labels
+   * Get the brew sequence number for the day and time of day to build ordinal labels
    */
-  private async getBrewSequenceForDay(baristaId: string, createdAt: Date, timezone?: string): Promise<number> {
-    const { start, end } = this.getDayBounds(createdAt, timezone || this.config.defaultTimezone);
+  private async getBrewSequenceForDayAndTimeOfDay(
+    baristaId: string,
+    createdAt: Date,
+    timeOfDay: string,
+    timezone?: string
+  ): Promise<number> {
+    const effectiveTimezone = timezone || this.config.defaultTimezone;
+    const { start, end } = this.getTimeOfDayBounds(createdAt, timeOfDay, effectiveTimezone);
 
     return NamingErrorHandler.handleDatabaseOperation(
       async () => {
-        const { count, error } = await supabase
-          .from('brew')
-          .select('id', { count: 'exact', head: true })
-          .eq('barista_id', baristaId)
-          .gte('created_at', start.toISOString())
-          .lt('created_at', end.toISOString());
+        const ranges = Array.isArray(start) ? start.map((rangeStart, index) => ({
+          start: rangeStart,
+          end: (end as Date[])[index]
+        })) : [{ start: start as Date, end: end as Date }];
 
-        if (error) {
-          throw new NamingDatabaseError('select', 'brew', new Error(error.message));
+        let totalCount = 0;
+
+        for (const range of ranges) {
+          const { count, error } = await supabase
+            .from('brew')
+            .select('id', { count: 'exact', head: true })
+            .eq('barista_id', baristaId)
+            .gte('created_at', range.start.toISOString())
+            .lt('created_at', range.end.toISOString());
+
+          if (error) {
+            throw new NamingDatabaseError('select', 'brew', new Error(error.message));
+          }
+
+          totalCount += count || 0;
         }
 
-        return (count || 0) + 1;
+        return totalCount + 1;
       },
       1,
       {
-        operationName: 'getBrewSequenceForDay',
+        operationName: 'getBrewSequenceForDayAndTimeOfDay',
         table: 'brew',
-        query: `SELECT count(*) FROM brew WHERE barista_id = '${baristaId}' AND created_at >= '${start.toISOString()}' AND created_at < '${end.toISOString()}'`,
+        query: Array.isArray(start)
+          ? `SELECT count(*) FROM brew WHERE barista_id = '${baristaId}' AND ((created_at >= '${(start as Date[])[0].toISOString()}' AND created_at < '${(end as Date[])[0].toISOString()}') OR (created_at >= '${(start as Date[])[1].toISOString()}' AND created_at < '${(end as Date[])[1].toISOString()}'))`
+          : `SELECT count(*) FROM brew WHERE barista_id = '${baristaId}' AND created_at >= '${(start as Date).toISOString()}' AND created_at < '${(end as Date).toISOString()}'`,
         entityType: 'brew',
         entityId: baristaId
       }
     );
+  }
+
+  /**
+   * Calculate the UTC bounds for the provided timezone-local date parts
+   */
+  private getLocalDateParts(date: Date, timezone: string): { year: number; month: number; day: number; hour: number } {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: 'numeric',
+      hour12: false
+    });
+
+    const parts = formatter.formatToParts(date);
+    const year = parseInt(parts.find((p) => p.type === 'year')?.value || `${date.getUTCFullYear()}`, 10);
+    const month = parseInt(parts.find((p) => p.type === 'month')?.value || `${date.getUTCMonth() + 1}`, 10) - 1;
+    const day = parseInt(parts.find((p) => p.type === 'day')?.value || `${date.getUTCDate()}`, 10);
+    const hour = parseInt(parts.find((p) => p.type === 'hour')?.value || `${date.getUTCHours()}`, 10);
+
+    return { year, month, day, hour };
   }
 
   /**
@@ -1087,6 +1124,50 @@ export class NamingService {
     const end = new Date(Date.UTC(year, month, day + 1, 0, 0, 0));
 
     return { start, end };
+  }
+
+  /**
+   * Calculate the UTC bounds for the provided timezone-local time-of-day window
+   */
+  private getTimeOfDayBounds(
+    date: Date,
+    timeOfDay: string,
+    timezone: string
+  ): { start: Date | Date[]; end: Date | Date[] } {
+    const { year, month, day } = this.getLocalDateParts(date, timezone);
+
+    const startOfDay = new Date(Date.UTC(year, month, day, 0, 0, 0));
+    const endOfDay = new Date(Date.UTC(year, month, day + 1, 0, 0, 0));
+
+    if (timeOfDay === 'morning') {
+      return {
+        start: new Date(Date.UTC(year, month, day, 5, 0, 0)),
+        end: new Date(Date.UTC(year, month, day, 12, 0, 0))
+      };
+    }
+
+    if (timeOfDay === 'afternoon') {
+      return {
+        start: new Date(Date.UTC(year, month, day, 12, 0, 0)),
+        end: new Date(Date.UTC(year, month, day, 17, 0, 0))
+      };
+    }
+
+    if (timeOfDay === 'evening') {
+      return {
+        start: new Date(Date.UTC(year, month, day, 17, 0, 0)),
+        end: new Date(Date.UTC(year, month, day, 22, 0, 0))
+      };
+    }
+
+    if (timeOfDay === 'night') {
+      return {
+        start: [startOfDay, new Date(Date.UTC(year, month, day, 22, 0, 0))],
+        end: [new Date(Date.UTC(year, month, day, 5, 0, 0)), endOfDay]
+      };
+    }
+
+    return { start: startOfDay, end: endOfDay };
   }
 
   /**
