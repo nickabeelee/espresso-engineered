@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import { adminService } from '$lib/admin-service';
   import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
   import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
@@ -11,6 +12,7 @@
   export let disabled = false;
 
   let bags = [];
+  let hasLoadedAdminBags = false;
   let beans = [];
   let roasters = [];
   let loading = true;
@@ -30,15 +32,28 @@
       loading = true;
       error = null;
 
-      const [bagsResponse, beansResponse, roastersResponse] = await Promise.all([
-        apiClient.getBags(),
-        apiClient.getBeans(),
-        apiClient.getRoasters()
-      ]);
+      if (isAdmin) {
+        const [adminBags, beansResponse, roastersResponse] = await Promise.all([
+          adminService.getAllBags(),
+          apiClient.getBeans(),
+          apiClient.getRoasters()
+        ]);
+        bags = adminBags;
+        beans = beansResponse.data;
+        roasters = roastersResponse.data;
+        hasLoadedAdminBags = true;
+      } else {
+        const [bagsResponse, beansResponse, roastersResponse] = await Promise.all([
+          apiClient.getBags(),
+          apiClient.getBeans(),
+          apiClient.getRoasters()
+        ]);
 
-      bags = bagsResponse.data;
-      beans = beansResponse.data;
-      roasters = roastersResponse.data;
+        bags = bagsResponse.data;
+        beans = beansResponse.data;
+        roasters = roastersResponse.data;
+        hasLoadedAdminBags = false;
+      }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load bags';
       console.error('Failed to load bags:', err);
@@ -96,46 +111,60 @@
     return bag.weight_g < 50; // Less than 50g
   }
 
+  $: isAdmin = Boolean($barista?.is_admin);
+  $: if (isAdmin && !hasLoadedAdminBags && !loading) {
+    loadData();
+  }
+
   // Filter bags to show only user's bags
   $: userBags = bags.filter(bag => bag.owner_id === $barista?.id);
+  $: otherBags = isAdmin ? bags.filter(bag => bag.owner_id !== $barista?.id) : [];
   $: selectedBag = bags.find((bag) => bag.id === value) || null;
   $: selectedLabel = selectedBag ? formatBagDisplay(selectedBag) : 'Select a bag...';
 
   // Filtered bags based on search
-  $: filteredBags = userBags.filter(bag => {
+  const matchesSearch = (bag: Bag) => {
     const bean = getBeanInfo(bag.bean_id);
     if (!bean) return false;
 
     const roasterName = getRoasterName(bean.roaster_id);
     const bagDisplay = formatBagDisplay(bag);
     
-    const matchesSearch = !searchTerm || 
+    return !searchTerm || 
       bagDisplay.toLowerCase().includes(searchTerm.toLowerCase()) ||
       bean.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       roasterName.toLowerCase().includes(searchTerm.toLowerCase());
+  };
 
-    return matchesSearch;
-  });
+  $: filteredUserBags = userBags.filter(matchesSearch);
+  $: filteredOtherBags = otherBags.filter(matchesSearch);
 
   // Sort bags: fresh first, then by roast date
-  $: sortedBags = filteredBags.sort((a, b) => {
-    // Fresh bags first
-    const aExpired = isExpired(a);
-    const bExpired = isExpired(b);
-    if (aExpired !== bExpired) {
-      return aExpired ? 1 : -1;
-    }
+  const sortBags = (bagList: Bag[]) => {
+    return [...bagList].sort((a, b) => {
+      // Fresh bags first
+      const aExpired = isExpired(a);
+      const bExpired = isExpired(b);
+      if (aExpired !== bExpired) {
+        return aExpired ? 1 : -1;
+      }
 
-    // Then by roast date (newest first)
-    if (a.roast_date && b.roast_date) {
-      return new Date(b.roast_date).getTime() - new Date(a.roast_date).getTime();
-    }
-    if (a.roast_date) return -1;
-    if (b.roast_date) return 1;
+      // Then by roast date (newest first)
+      if (a.roast_date && b.roast_date) {
+        return new Date(b.roast_date).getTime() - new Date(a.roast_date).getTime();
+      }
+      if (a.roast_date) return -1;
+      if (b.roast_date) return 1;
 
-    // Finally by creation date
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+      // Finally by creation date
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  };
+  $: sortedUserBags = sortBags(filteredUserBags);
+  $: sortedOtherBags = sortBags(filteredOtherBags);
+  $: selectableBags = [...sortedUserBags, ...sortedOtherBags];
+  $: hasAnyBags = userBags.length > 0 || (isAdmin && otherBags.length > 0);
+  $: hasMatches = sortedUserBags.length > 0 || (isAdmin && sortedOtherBags.length > 0);
 
   async function toggleOpen() {
     if (disabled) return;
@@ -160,9 +189,9 @@
   }
 
   function handleSearchKey(event: KeyboardEvent) {
-    if (event.key === 'Enter' && sortedBags.length > 0) {
+    if (event.key === 'Enter' && selectableBags.length > 0) {
       event.preventDefault();
-      selectBag(sortedBags[0]);
+      selectBag(selectableBags[0]);
     }
   }
 
@@ -234,14 +263,14 @@
                 on:keydown={handleSearchKey}
               />
             </div>
-            {#if userBags.length === 0}
+            {#if !hasAnyBags}
               <div class="combobox-empty">
                 <p>You don't have any coffee bags yet.</p>
                 <button type="button" on:click={openCreateForm} class="btn-primary" {disabled}>
                   Add Your First Bag
                 </button>
               </div>
-            {:else if sortedBags.length === 0}
+            {:else if !hasMatches}
               <div class="combobox-empty">
                 <p>No bags match your search.</p>
                 <button type="button" on:click={() => { searchTerm = ''; }} class="btn-secondary" {disabled}>
@@ -250,7 +279,7 @@
               </div>
             {:else}
               <ul class="bag-options">
-                {#each sortedBags as bag}
+                {#each sortedUserBags as bag}
                   {@const bean = getBeanInfo(bag.bean_id)}
                   <li>
                     <button
@@ -263,6 +292,24 @@
                     </button>
                   </li>
                 {/each}
+                {#if isAdmin && sortedOtherBags.length > 0}
+                  <li class="bag-divider" aria-hidden="true">
+                    <span>Other baristas&apos; bags</span>
+                  </li>
+                  {#each sortedOtherBags as bag}
+                    {@const bean = getBeanInfo(bag.bean_id)}
+                    <li>
+                      <button
+                        type="button"
+                        class="bag-option"
+                        on:click={() => selectBag(bag)}
+                      >
+                        <span class="option-title">{formatBagDisplay(bag)}</span>
+                        <span class="option-meta">{bean ? getRoasterName(bean.roaster_id) : 'Unknown roaster'}</span>
+                      </button>
+                    </li>
+                  {/each}
+                {/if}
               </ul>
             {/if}
           </div>
@@ -474,6 +521,26 @@
   .bag-option:hover {
     background: rgba(214, 199, 174, 0.24);
     border-color: rgba(123, 94, 58, 0.25);
+  }
+
+  .bag-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-ink-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0.35rem 0;
+  }
+
+  .bag-divider::before,
+  .bag-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+    opacity: 0.8;
   }
 
   .option-title {
