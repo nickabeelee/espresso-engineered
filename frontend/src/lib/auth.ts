@@ -6,6 +6,24 @@ import type { Barista } from '@shared/types';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'profile_missing' | 'error';
 
+const rawAuthRedirectBaseUrl = import.meta.env.VITE_AUTH_REDIRECT_BASE_URL
+  || import.meta.env.VITE_BACKEND_BASE_URL
+  || (import.meta.env.VITE_API_BASE_URL
+    ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '')
+    : '');
+
+function getAuthRedirectUrl(path: string) {
+  if (rawAuthRedirectBaseUrl) {
+    return `${rawAuthRedirectBaseUrl}${path}`;
+  }
+
+  if (browser) {
+    return `${window.location.origin}${path}`;
+  }
+
+  return path;
+}
+
 // Auth state stores
 export const user = writable<User | null>(null);
 export const session = writable<Session | null>(null);
@@ -250,7 +268,8 @@ class AuthService {
       email,
       password,
       options: {
-        data: metadata
+        data: metadata,
+        emailRedirectTo: getAuthRedirectUrl('/auth/new-account')
       }
     });
 
@@ -279,7 +298,9 @@ class AuthService {
   }
 
   async resetPassword(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: getAuthRedirectUrl('/auth/new-password')
+    });
     
     if (error) {
       throw new Error(error.message);
