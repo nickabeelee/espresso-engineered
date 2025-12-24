@@ -208,9 +208,11 @@
       </div>
       
       <div class="actions">
-        <IconButton on:click={handleClose} ariaLabel="Back to brews" title="Close" variant="neutral" disabled={loading}>
-          <XMark />
-        </IconButton>
+        {#if !editing}
+          <IconButton on:click={handleClose} ariaLabel="Back to brews" title="Close" variant="neutral" disabled={loading}>
+            <XMark />
+          </IconButton>
+        {/if}
         {#if canEdit && brew}
           {#if editing}
             <IconButton on:click={toggleEdit} ariaLabel="Cancel editing" title="Cancel" variant="neutral" disabled={loading}>
