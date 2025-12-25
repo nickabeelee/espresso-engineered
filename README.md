@@ -71,6 +71,30 @@ npm run build:all
 - **Database**: Supabase (PostgreSQL + Auth + Realtime)
 - **Testing**: Jest (backend), Vitest (frontend), fast-check (property-based testing)
 
+## Supabase Auth Email Links
+
+Use the backend callback endpoints in Supabase email templates so the API can redirect into the
+SvelteKit confirmation screens.
+
+- **Confirm signup email**: `{{ .SiteURL }}/auth/new-account?token_hash={{ .TokenHash }}&type=signup`
+- **Reset password email**: `{{ .SiteURL }}/auth/new-password?token_hash={{ .TokenHash }}&type=recovery`
+
+Make sure `Site URL` in Supabase is set to your backend base URL, and set `FRONTEND_BASE_URL`
+in the backend environment so redirects land on the correct frontend domain.
+
+### URL Sources (Fly.io + Netlify + Supabase)
+
+- **Backend base URL (Fly.io)**: Use the Fly.io app hostname for your Fastify service, e.g.
+  `https://your-app.fly.dev`. This is the value to set in Supabase **Auth → URL Configuration → Site URL**
+  because it must reach the `/auth/*` redirect routes on the backend.
+- **Frontend base URL (Netlify)**: Use your Netlify site URL from the Netlify dashboard, e.g.
+  `https://your-site.netlify.app` (or your custom domain if configured). This is the value to set
+  in the backend `FRONTEND_BASE_URL` environment variable so redirect routes land in the UI.
+- **Supabase project URL**: Found in the Supabase project settings under **API → Project URL**.
+  This value is not used in email templates, but it is the `VITE_SUPABASE_URL` the frontend uses.
+
+If you are using custom domains, substitute the custom domain for the Fly.io or Netlify URLs above.
+
 ## MVP Goals & Scope
 
 This README defines:
