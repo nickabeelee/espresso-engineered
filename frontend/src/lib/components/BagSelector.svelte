@@ -15,6 +15,7 @@
   let hasLoadedAdminBags = false;
   let beans = [];
   let roasters = [];
+  let lastUseByBagId: Record<string, number> = {};
   let loading = true;
   let error = null;
   let showCreateForm = false;
@@ -31,28 +32,36 @@
     try {
       loading = true;
       error = null;
+      const baristaId = $barista?.id;
+      const brewsPromise = baristaId
+        ? apiClient.getBrews({ barista_id: baristaId })
+        : Promise.resolve({ data: [], count: 0 });
 
       if (isAdmin) {
-        const [adminBags, beansResponse, roastersResponse] = await Promise.all([
+        const [adminBags, beansResponse, roastersResponse, brewsResponse] = await Promise.all([
           adminService.getAllBags(),
           apiClient.getBeans(),
-          apiClient.getRoasters()
+          apiClient.getRoasters(),
+          brewsPromise
         ]);
         bags = adminBags;
         beans = beansResponse.data;
         roasters = roastersResponse.data;
         hasLoadedAdminBags = true;
+        lastUseByBagId = getLastUseByBagId(brewsResponse.data);
       } else {
-        const [bagsResponse, beansResponse, roastersResponse] = await Promise.all([
+        const [bagsResponse, beansResponse, roastersResponse, brewsResponse] = await Promise.all([
           apiClient.getBags(),
           apiClient.getBeans(),
-          apiClient.getRoasters()
+          apiClient.getRoasters(),
+          brewsPromise
         ]);
 
         bags = bagsResponse.data;
         beans = beansResponse.data;
         roasters = roastersResponse.data;
         hasLoadedAdminBags = false;
+        lastUseByBagId = getLastUseByBagId(brewsResponse.data);
       }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load bags';
@@ -98,6 +107,17 @@
     return `${bean.name} - ${roasterName}${weight}${roastDate}`;
   }
 
+  function getLastUseByBagId(brews: Brew[]): Record<string, number> {
+    return brews.reduce<Record<string, number>>((acc, brew) => {
+      if (!brew.bag_id || !brew.created_at) return acc;
+      const brewedAt = new Date(brew.created_at).getTime();
+      if (!acc[brew.bag_id] || brewedAt > acc[brew.bag_id]) {
+        acc[brew.bag_id] = brewedAt;
+      }
+      return acc;
+    }, {});
+  }
+
   function isExpired(bag: Bag): boolean {
     if (!bag.roast_date) return false;
     const roastDate = new Date(bag.roast_date);
@@ -139,9 +159,30 @@
   $: filteredUserBags = userBags.filter(matchesSearch);
   $: filteredOtherBags = otherBags.filter(matchesSearch);
 
-  // Sort bags: fresh first, then by roast date
+  function getLastUsedTimestamp(bag: Bag): number | null {
+    return lastUseByBagId[bag.id] ?? null;
+  }
+
+  function formatRelativeTime(timestamp: number | null): string | null {
+    if (timestamp === null) return null;
+    const diff = Date.now() - timestamp;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  }
+
+  // Sort bags: last used first, then freshness and roast date
   const sortBags = (bagList: Bag[]) => {
     return [...bagList].sort((a, b) => {
+      const aLastUsed = getLastUsedTimestamp(a);
+      const bLastUsed = getLastUsedTimestamp(b);
+      if (aLastUsed !== bLastUsed) {
+        if (aLastUsed === null) return 1;
+        if (bLastUsed === null) return -1;
+        return bLastUsed - aLastUsed;
+      }
+
       // Fresh bags first
       const aExpired = isExpired(a);
       const bExpired = isExpired(b);
@@ -281,6 +322,7 @@
               <ul class="bag-options">
                 {#each sortedUserBags as bag}
                   {@const bean = getBeanInfo(bag.bean_id)}
+                  {@const lastUsed = getLastUsedTimestamp(bag)}
                   <li>
                     <button
                       type="button"
@@ -289,6 +331,11 @@
                     >
                       <span class="option-title">{formatBagDisplay(bag)}</span>
                       <span class="option-meta">{bean ? getRoasterName(bean.roaster_id) : 'Unknown roaster'}</span>
+                      {#if lastUsed !== null}
+                        <span class="option-meta option-meta--secondary">Last used {formatRelativeTime(lastUsed)}</span>
+                      {:else}
+                        <span class="option-meta option-meta--secondary">Not used yet</span>
+                      {/if}
                     </button>
                   </li>
                 {/each}
@@ -529,7 +576,6 @@
     gap: 0.75rem;
     color: var(--text-ink-muted);
     font-size: 0.75rem;
-    text-transform: uppercase;
     letter-spacing: 0.08em;
     margin: 0.35rem 0;
   }
@@ -550,6 +596,11 @@
   .option-meta {
     font-size: 0.85rem;
     color: var(--text-ink-muted);
+  }
+
+  .option-meta--secondary {
+    font-size: 0.78rem;
+    opacity: 0.75;
   }
 
   .combobox-empty {

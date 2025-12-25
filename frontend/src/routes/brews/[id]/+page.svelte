@@ -67,7 +67,7 @@
       const [
         machinesResponse,
         grindersResponse,
-        bagsResponse,
+        bagResponse,
         beansResponse,
         roastersResponse,
         brewsResponse,
@@ -75,7 +75,7 @@
       ] = await Promise.all([
         apiClient.getMachines(),
         apiClient.getGrinders(),
-        apiClient.getBags(),
+        apiClient.getBag(currentBrew.bag_id),
         apiClient.getBeans(),
         apiClient.getRoasters(),
         apiClient.getBrews(),
@@ -84,7 +84,7 @@
 
       machine = machinesResponse.data.find((item) => item.id === currentBrew.machine_id) || null;
       grinder = grindersResponse.data.find((item) => item.id === currentBrew.grinder_id) || null;
-      bag = bagsResponse.data.find((item) => item.id === currentBrew.bag_id) || null;
+      bag = bagResponse.data || null;
       bean = bag ? beansResponse.data.find((item) => item.id === bag.bean_id) || null : null;
       roaster = bean ? roastersResponse.data.find((item) => item.id === bean.roaster_id) || null : null;
       const { usageCounts, topBaristaByEquipment } = buildEquipmentUsageStats(
@@ -387,78 +387,91 @@
 
           <div class="detail-section card">
             <h3>Input Parameters</h3>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <label>Name:</label>
-                <span>{currentBrew.name || 'Untitled Brew'}</span>
+            <div class="metric-grid">
+              <div class="metric-card">
+                <span class="metric-label">Dose</span>
+                <div class="metric-value">{currentBrew.dose_g}g</div>
               </div>
-              <div class="detail-item">
-                <label>Dose:</label>
-                <span>{currentBrew.dose_g}g</span>
-              </div>
-              {#if currentBrew.grind_setting}
-                <div class="detail-item">
-                  <label>Grind Setting:</label>
-                  <span>{currentBrew.grind_setting}</span>
-                </div>
-              {/if}
-              <div class="detail-item">
-                <label>Created:</label>
-                <span>{new Date(currentBrew.created_at).toLocaleString()}</span>
-              </div>
-              <div class="detail-item">
-                <label>Modified:</label>
-                <span>{new Date(currentBrew.modified_at).toLocaleString()}</span>
+              <div class="metric-card">
+                <span class="metric-label">Grind Setting</span>
+                {#if currentBrew.grind_setting}
+                  <div class="metric-value">{currentBrew.grind_setting}</div>
+                {:else}
+                  <div class="metric-empty">Not recorded yet</div>
+                {/if}
               </div>
             </div>
           </div>
 
           <div class="detail-section card">
             <h3>Output Measurements</h3>
-            <div class="detail-grid">
-              {#if currentBrew.yield_g}
-                <div class="detail-item">
-                  <label>Yield:</label>
-                  <span>{currentBrew.yield_g}g</span>
-                </div>
-              {/if}
-              {#if currentBrew.brew_time_s}
-                <div class="detail-item">
-                  <label>Brew Time:</label>
-                  <span>{currentBrew.brew_time_s.toFixed(1)}s</span>
-                </div>
-              {/if}
-              {#if currentBrew.ratio}
-                <div class="detail-item">
-                  <label>Ratio:</label>
-                  <span>1:{currentBrew.ratio.toFixed(2)}</span>
-                </div>
-              {/if}
-              {#if currentBrew.flow_rate_g_per_s}
-                <div class="detail-item">
-                  <label>Flow Rate:</label>
-                  <span>{currentBrew.flow_rate_g_per_s.toFixed(1)} g/s</span>
-                </div>
-              {/if}
+            <div class="metric-grid">
+              <div class="metric-card">
+                <span class="metric-label">Yield</span>
+                {#if currentBrew.yield_g}
+                  <div class="metric-value">{currentBrew.yield_g}g</div>
+                {:else}
+                  <div class="metric-empty">Not recorded yet</div>
+                {/if}
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Brew Time</span>
+                {#if currentBrew.brew_time_s}
+                  <div class="metric-value">{currentBrew.brew_time_s.toFixed(1)}s</div>
+                {:else}
+                  <div class="metric-empty">Not recorded yet</div>
+                {/if}
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Ratio</span>
+                {#if currentBrew.ratio}
+                  <div class="metric-value">1:{currentBrew.ratio.toFixed(2)}</div>
+                {:else}
+                  <div class="metric-empty">Not recorded yet</div>
+                {/if}
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Flow Rate</span>
+                {#if currentBrew.flow_rate_g_per_s}
+                  <div class="metric-value">{currentBrew.flow_rate_g_per_s.toFixed(1)} g/s</div>
+                {:else}
+                  <div class="metric-empty">Not recorded yet</div>
+                {/if}
+              </div>
             </div>
           </div>
 
           <div class="detail-section card">
             <h3>Reflections</h3>
-            <div class="detail-grid">
-              {#if currentBrew.rating}
-                <div class="detail-item">
-                  <label>Rating:</label>
-                  <span>{currentBrew.rating}/10</span>
-                </div>
-              {/if}
+            <div class="reflection-grid">
+              <div class="reflection-field reflection-field--rating">
+                <span class="reflection-label">Rating</span>
+                {#if currentBrew.rating}
+                  <div class="reflection-rating">
+                    <span class="rating-value">{currentBrew.rating}</span>
+                    <span class="rating-denominator">/10</span>
+                  </div>
+                {:else}
+                  <div class="reflection-empty">Not recorded yet</div>
+                {/if}
+              </div>
+              <div class="reflection-field reflection-field--wide">
+                <span class="reflection-label">Tasting Notes</span>
+                {#if currentBrew.tasting_notes}
+                  <div class="reflection-body">{currentBrew.tasting_notes}</div>
+                {:else}
+                  <div class="reflection-empty">Not recorded yet</div>
+                {/if}
+              </div>
+              <div class="reflection-field reflection-field--wide">
+                <span class="reflection-label">Reflections</span>
+                {#if currentBrew.reflections}
+                  <div class="reflection-body">{currentBrew.reflections}</div>
+                {:else}
+                  <div class="reflection-empty">Not recorded yet</div>
+                {/if}
+              </div>
             </div>
-            {#if currentBrew.tasting_notes}
-              <p>{currentBrew.tasting_notes}</p>
-            {/if}
-            {#if currentBrew.reflections}
-              <p>{currentBrew.reflections}</p>
-            {/if}
           </div>
 
           {#if !currentBrew.yield_g || !currentBrew.rating}
@@ -546,6 +559,97 @@
     gap: 1rem;
   }
 
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .metric-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: var(--bg-surface-paper);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+  }
+
+  .metric-card--wide {
+    grid-column: span 2;
+  }
+
+  .metric-label {
+    font-weight: 600;
+    color: var(--text-ink-muted);
+    font-size: 0.9rem;
+  }
+
+  .metric-value {
+    color: var(--text-ink-primary);
+    font-size: 1.05rem;
+  }
+
+  .metric-empty {
+    color: var(--text-ink-muted);
+    font-size: 0.95rem;
+  }
+
+  .reflection-grid {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .reflection-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .reflection-field--rating {
+    justify-self: start;
+    width: min(220px, 100%);
+  }
+
+  .reflection-label {
+    font-weight: 600;
+    color: var(--text-ink-muted);
+    font-size: 0.95rem;
+  }
+
+  .reflection-rating {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.2rem;
+    font-size: 1.6rem;
+    color: var(--text-ink-primary);
+  }
+
+  .rating-denominator {
+    font-size: 0.95rem;
+    color: var(--text-ink-secondary);
+  }
+
+  .reflection-body {
+    background: var(--bg-surface-paper);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    color: var(--text-ink-secondary);
+    line-height: 1.65;
+    white-space: pre-wrap;
+  }
+
+  .reflection-empty {
+    background: var(--bg-surface-paper);
+    border: 1px dashed rgba(123, 94, 58, 0.35);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    color: var(--text-ink-muted);
+    font-size: 0.95rem;
+  }
+
+
   .equipment-loading {
     text-align: left;
     padding: 0.75rem 0;
@@ -563,7 +667,7 @@
     gap: 1.5rem;
     padding: 1rem;
     border-radius: var(--radius-md);
-    background: rgba(228, 214, 191, 0.6);
+    background: var(--bg-surface-paper);
     border: 1px solid rgba(123, 94, 58, 0.2);
   }
 
@@ -708,6 +812,10 @@
   }
 
   @media (max-width: 768px) {
+    .metric-card--wide {
+      grid-column: span 1;
+    }
+
     .equipment-card {
       flex-direction: column;
     }

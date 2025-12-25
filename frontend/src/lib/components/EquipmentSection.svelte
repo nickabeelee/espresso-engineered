@@ -690,7 +690,7 @@
     gap: 1.5rem;
     padding: 1rem;
     border-radius: var(--radius-md);
-    background: rgba(228, 214, 191, 0.6);
+    background: var(--bg-surface-paper);
     border: 1px solid rgba(123, 94, 58, 0.2);
   }
 
