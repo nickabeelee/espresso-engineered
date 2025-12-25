@@ -641,7 +641,7 @@
   }
 
   .reflection-empty {
-    background: rgba(228, 214, 191, 0.6);
+    background: var(--bg-surface-paper);
     border: 1px dashed rgba(123, 94, 58, 0.35);
     border-radius: var(--radius-md);
     padding: 0.75rem 1rem;

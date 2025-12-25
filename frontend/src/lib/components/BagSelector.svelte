@@ -576,7 +576,6 @@
     gap: 0.75rem;
     color: var(--text-ink-muted);
     font-size: 0.75rem;
-    text-transform: uppercase;
     letter-spacing: 0.08em;
     margin: 0.35rem 0;
   }
