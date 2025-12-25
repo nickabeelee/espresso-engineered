@@ -43,7 +43,7 @@ export async function bagRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /api/bags/:id - Get specific bag (authenticated, ownership validated)
+  // GET /api/bags/:id - Get specific bag (authenticated)
   fastify.get('/api/bags/:id', {
     preHandler: authenticateRequest
   }, async (request: FastifyRequest, reply: FastifyReply) => {
@@ -51,7 +51,7 @@ export async function bagRoutes(fastify: FastifyInstance) {
       const authRequest = request as AuthenticatedRequest;
       const { id } = request.params as { id: string };
       
-      const bag = await bagRepository.findByIdWithDetails(id, authRequest.barista!.id);
+      const bag = await bagRepository.findByIdWithDetails(id, authRequest.barista!.id, false);
       
       return { data: bag };
     } catch (error) {

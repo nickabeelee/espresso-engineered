@@ -67,7 +67,7 @@
       const [
         machinesResponse,
         grindersResponse,
-        bagsResponse,
+        bagResponse,
         beansResponse,
         roastersResponse,
         brewsResponse,
@@ -75,7 +75,7 @@
       ] = await Promise.all([
         apiClient.getMachines(),
         apiClient.getGrinders(),
-        apiClient.getBags(),
+        apiClient.getBag(currentBrew.bag_id),
         apiClient.getBeans(),
         apiClient.getRoasters(),
         apiClient.getBrews(),
@@ -84,7 +84,7 @@
 
       machine = machinesResponse.data.find((item) => item.id === currentBrew.machine_id) || null;
       grinder = grindersResponse.data.find((item) => item.id === currentBrew.grinder_id) || null;
-      bag = bagsResponse.data.find((item) => item.id === currentBrew.bag_id) || null;
+      bag = bagResponse.data || null;
       bean = bag ? beansResponse.data.find((item) => item.id === bag.bean_id) || null : null;
       roaster = bean ? roastersResponse.data.find((item) => item.id === bean.roaster_id) || null : null;
       const { usageCounts, topBaristaByEquipment } = buildEquipmentUsageStats(

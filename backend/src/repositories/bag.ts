@@ -62,8 +62,12 @@ export class BagRepository extends BaseRepository<Bag> {
   /**
    * Find bag by ID with bean and roaster details
    */
-  async findByIdWithDetails(id: string, baristaId: string): Promise<Bag> {
-    const { data, error } = await supabase
+  async findByIdWithDetails(
+    id: string,
+    baristaId?: string,
+    requireOwnership = true
+  ): Promise<Bag> {
+    let query = supabase
       .from(this.tableName)
       .select(`
         *,
@@ -80,9 +84,13 @@ export class BagRepository extends BaseRepository<Bag> {
           )
         )
       `)
-      .eq('id', id)
-      .eq('owner_id', baristaId)
-      .single();
+      .eq('id', id);
+
+    if (requireOwnership && baristaId) {
+      query = query.eq('owner_id', baristaId);
+    }
+
+    const { data, error } = await query.single();
 
     if (error) {
       if (error.code === 'PGRST116') {
