@@ -24,7 +24,7 @@ export class AdminService {
     recentBrews: Brew[];
     flaggedContent: any[];
   }> {
-    const response = await apiClient.get('/api/admin/dashboard');
+    const response = await apiClient.get('/admin/dashboard');
     return response.data;
   }
 
@@ -41,29 +41,29 @@ export class AdminService {
       });
     }
     
-    const response = await apiClient.get(`/api/admin/brews?${params.toString()}`);
+    const response = await apiClient.get(`/admin/brews?${params.toString()}`);
     return response.data;
   }
 
   async getBrewById(id: string): Promise<Brew> {
-    const response = await apiClient.get(`/api/admin/brews/${id}`);
+    const response = await apiClient.get(`/admin/brews/${id}`);
     return response.data;
   }
 
   async updateBrew(id: string, data: Partial<Brew>): Promise<Brew> {
-    const response = await apiClient.put(`/api/admin/brews/${id}`, data);
+    const response = await apiClient.put(`/admin/brews/${id}`, data);
     return response.data;
   }
 
   async deleteBrew(id: string): Promise<void> {
-    await apiClient.delete(`/api/admin/brews/${id}`);
+    await apiClient.delete(`/admin/brews/${id}`);
   }
 
   /**
    * Barista management
    */
   async getAllBaristas(): Promise<Barista[]> {
-    const response = await apiClient.get('/api/admin/baristas');
+    const response = await apiClient.get('/admin/baristas');
     return response.data;
   }
 
@@ -71,46 +71,46 @@ export class AdminService {
    * Bean management
    */
   async getAllBeans(): Promise<Bean[]> {
-    const response = await apiClient.get('/api/admin/beans');
+    const response = await apiClient.get('/admin/beans');
     return response.data;
   }
 
   async updateBean(id: string, data: Partial<Bean>): Promise<Bean> {
-    const response = await apiClient.put(`/api/admin/beans/${id}`, data);
+    const response = await apiClient.put(`/admin/beans/${id}`, data);
     return response.data;
   }
 
   async deleteBean(id: string): Promise<void> {
-    await apiClient.delete(`/api/admin/beans/${id}`);
+    await apiClient.delete(`/admin/beans/${id}`);
   }
 
   /**
    * Bag management
    */
   async getAllBags(): Promise<Bag[]> {
-    const response = await apiClient.get('/api/admin/bags');
+    const response = await apiClient.get('/admin/bags');
     return response.data;
   }
 
   async updateBag(id: string, data: Partial<Bag>): Promise<Bag> {
-    const response = await apiClient.put(`/api/admin/bags/${id}`, data);
+    const response = await apiClient.put(`/admin/bags/${id}`, data);
     return response.data;
   }
 
   async deleteBag(id: string): Promise<void> {
-    await apiClient.delete(`/api/admin/bags/${id}`);
+    await apiClient.delete(`/admin/bags/${id}`);
   }
 
   /**
    * Name override operations
    */
   async overrideBagName(id: string, name: string, reason?: string): Promise<Bag> {
-    const response = await apiClient.put(`/api/admin/bags/${id}/name`, { name, reason });
+    const response = await apiClient.put(`/admin/bags/${id}/name`, { name, reason });
     return response.data;
   }
 
   async overrideBrewName(id: string, name: string, reason?: string): Promise<Brew> {
-    const response = await apiClient.put(`/api/admin/brews/${id}/name`, { name, reason });
+    const response = await apiClient.put(`/admin/brews/${id}/name`, { name, reason });
     return response.data;
   }
 
@@ -118,51 +118,51 @@ export class AdminService {
    * Grinder management
    */
   async getAllGrinders(): Promise<Grinder[]> {
-    const response = await apiClient.get('/api/admin/grinders');
+    const response = await apiClient.get('/admin/grinders');
     return response.data;
   }
 
   async updateGrinder(id: string, data: Partial<Grinder>): Promise<Grinder> {
-    const response = await apiClient.put(`/api/admin/grinders/${id}`, data);
+    const response = await apiClient.put(`/admin/grinders/${id}`, data);
     return response.data;
   }
 
   async deleteGrinder(id: string): Promise<void> {
-    await apiClient.delete(`/api/admin/grinders/${id}`);
+    await apiClient.delete(`/admin/grinders/${id}`);
   }
 
   /**
    * Machine management
    */
   async getAllMachines(): Promise<Machine[]> {
-    const response = await apiClient.get('/api/admin/machines');
+    const response = await apiClient.get('/admin/machines');
     return response.data;
   }
 
   async updateMachine(id: string, data: Partial<Machine>): Promise<Machine> {
-    const response = await apiClient.put(`/api/admin/machines/${id}`, data);
+    const response = await apiClient.put(`/admin/machines/${id}`, data);
     return response.data;
   }
 
   async deleteMachine(id: string): Promise<void> {
-    await apiClient.delete(`/api/admin/machines/${id}`);
+    await apiClient.delete(`/admin/machines/${id}`);
   }
 
   /**
    * Roaster management
    */
   async getAllRoasters(): Promise<Roaster[]> {
-    const response = await apiClient.get('/api/admin/roasters');
+    const response = await apiClient.get('/admin/roasters');
     return response.data;
   }
 
   async updateRoaster(id: string, data: Partial<Roaster>): Promise<Roaster> {
-    const response = await apiClient.put(`/api/admin/roasters/${id}`, data);
+    const response = await apiClient.put(`/admin/roasters/${id}`, data);
     return response.data;
   }
 
   async deleteRoaster(id: string): Promise<void> {
-    await apiClient.delete(`/api/admin/roasters/${id}`);
+    await apiClient.delete(`/admin/roasters/${id}`);
   }
 }
 
