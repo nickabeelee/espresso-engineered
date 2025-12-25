@@ -213,6 +213,10 @@ class ApiClient {
     return this.makeRequest<ListResponse<Bag>>('/bags');
   }
 
+  async getBag(id: string): Promise<ApiResponse<Bag>> {
+    return this.makeRequest<ApiResponse<Bag>>(`/bags/${id}`);
+  }
+
   async createBag(bag: CreateBagRequest): Promise<ApiResponse<Bag>> {
     return this.makeRequest<ApiResponse<Bag>>('/bags', {
       method: 'POST',
@@ -311,6 +315,7 @@ export const {
   getBeans,
   createBean,
   getBags,
+  getBag,
   createBag,
   previewBagName,
   getGrinders,

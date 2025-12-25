@@ -17,7 +17,7 @@
       }
 
       // Try to access admin dashboard to verify admin status
-      await apiClient.get('/api/admin/dashboard');
+      await apiClient.get('/admin/dashboard');
       isAdmin = true;
     } catch (err: any) {
       if (err.status === 403) {
