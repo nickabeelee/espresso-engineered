@@ -18,8 +18,8 @@ This implementation plan transforms the existing bean and bag data model into a 
   - **Property 11: Schema Migration Integrity**
   - **Validates: Requirements 11.1, 11.2, 11.4**
 
-- [ ] 2. Backend API Extensions
-  - [ ] 2.1 Extend bag routes for inventory status support
+- [x] 2. Backend API Extensions
+  - [x] 2.1 Extend bag routes for inventory status support
     - Add inventory_status field to bag creation and update operations
     - Update bag filtering to support status-based queries
     - Modify bag response objects to include inventory_status
@@ -29,7 +29,7 @@ This implementation plan transforms the existing bean and bag data model into a 
     - **Property 4: Inventory Status Management**
     - **Validates: Requirements 5.1, 5.2, 5.3**
 
-  - [ ] 2.3 Implement bean rating API routes
+  - [x] 2.3 Implement bean rating API routes
     - Create POST /api/beans/:id/rating for rating creation
     - Create PUT /api/beans/:id/rating for rating updates
     - Create DELETE /api/beans/:id/rating for rating removal
@@ -40,8 +40,8 @@ This implementation plan transforms the existing bean and bag data model into a 
     - **Property 6: Rating System Integrity**
     - **Validates: Requirements 10.2, 10.3, 10.4, 10.5**
 
-- [ ] 3. Enhanced Bean API with Ownership Context
-  - [ ] 3.1 Add ownership and usage context to bean responses
+- [x] 3. Enhanced Bean API with Ownership Context
+  - [x] 3.1 Add ownership and usage context to bean responses
     - Calculate ownership status (owned, previously owned, never owned)
     - Add "most used by me" indicators based on brew history
     - Include personal and community ratings in responses
@@ -52,7 +52,7 @@ This implementation plan transforms the existing bean and bag data model into a 
     - **Property 2: Ownership Status Accuracy**
     - **Validates: Requirements 2.2, 2.4, 7.5**
 
-  - [ ] 3.3 Enhance bean search and filtering capabilities
+  - [x] 3.3 Enhance bean search and filtering capabilities
     - Extend search to include tasting notes and descriptive fields
     - Add "My Beans" filter option to existing roaster/roast level filters
     - Implement filter combination logic using AND operations
@@ -62,7 +62,7 @@ This implementation plan transforms the existing bean and bag data model into a 
     - **Property 3: Filter Combination Logic**
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6**
 
-- [ ] 4. Checkpoint - Backend API Validation
+- [-] 4. Checkpoint - Backend API Validation
   - Ensure all new API endpoints are functional
   - Verify database migrations are applied correctly
   - Test permission enforcement for new operations

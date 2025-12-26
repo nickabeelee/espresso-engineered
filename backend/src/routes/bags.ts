@@ -16,18 +16,31 @@ export async function bagRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const authRequest = request as AuthenticatedRequest;
-      const { bean_id, active_only } = request.query as { 
+      const { bean_id, active_only, inventory_status } = request.query as { 
         bean_id?: string;
         active_only?: string;
+        inventory_status?: string;
       };
       
       let bags;
       if (bean_id) {
+        const filters: Record<string, any> = {};
+        if (inventory_status) {
+          filters.inventory_status = inventory_status;
+        }
         bags = await bagRepository.findByBean(bean_id, authRequest.barista!.id);
+        // Apply inventory_status filter if provided
+        if (inventory_status) {
+          bags = bags.filter(bag => bag.inventory_status === inventory_status);
+        }
       } else if (active_only === 'true') {
         bags = await bagRepository.findActiveBags(authRequest.barista!.id);
       } else {
-        bags = await bagRepository.findManyWithDetails(authRequest.barista!.id);
+        const filters: Record<string, any> = {};
+        if (inventory_status) {
+          filters.inventory_status = inventory_status;
+        }
+        bags = await bagRepository.findManyWithDetails(authRequest.barista!.id, filters);
       }
 
       return {

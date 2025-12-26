@@ -3,6 +3,9 @@ import { z } from 'zod';
 // Roast level enum validation
 export const roastLevelSchema = z.enum(['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark']);
 
+// Inventory status enum validation
+export const inventoryStatusSchema = z.enum(['unopened', 'plenty', 'getting_low', 'empty']);
+
 // UUID validation helper
 const uuidSchema = z.string().uuid('Invalid UUID format');
 
@@ -50,7 +53,8 @@ export const createBagSchema = z.object({
   roast_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
   weight_g: positiveNumber.optional(),
   price: nonNegativeNumber.optional(),
-  purchase_location: z.string().max(255).optional()
+  purchase_location: z.string().max(255).optional(),
+  inventory_status: inventoryStatusSchema.optional()
 });
 
 export const createGrinderSchema = z.object({
@@ -71,6 +75,12 @@ export const createRoasterSchema = z.object({
   name: z.string().min(1).max(255),
   website_url: z.string().url().optional()
 });
+
+export const createBeanRatingSchema = z.object({
+  rating: z.number().int().min(1).max(5)
+});
+
+export const updateBeanRatingSchema = createBeanRatingSchema;
 
 // Query parameter schemas
 export const brewFiltersSchema = z.object({
