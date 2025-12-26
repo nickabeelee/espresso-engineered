@@ -128,6 +128,12 @@
               Reflection
             </a>
             <a
+              href="/beans"
+              class:active={$page.url.pathname === '/beans' || $page.url.pathname.startsWith('/beans/')}
+            >
+              Beans
+            </a>
+            <a
               href="/equipment"
               class:active={$page.url.pathname === '/equipment' || $page.url.pathname.startsWith('/equipment/')}
             >

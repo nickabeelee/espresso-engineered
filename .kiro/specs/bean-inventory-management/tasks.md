@@ -62,14 +62,14 @@ This implementation plan transforms the existing bean and bag data model into a 
     - **Property 3: Filter Combination Logic**
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6**
 
-- [-] 4. Checkpoint - Backend API Validation
-  - Ensure all new API endpoints are functional
-  - Verify database migrations are applied correctly
-  - Test permission enforcement for new operations
-  - Ask the user if questions arise
+- [x] 4. Checkpoint - Backend API Validation
+  - ✅ Ensure all new API endpoints are functional
+  - ✅ Verify database migrations are applied correctly
+  - ✅ Test permission enforcement for new operations
+  - ✅ Ask the user if questions arise
 
-- [ ] 5. Frontend Navigation Integration
-  - [ ] 5.1 Add "Beans" navigation item to main layout
+- [-] 5. Frontend Navigation Integration
+  - [x] 5.1 Add "Beans" navigation item to main layout
     - Insert "Beans" link before "Equipment" in navigation
     - Implement active state styling consistent with existing patterns
     - Create route handler for /beans path
@@ -80,7 +80,7 @@ This implementation plan transforms the existing bean and bag data model into a 
     - Test route navigation behavior
     - _Requirements: 1.1, 1.2_
 
-- [ ] 6. Bean List Component Implementation
+- [-] 6. Bean List Component Implementation
   - [ ] 6.1 Create BeanList component based on BrewList patterns
     - Implement search functionality across bean names and tasting notes
     - Add filter controls for roaster, roast level, and "My Beans" toggle
