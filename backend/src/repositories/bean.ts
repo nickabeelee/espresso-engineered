@@ -321,51 +321,79 @@ export class BeanRepository extends BaseRepository<Bean> {
     totalBrews: number;
     mostUsedByMe: boolean;
   }> {
-    // Get total brews for this bean by this barista
-    // First get all bags for this bean owned by this barista
-    const { data: bags, error: bagError } = await supabase
+    // Get total brews for this bean across all baristas (community-wide)
+    const { data: allBags, error: allBagsError } = await supabase
+      .from('bag')
+      .select('id')
+      .eq('bean_id', beanId);
+
+    if (allBagsError) {
+      throw new Error(`Database error: ${allBagsError.message}`);
+    }
+
+    if (!allBags || allBags.length === 0) {
+      return { totalBrews: 0, mostUsedByMe: false };
+    }
+
+    const allBagIds = allBags.map(bag => bag.id);
+
+    // Get total brew count for this bean (community-wide)
+    const { data: allBrews, error: allBrewsError } = await supabase
+      .from('brew')
+      .select('id')
+      .in('bag_id', allBagIds);
+
+    if (allBrewsError) {
+      throw new Error(`Database error: ${allBrewsError.message}`);
+    }
+
+    const totalBrews = allBrews?.length || 0;
+
+    // Calculate "most used by me" by comparing this barista's usage with other beans
+    // First get bags for this bean owned by this barista
+    const { data: myBags, error: myBagsError } = await supabase
       .from('bag')
       .select('id')
       .eq('bean_id', beanId)
       .eq('owner_id', baristaId);
 
-    if (bagError) {
-      throw new Error(`Database error: ${bagError.message}`);
+    if (myBagsError) {
+      throw new Error(`Database error: ${myBagsError.message}`);
     }
 
-    if (!bags || bags.length === 0) {
-      return { totalBrews: 0, mostUsedByMe: false };
+    if (!myBags || myBags.length === 0) {
+      return { totalBrews, mostUsedByMe: false };
     }
 
-    const bagIds = bags.map(bag => bag.id);
+    const myBagIds = myBags.map(bag => bag.id);
 
-    // Get brew count for these bags
-    const { data: baristaBrews, error: baristaError } = await supabase
+    // Get brew count for this bean by this barista
+    const { data: myBrews, error: myBrewsError } = await supabase
       .from('brew')
       .select('id')
       .eq('barista_id', baristaId)
-      .in('bag_id', bagIds);
+      .in('bag_id', myBagIds);
 
-    if (baristaError) {
-      throw new Error(`Database error: ${baristaError.message}`);
+    if (myBrewsError) {
+      throw new Error(`Database error: ${myBrewsError.message}`);
     }
 
-    const totalBrews = baristaBrews?.length || 0;
+    const myBrewCount = myBrews?.length || 0;
 
     // Determine if this is "most used by me" by comparing with other beans
     // Get brew counts for all beans used by this barista
-    const { data: allBrewCounts, error: allBrewsError } = await supabase
+    const { data: allBrewCounts, error: allBrewCountsError } = await supabase
       .rpc('get_barista_bean_brew_counts', { barista_id_param: baristaId });
 
-    if (allBrewsError) {
+    if (allBrewCountsError) {
       // If RPC doesn't exist, fall back to simple logic
-      const mostUsedByMe = totalBrews >= 3; // Simple threshold
+      const mostUsedByMe = myBrewCount >= 3; // Simple threshold
       return { totalBrews, mostUsedByMe };
     }
 
     // Find the maximum brew count for this barista
     const maxBrewCount = Math.max(...(allBrewCounts?.map((item: any) => item.brew_count) || [0]));
-    const mostUsedByMe = totalBrews > 0 && totalBrews === maxBrewCount && totalBrews >= 3;
+    const mostUsedByMe = myBrewCount > 0 && myBrewCount === maxBrewCount && myBrewCount >= 3;
 
     return { totalBrews, mostUsedByMe };
   }
@@ -374,11 +402,11 @@ export class BeanRepository extends BaseRepository<Bean> {
    * Get bag count for a bean and barista
    */
   private async getBagCount(beanId: string, baristaId: string): Promise<number> {
+    // Get total bag count for this bean across all baristas (community-wide)
     const { data, error } = await supabase
       .from('bag')
       .select('id')
-      .eq('bean_id', beanId)
-      .eq('owner_id', baristaId);
+      .eq('bean_id', beanId);
 
     if (error) {
       throw new Error(`Database error: ${error.message}`);
