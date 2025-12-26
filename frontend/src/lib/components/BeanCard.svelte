@@ -2,9 +2,12 @@
   import { goto } from '$app/navigation';
   import { createEventDispatcher } from 'svelte';
   import { barista } from '$lib/auth';
-  import { getBeanPermissions, handlePermissionError } from '$lib/permissions';
-  import { apiClient } from '$lib/api-client';
+  import { getBeanPermissions } from '$lib/permissions';
+  import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
+  import { AppError } from '$lib/utils/error-handling';
   import IconButton from '$lib/components/IconButton.svelte';
+  import Chip from '$lib/components/Chip.svelte';
+  import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import { PencilSquare, Trash } from '$lib/icons';
   import type { BeanWithContext, Roaster } from '@shared/types';
 
@@ -18,7 +21,7 @@
 
   let showActions = false;
   let isDeleting = false;
-  let deleteError: string | null = null;
+  let deleteError: AppError | null = null;
 
   $: permissions = getBeanPermissions($barista, bean);
 
@@ -39,16 +42,15 @@
     }
   }
 
-  function getOwnershipClass(status: string): string {
+  function getOwnershipVariant(status: string): 'success' | 'warning' | 'neutral' {
     switch (status) {
       case 'owned':
-        return 'owned';
+        return 'success';
       case 'previously_owned':
-        return 'previously-owned';
+        return 'warning';
       case 'never_owned':
-        return 'community';
       default:
-        return 'unknown';
+        return 'neutral';
     }
   }
 
@@ -92,7 +94,10 @@
     event.stopPropagation();
     
     if (!permissions.canDelete) {
-      deleteError = 'Only administrators can delete beans.';
+      deleteError = new AppError(
+        'Only administrators can delete beans.',
+        { operation: 'delete', entityType: 'bean', retryable: false }
+      );
       return;
     }
 
@@ -104,14 +109,26 @@
     deleteError = null;
 
     try {
-      await apiClient.delete(`/admin/beans/${bean.id}`);
+      await enhancedApiClient.deleteBean(bean.id);
       dispatch('beanDeleted', bean.id);
     } catch (error) {
-      deleteError = handlePermissionError(error as Error, 'delete', 'bean');
+      deleteError = error instanceof AppError ? error : new AppError(
+        'Failed to delete bean',
+        { operation: 'delete', entityType: 'bean', retryable: false },
+        error as Error
+      );
       console.error('Failed to delete bean:', error);
     } finally {
       isDeleting = false;
     }
+  }
+
+  function handleRetryDelete() {
+    handleDeleteClick(new MouseEvent('click'));
+  }
+
+  function handleDismissError() {
+    deleteError = null;
   }
 </script>
 
@@ -159,22 +176,27 @@
 
   <!-- Permission error display -->
   {#if deleteError}
-    <div class="permission-error">
-      {deleteError}
-    </div>
+    <ErrorDisplay
+      error={deleteError}
+      variant="inline"
+      size="sm"
+      context="bean deletion"
+      on:retry={handleRetryDelete}
+      on:dismiss={handleDismissError}
+    />
   {/if}
   <div class="bean-header">
     <div class="bean-chips">
       {#if roaster}
-        <span class="roaster-chip">{roaster.name}</span>
+        <Chip variant="neutral" size="sm">{roaster.name}</Chip>
       {/if}
       <div class="status-group">
         {#if bean.most_used_by_me}
-          <span class="most-used-chip">Most Used by Me</span>
+          <Chip variant="accent" size="sm">Most Used by Me</Chip>
         {/if}
-        <span class="ownership-chip {getOwnershipClass(bean.ownership_status)}">
+        <Chip variant={getOwnershipVariant(bean.ownership_status)} size="sm">
           {getOwnershipLabel(bean.ownership_status)}
-        </span>
+        </Chip>
       </div>
     </div>
     <div class="bean-heading">
@@ -348,58 +370,6 @@
     margin-left: auto;
   }
 
-  .ownership-chip {
-    padding: 0.25rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border: 1px solid transparent;
-  }
-
-  .ownership-chip.owned {
-    background: rgba(85, 98, 74, 0.18);
-    color: var(--semantic-success);
-    border-color: rgba(85, 98, 74, 0.35);
-  }
-
-  .ownership-chip.previously-owned {
-    background: rgba(138, 106, 62, 0.18);
-    color: var(--semantic-warning);
-    border-color: rgba(138, 106, 62, 0.35);
-  }
-
-  .ownership-chip.community {
-    background: rgba(123, 94, 58, 0.12);
-    color: var(--text-ink-secondary);
-    border-color: rgba(123, 94, 58, 0.25);
-  }
-
-  .most-used-chip {
-    padding: 0.25rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: rgba(176, 138, 90, 0.18);
-    color: var(--accent-primary);
-    border: 1px solid rgba(176, 138, 90, 0.35);
-  }
-
-  .roaster-chip {
-    display: inline-block;
-    padding: 0.2rem 0.75rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: rgba(123, 94, 58, 0.12);
-    color: var(--text-ink-secondary);
-    border: 1px solid rgba(123, 94, 58, 0.25);
-    max-width: 14rem;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .bean-details {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -486,10 +456,6 @@
 
     .bean-chips {
       align-items: center;
-    }
-
-    .roaster-chip {
-      max-width: 100%;
     }
 
     .bean-meta {

@@ -4,11 +4,16 @@
   import { goto } from '$app/navigation';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
+  import Chip from '$lib/components/Chip.svelte';
   import BeanRating from '$lib/components/BeanRating.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
-  import { apiClient } from '$lib/api-client';
+  import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
+  import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
+  import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
+  import { AppError } from '$lib/utils/error-handling';
   import { barista } from '$lib/auth';
-  import { getBeanPermissions, getBagPermissions, handlePermissionError } from '$lib/permissions';
+  import { getBeanPermissions, getBagPermissions } from '$lib/permissions';
   import { XMark, PencilSquare, Trash } from '$lib/icons';
   import type { BeanWithContext, Roaster, Bag, Barista as BaristaType } from '@shared/types';
 
@@ -16,14 +21,14 @@
   let roaster: Roaster | null = null;
   let bags: Bag[] = [];
   let baristasById: Record<string, BaristaType> = {};
-  let loading = true;
-  let error: string | null = null;
+  let error: AppError | null = null;
   let personalRating: number | null = null;
   let isDeleting = false;
-  let permissionError: string | null = null;
+  let permissionError: AppError | null = null;
 
   $: beanId = $page.params.id;
   $: beanPermissions = getBeanPermissions($barista, bean || undefined);
+  $: isLoading = globalLoadingManager.isLoading(LoadingKeys.BEAN_DETAIL);
 
   onMount(async () => {
     if (beanId) {
@@ -32,15 +37,14 @@
   });
 
   async function loadBeanDetails(id: string) {
-    loading = true;
     error = null;
     
     try {
       const [beanResponse, roastersResponse, bagsResponse, baristasResponse] = await Promise.all([
-        apiClient.getBean(id),
-        apiClient.getRoasters(),
-        apiClient.getBags(),
-        apiClient.getBaristas()
+        enhancedApiClient.getBean(id),
+        enhancedApiClient.getRoasters(),
+        enhancedApiClient.getBags(),
+        enhancedApiClient.get('/baristas')
       ]);
 
       if (beanResponse.data) {
@@ -62,9 +66,11 @@
         throw new Error('Bean not found');
       }
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load bean details';
-    } finally {
-      loading = false;
+      error = err instanceof AppError ? err : new AppError(
+        'Failed to load bean details',
+        { operation: 'load', entityType: 'bean details', retryable: true },
+        err as Error
+      );
     }
   }
 
@@ -89,16 +95,15 @@
     }
   }
 
-  function getOwnershipClass(status: string): string {
+  function getOwnershipVariant(status: string): 'success' | 'warning' | 'neutral' {
     switch (status) {
       case 'owned':
-        return 'owned';
+        return 'success';
       case 'previously_owned':
-        return 'previously-owned';
+        return 'warning';
       case 'never_owned':
-        return 'community';
       default:
-        return 'unknown';
+        return 'neutral';
     }
   }
 
@@ -124,7 +129,10 @@
 
   function handleEditBean() {
     if (!beanPermissions.canEdit) {
-      permissionError = 'You don\'t have permission to edit this bean.';
+      permissionError = new AppError(
+        'You don\'t have permission to edit this bean.',
+        { operation: 'edit', entityType: 'bean', retryable: false }
+      );
       return;
     }
     // TODO: Implement bean editing modal/form
@@ -133,7 +141,10 @@
 
   async function handleDeleteBean() {
     if (!bean || !beanPermissions.canDelete) {
-      permissionError = 'Only administrators can delete beans.';
+      permissionError = new AppError(
+        'Only administrators can delete beans.',
+        { operation: 'delete', entityType: 'bean', retryable: false }
+      );
       return;
     }
 
@@ -145,14 +156,36 @@
     permissionError = null;
 
     try {
-      await apiClient.delete(`/admin/beans/${bean.id}`);
+      await enhancedApiClient.deleteBean(bean.id);
       goto('/beans');
     } catch (err) {
-      permissionError = handlePermissionError(err as Error, 'delete', 'bean');
+      permissionError = err instanceof AppError ? err : new AppError(
+        'Failed to delete bean',
+        { operation: 'delete', entityType: 'bean', retryable: false },
+        err as Error
+      );
       console.error('Failed to delete bean:', err);
     } finally {
       isDeleting = false;
     }
+  }
+
+  function handleRetryLoad() {
+    if (beanId) {
+      loadBeanDetails(beanId);
+    }
+  }
+
+  function handleRetryDelete() {
+    handleDeleteBean();
+  }
+
+  function handleDismissError() {
+    error = null;
+  }
+
+  function handleDismissPermissionError() {
+    permissionError = null;
   }
 
   async function handleRatingChanged(event: CustomEvent<{ rating: number | null }>) {
@@ -201,7 +234,7 @@
               ariaLabel="Edit bean" 
               title="Edit bean" 
               variant="neutral" 
-              disabled={loading}
+              disabled={$isLoading}
             >
               <PencilSquare />
             </IconButton>
@@ -213,29 +246,41 @@
               ariaLabel="Delete bean" 
               title="Delete bean" 
               variant="danger" 
-              disabled={loading || isDeleting}
+              disabled={$isLoading || isDeleting}
             >
               <Trash />
             </IconButton>
           {/if}
         {/if}
         
-        <IconButton on:click={handleClose} ariaLabel="Back to beans" title="Close" variant="neutral" disabled={loading}>
+        <IconButton on:click={handleClose} ariaLabel="Back to beans" title="Close" variant="neutral" disabled={$isLoading}>
           <XMark />
         </IconButton>
       </div>
     </header>
 
-    {#if loading}
-      <div class="loading">Loading bean details...</div>
+    {#if $isLoading}
+      <div class="loading">
+        <LoadingIndicator variant="spinner" size="lg" message="Loading bean details..." />
+      </div>
     {:else if error}
-      <div class="error">Error: {error}</div>
+      <ErrorDisplay
+        error={error}
+        variant="banner"
+        context="bean details"
+        on:retry={handleRetryLoad}
+        on:dismiss={handleDismissError}
+      />
     {:else if bean}
       <!-- Permission error display -->
       {#if permissionError}
-        <div class="permission-error">
-          {permissionError}
-        </div>
+        <ErrorDisplay
+          error={permissionError}
+          variant="inline"
+          context="bean operations"
+          on:retry={handleRetryDelete}
+          on:dismiss={handleDismissPermissionError}
+        />
       {/if}
       
       <div class="bean-content">
@@ -267,15 +312,15 @@
             
             <div class="info-item">
               <span class="info-label">Status</span>
-              <span class="ownership-chip {getOwnershipClass(bean.ownership_status)}">
+              <Chip variant={getOwnershipVariant(bean.ownership_status)} size="sm">
                 {getOwnershipLabel(bean.ownership_status)}
-              </span>
+              </Chip>
             </div>
             
             {#if bean.most_used_by_me}
               <div class="info-item">
                 <span class="info-label">Usage</span>
-                <span class="most-used-chip">Most Used by Me</span>
+                <Chip variant="accent" size="sm">Most Used by Me</Chip>
               </div>
             {/if}
           </div>
@@ -523,44 +568,6 @@
   .info-value {
     color: var(--text-ink-primary);
     font-size: 1.05rem;
-  }
-
-  .ownership-chip {
-    padding: 0.25rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border: 1px solid transparent;
-    width: fit-content;
-  }
-
-  .ownership-chip.owned {
-    background: rgba(85, 98, 74, 0.18);
-    color: var(--semantic-success);
-    border-color: rgba(85, 98, 74, 0.35);
-  }
-
-  .ownership-chip.previously-owned {
-    background: rgba(138, 106, 62, 0.18);
-    color: var(--semantic-warning);
-    border-color: rgba(138, 106, 62, 0.35);
-  }
-
-  .ownership-chip.community {
-    background: rgba(123, 94, 58, 0.12);
-    color: var(--text-ink-secondary);
-    border-color: rgba(123, 94, 58, 0.25);
-  }
-
-  .most-used-chip {
-    padding: 0.25rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: rgba(176, 138, 90, 0.18);
-    color: var(--accent-primary);
-    border: 1px solid rgba(176, 138, 90, 0.35);
-    width: fit-content;
   }
 
   .tasting-notes {

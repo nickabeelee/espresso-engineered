@@ -1,8 +1,10 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { handlePermissionError } from '$lib/permissions';
+  import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
+  import { AppError } from '$lib/utils/error-handling';
+  import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   
   export let beanId: string;
   export let currentRating: number | null = null;
@@ -14,7 +16,7 @@
 
   let hoveredRating = 0;
   let isSubmitting = false;
-  let error: string | null = null;
+  let error: AppError | null = null;
 
   $: canRate = !!$barista && !disabled;
 
@@ -22,7 +24,10 @@
     if (!canRate || isSubmitting) return;
     
     if (!$barista) {
-      error = 'You must be logged in to rate beans.';
+      error = new AppError(
+        'You must be logged in to rate beans.',
+        { operation: 'rate', entityType: 'bean', retryable: false }
+      );
       return;
     }
     
@@ -32,24 +37,38 @@
     try {
       if (currentRating === rating) {
         // Remove rating if clicking the same star
-        await apiClient.deleteBeanRating(beanId);
+        await enhancedApiClient.deleteBeanRating(beanId);
         currentRating = null;
       } else if (currentRating) {
         // Update existing rating
-        await apiClient.updateBeanRating(beanId, { rating });
+        await enhancedApiClient.updateBeanRating(beanId, { rating });
         currentRating = rating;
       } else {
         // Create new rating
-        await apiClient.createBeanRating(beanId, { rating });
+        await enhancedApiClient.createBeanRating(beanId, { rating });
         currentRating = rating;
       }
       
       dispatch('ratingChanged', { rating: currentRating });
     } catch (err) {
-      error = handlePermissionError(err as Error, 'rate', 'bean');
+      error = err instanceof AppError ? err : new AppError(
+        'Failed to update rating',
+        { operation: 'rate', entityType: 'bean', retryable: true },
+        err as Error
+      );
     } finally {
       isSubmitting = false;
     }
+  }
+
+  function handleRetryRating() {
+    if (hoveredRating > 0) {
+      handleRatingClick(hoveredRating);
+    }
+  }
+
+  function handleDismissError() {
+    error = null;
   }
 
   function handleMouseEnter(rating: number) {
@@ -121,14 +140,19 @@
   </div>
   
   {#if error}
-    <div class="rating-error">
-      {error}
-    </div>
+    <ErrorDisplay
+      error={error}
+      variant="inline"
+      size="sm"
+      context="rating"
+      on:retry={handleRetryRating}
+      on:dismiss={handleDismissError}
+    />
   {/if}
   
   {#if isSubmitting}
     <div class="rating-loading">
-      Updating rating...
+      <LoadingIndicator variant="dots" size="sm" inline message="Updating rating..." />
     </div>
   {/if}
 </div>

@@ -1,8 +1,10 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { apiClient } from '$lib/api-client';
+  import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
+  import { AppError } from '$lib/utils/error-handling';
   import { barista } from '$lib/auth';
-  import { getBagPermissions, handlePermissionError } from '$lib/permissions';
+  import { getBagPermissions } from '$lib/permissions';
+  import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import type { Bag, InventoryStatus } from '../../../../shared/types';
 
   export let bag: Bag;
@@ -13,23 +15,26 @@
   }>();
 
   let updating = false;
-  let error: string | null = null;
+  let error: AppError | null = null;
 
   $: permissions = getBagPermissions($barista, bag);
   $: canUpdate = permissions.canEdit && !disabled;
 
   const statusOptions = [
-    { value: 'unopened', label: '📦 Unopened', color: 'bg-blue-100 text-blue-800' },
-    { value: 'plenty', label: '✅ Plenty', color: 'bg-green-100 text-green-800' },
-    { value: 'getting_low', label: '⚠️ Getting Low', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'empty', label: '❌ Empty', color: 'bg-red-100 text-red-800' }
-  ];
+    { value: 'unopened', label: '📦 Unopened', variant: 'success' },
+    { value: 'plenty', label: '✅ Plenty', variant: 'success' },
+    { value: 'getting_low', label: '⚠️ Getting Low', variant: 'warning' },
+    { value: 'empty', label: '❌ Empty', variant: 'error' }
+  ] as const;
 
   async function updateStatus(newStatus: InventoryStatus) {
     if (updating || !canUpdate || newStatus === bag.inventory_status) return;
 
     if (!permissions.canEdit) {
-      error = 'You don\'t have permission to update this bag\'s status.';
+      error = new AppError(
+        'You don\'t have permission to update this bag\'s status.',
+        { operation: 'update status for', entityType: 'bag', retryable: false }
+      );
       return;
     }
 
@@ -37,7 +42,7 @@
       updating = true;
       error = null;
 
-      const response = await apiClient.updateBag(bag.id, {
+      const response = await enhancedApiClient.updateBag(bag.id, {
         inventory_status: newStatus
       });
 
@@ -47,7 +52,11 @@
         throw new Error('Failed to update bag status');
       }
     } catch (err) {
-      error = handlePermissionError(err as Error, 'edit', 'bag');
+      error = err instanceof AppError ? err : new AppError(
+        'Failed to update bag status',
+        { operation: 'update status for', entityType: 'bag', retryable: false },
+        err as Error
+      );
       console.error('Failed to update bag status:', err);
     } finally {
       updating = false;
@@ -58,21 +67,36 @@
     return statusOptions.find(option => option.value === bag.inventory_status);
   }
 
+  function handleRetryUpdate() {
+    if (bag.inventory_status) {
+      updateStatus(bag.inventory_status);
+    }
+  }
+
+  function handleDismissError() {
+    error = null;
+  }
+
   $: currentStatus = getCurrentStatusOption();
 </script>
 
 <div class="bag-status-updater">
   {#if error}
-    <div class="error-message">
-      {error}
-    </div>
+    <ErrorDisplay
+      error={error}
+      variant="inline"
+      size="sm"
+      context="bag status update"
+      on:retry={handleRetryUpdate}
+      on:dismiss={handleDismissError}
+    />
   {/if}
 
   <div class="status-buttons">
     {#each statusOptions as option}
       <button
         type="button"
-        class="status-btn {option.color}"
+        class="status-btn status-btn--{option.variant}"
         class:active={bag.inventory_status === option.value}
         class:updating={updating}
         disabled={!canUpdate || updating}
@@ -98,15 +122,6 @@
     gap: 0.5rem;
   }
 
-  .error-message {
-    background: rgba(122, 62, 47, 0.12);
-    border: 1px solid rgba(122, 62, 47, 0.25);
-    color: var(--semantic-error);
-    padding: 0.5rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-  }
-
   .status-buttons {
     display: flex;
     gap: 0.5rem;
@@ -120,8 +135,28 @@
     font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--motion-fast) ease;
     opacity: 0.7;
+    background: var(--bg-surface-paper);
+    color: var(--text-ink-secondary);
+  }
+
+  .status-btn--success {
+    background: rgba(85, 98, 74, 0.18);
+    color: var(--semantic-success);
+    border-color: rgba(85, 98, 74, 0.35);
+  }
+
+  .status-btn--warning {
+    background: rgba(138, 106, 62, 0.18);
+    color: var(--semantic-warning);
+    border-color: rgba(138, 106, 62, 0.35);
+  }
+
+  .status-btn--error {
+    background: rgba(122, 62, 47, 0.18);
+    color: var(--semantic-error);
+    border-color: rgba(122, 62, 47, 0.35);
   }
 
   .status-btn:hover:not(:disabled) {

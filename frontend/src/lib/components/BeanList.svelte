@@ -1,21 +1,27 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import BeanCard from '$lib/components/BeanCard.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
+  import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
+  import EmptyState from '$lib/components/EmptyState.svelte';
   import { ArrowPath, MagnifyingGlass } from '$lib/icons';
+  import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
+  import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
+  import { AppError, debounce } from '$lib/utils/error-handling';
+  import { NetworkMonitor } from '$lib/utils/enhanced-api-client';
   import type { BeanWithContext, Roaster, BeanFilters, PaginationParams, RoastLevel } from '@shared/types';
 
   export let limit = 20;
 
   let beans: BeanWithContext[] = [];
   let roasters: Roaster[] = [];
-  let loading = true;
-  let error: string | null = null;
+  let error: AppError | null = null;
+  let roasterError: AppError | null = null;
   let hasMore = false;
   let currentPage = 1;
-  let searchTimeout: NodeJS.Timeout;
+  let isOnline = true;
 
   // Filter state
   let searchTerm = '';
@@ -25,14 +31,33 @@
 
   const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
 
+  // Loading states
+  $: isLoading = globalLoadingManager.isLoading(LoadingKeys.BEANS_LIST);
+  $: isSearching = globalLoadingManager.isLoading(LoadingKeys.SEARCH);
+
+  // Debounced search function
+  const debouncedSearch = debounce(() => {
+    applyFilters();
+  }, 300);
+
   onMount(() => {
     loadBeans();
     loadRoasters();
+    
+    // Monitor network status
+    const unsubscribeNetwork = NetworkMonitor.addListener((online) => {
+      isOnline = online;
+      if (online && error) {
+        // Retry loading when coming back online
+        loadBeans();
+      }
+    });
+    
+    return unsubscribeNetwork;
   });
 
   async function loadBeans(page = 1, append = false) {
     try {
-      loading = true;
       error = null;
 
       const filters: BeanFilters = {
@@ -49,7 +74,7 @@
         sort_order: 'desc'
       };
 
-      const response = await apiClient.getBeans(filters, pagination);
+      const response = await enhancedApiClient.getBeans(filters, pagination);
       
       if (append) {
         beans = [...beans, ...response.data];
@@ -60,34 +85,50 @@
       hasMore = response.data.length === limit;
       currentPage = page;
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load beans';
+      error = err instanceof AppError ? err : new AppError(
+        'Failed to load beans',
+        { operation: 'load', entityType: 'beans', retryable: true },
+        err as Error
+      );
       console.error('Failed to load beans:', err);
-    } finally {
-      loading = false;
     }
   }
 
   async function loadRoasters() {
     try {
-      const response = await apiClient.getRoasters();
+      roasterError = null;
+      const response = await enhancedApiClient.getRoasters();
       roasters = response.data;
     } catch (err) {
+      roasterError = err instanceof AppError ? err : new AppError(
+        'Failed to load roasters',
+        { operation: 'load', entityType: 'roasters', retryable: true },
+        err as Error
+      );
+      // Don't block the main interface if roasters fail to load
       roasters = [];
     }
   }
 
   function loadMore() {
-    if (!loading && hasMore) {
+    if (!$isLoading && hasMore) {
       loadBeans(currentPage + 1, true);
     }
   }
 
   function refreshBeans() {
+    error = null;
     loadBeans(1, false);
+  }
+
+  function refreshRoasters() {
+    roasterError = null;
+    loadRoasters();
   }
 
   function applyFilters() {
     currentPage = 1;
+    error = null;
     loadBeans();
   }
 
@@ -97,6 +138,26 @@
     selectedRoastLevel = '';
     myBeansOnly = false;
     applyFilters();
+  }
+
+  function handleSearchInput() {
+    debouncedSearch();
+  }
+
+  function handleRetryBeans() {
+    refreshBeans();
+  }
+
+  function handleRetryRoasters() {
+    refreshRoasters();
+  }
+
+  function handleDismissError() {
+    error = null;
+  }
+
+  function handleDismissRoasterError() {
+    roasterError = null;
   }
 
   $: roastersById = roasters.reduce<Record<string, Roaster>>((acc, roaster) => {
@@ -122,20 +183,17 @@
           <input
             type="text"
             bind:value={searchTerm}
-            on:input={() => {
-              // Debounce search
-              clearTimeout(searchTimeout);
-              searchTimeout = setTimeout(applyFilters, 300);
-            }}
+            on:input={handleSearchInput}
             placeholder="Search beans, tasting notes..."
             class="search-input"
+            disabled={!isOnline}
           />
         </div>
       </div>
 
       <div class="filter-group">
         <label for="roaster-filter">Roaster</label>
-        <select id="roaster-filter" bind:value={selectedRoaster} on:change={applyFilters} class="filter-select">
+        <select id="roaster-filter" bind:value={selectedRoaster} on:change={applyFilters} class="filter-select" disabled={!isOnline}>
           <option value="">All roasters</option>
           {#each roasters as roaster}
             <option value={roaster.id}>{roaster.name}</option>
@@ -145,7 +203,7 @@
 
       <div class="filter-group">
         <label for="roast-level-filter">Roast Level</label>
-        <select id="roast-level-filter" bind:value={selectedRoastLevel} on:change={applyFilters} class="filter-select">
+        <select id="roast-level-filter" bind:value={selectedRoastLevel} on:change={applyFilters} class="filter-select" disabled={!isOnline}>
           <option value="">All levels</option>
           {#each roastLevels as level}
             <option value={level}>{level}</option>
@@ -158,23 +216,48 @@
           type="checkbox"
           bind:checked={myBeansOnly}
           on:change={applyFilters}
-          disabled={!$barista?.id}
+          disabled={!$barista?.id || !isOnline}
         />
         <span class="toggle-track" aria-hidden="true"></span>
         <span class="toggle-label">My Beans</span>
       </label>
 
-      <button on:click={clearFilters} class="btn-secondary">
+      <button on:click={clearFilters} class="btn-secondary" disabled={!isOnline}>
         Clear
       </button>
     </div>
   </div>
 
+  <!-- Network Status Warning -->
+  {#if !isOnline}
+    <ErrorDisplay
+      error="You're currently offline. Some features may not be available."
+      variant="banner"
+      showRetry={false}
+      showDismiss={false}
+      title="Offline"
+    />
+  {/if}
+
+  <!-- Roaster Loading Error (Non-blocking) -->
+  {#if roasterError}
+    <ErrorDisplay
+      error={roasterError}
+      variant="inline"
+      size="sm"
+      context="roaster loading"
+      on:retry={handleRetryRoasters}
+      on:dismiss={handleDismissRoasterError}
+    />
+  {/if}
+
   <!-- Results Summary -->
   <div class="results-header">
     <div class="results-summary">
-      {#if loading && beans.length === 0}
-        <span>Loading beans...</span>
+      {#if $isLoading && beans.length === 0}
+        <LoadingIndicator variant="dots" size="sm" inline message="Loading beans..." />
+      {:else if $isSearching}
+        <LoadingIndicator variant="dots" size="sm" inline message="Searching..." />
       {:else}
         <span>
           {beans.length} bean{beans.length !== 1 ? 's' : ''}
@@ -187,37 +270,52 @@
       ariaLabel="Refresh beans"
       title="Refresh"
       on:click={refreshBeans}
-      disabled={loading}
+      disabled={$isLoading || !isOnline}
     >
       <ArrowPath />
     </IconButton>
   </div>
 
-  <!-- Error State -->
+  <!-- Main Error State -->
   {#if error}
-    <div class="error-state">
-      <p>Error: {error}</p>
-      <button on:click={() => loadBeans()} class="btn-primary">
-        Try Again
-      </button>
-    </div>
+    <ErrorDisplay
+      error={error}
+      variant="banner"
+      context="bean loading"
+      on:retry={handleRetryBeans}
+      on:dismiss={handleDismissError}
+    />
   {/if}
 
   <!-- Empty State -->
-  {#if !loading && !error && beans.length === 0}
-    <div class="empty-state">
-      {#if myBeansOnly}
-        <h3>No beans in your collection</h3>
-        <p>Start adding beans to your collection to see them here.</p>
-      {:else if searchTerm || selectedRoaster || selectedRoastLevel}
-        <h3>No beans match your filters</h3>
-        <p>Try adjusting your search or filter criteria.</p>
-        <button on:click={clearFilters} class="btn-primary">Clear Filters</button>
-      {:else}
-        <h3>No beans found</h3>
-        <p>The community hasn't added any beans yet.</p>
-      {/if}
-    </div>
+  {#if !$isLoading && !error && beans.length === 0}
+    {#if myBeansOnly}
+      <EmptyState
+        title="No beans in your collection"
+        description="Start adding beans to your collection to see them here."
+        icon="add"
+        actionLabel="Browse All Beans"
+        on:action={() => { myBeansOnly = false; applyFilters(); }}
+      />
+    {:else if searchTerm || selectedRoaster || selectedRoastLevel}
+      <EmptyState
+        title="No beans match your filters"
+        description="Try adjusting your search or filter criteria to find what you're looking for."
+        icon="search"
+        actionLabel="Clear Filters"
+        secondaryActionLabel="Browse All Beans"
+        on:action={clearFilters}
+        on:secondaryAction={() => { clearFilters(); }}
+      />
+    {:else}
+      <EmptyState
+        title="No beans found"
+        description="The community hasn't added any beans yet. Be the first to contribute!"
+        icon="add"
+        actionLabel="Add First Bean"
+        on:action={() => console.log('Navigate to add bean')}
+      />
+    {/if}
   {/if}
 
   <!-- Bean Cards -->
@@ -237,18 +335,18 @@
   {/if}
 
   <!-- Load More -->
-  {#if hasMore && !loading}
+  {#if hasMore && !$isLoading}
     <div class="load-more">
-      <button on:click={loadMore} class="btn-primary">
+      <button on:click={loadMore} class="btn-primary" disabled={!isOnline}>
         Load More Beans
       </button>
     </div>
   {/if}
 
   <!-- Loading More -->
-  {#if loading && beans.length > 0}
+  {#if $isLoading && beans.length > 0}
     <div class="loading-more">
-      <span>Loading more beans...</span>
+      <LoadingIndicator variant="dots" size="sm" inline message="Loading more beans..." />
     </div>
   {/if}
 </div>
