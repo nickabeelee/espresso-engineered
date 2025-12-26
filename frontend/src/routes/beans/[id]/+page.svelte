@@ -14,17 +14,23 @@
   import { AppError } from '$lib/utils/error-handling';
   import { barista } from '$lib/auth';
   import { getBeanPermissions, getBagPermissions } from '$lib/permissions';
-  import { XMark, PencilSquare, Trash } from '$lib/icons';
-  import type { BeanWithContext, Roaster, Bag, BagWithBarista, Barista as BaristaType } from '@shared/types';
+  import { XMark, PencilSquare, Trash, CheckCircle } from '$lib/icons';
+  import type { BeanWithContext, Roaster, Bag, BagWithBarista, Barista as BaristaType, RoastLevel, CreateBeanRequest } from '@shared/types';
 
   let bean: BeanWithContext | null = null;
   let roaster: Roaster | null = null;
+  let roasters: Roaster[] = [];
   let bags: BagWithBarista[] = [];
   let baristasById: Record<string, BaristaType> = {};
   let error: AppError | null = null;
   let personalRating: number | null = null;
   let isDeleting = false;
   let permissionError: AppError | null = null;
+  let isEditing = false;
+  let isSaving = false;
+  let editFormData: Partial<CreateBeanRequest> = {};
+
+  const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
 
   $: beanId = $page.params.id;
   $: beanPermissions = getBeanPermissions($barista, bean || undefined);
@@ -51,8 +57,11 @@
         bean = beanResponse.data;
         personalRating = bean.personal_rating || null;
         
+        // Store all roasters for editing
+        roasters = roastersResponse.data;
+        
         // Find the roaster for this bean
-        roaster = roastersResponse.data.find(r => r.id === bean.roaster_id) || null;
+        roaster = roasters.find(r => r.id === bean.roaster_id) || null;
         
         // Bags are already filtered by bean_id from the API
         bags = bagsResponse.data;
@@ -139,8 +148,64 @@
       );
       return;
     }
-    // TODO: Implement bean editing modal/form
-    console.log('Edit bean:', bean?.id);
+    
+    if (!bean) return;
+    
+    // Initialize edit form data with current bean values
+    editFormData = {
+      name: bean.name,
+      roaster_id: bean.roaster_id,
+      roast_level: bean.roast_level,
+      country_of_origin: bean.country_of_origin || '',
+      tasting_notes: bean.tasting_notes || ''
+    };
+    
+    isEditing = true;
+  }
+
+  function handleCancelEdit() {
+    isEditing = false;
+    editFormData = {};
+    permissionError = null;
+  }
+
+  async function handleSaveEdit() {
+    if (!bean || !editFormData.name?.trim() || !editFormData.roaster_id) {
+      permissionError = new AppError(
+        'Name and roaster are required.',
+        { operation: 'save', entityType: 'bean', retryable: false }
+      );
+      return;
+    }
+
+    try {
+      isSaving = true;
+      permissionError = null;
+      
+      const response = await apiClient.updateBean(bean.id, editFormData);
+      
+      // Update local bean data
+      bean = { ...bean, ...response.data };
+      
+      // Update roaster reference
+      roaster = roasters.find(r => r.id === bean.roaster_id) || null;
+      
+      isEditing = false;
+      editFormData = {};
+      
+      // Reload to get fresh context data
+      if (beanId) {
+        await loadBeanDetails(beanId);
+      }
+    } catch (err: any) {
+      permissionError = new AppError(
+        err.message || 'Failed to update bean',
+        { operation: 'save', entityType: 'bean', retryable: true },
+        err
+      );
+    } finally {
+      isSaving = false;
+    }
   }
 
   async function handleDeleteBean() {
@@ -232,7 +297,7 @@
       
       <div class="actions">
         {#if bean && (beanPermissions.canEdit || beanPermissions.canDelete)}
-          {#if beanPermissions.canEdit}
+          {#if beanPermissions.canEdit && !isEditing}
             <IconButton 
               on:click={handleEditBean} 
               ariaLabel="Edit bean" 
@@ -244,7 +309,7 @@
             </IconButton>
           {/if}
           
-          {#if beanPermissions.canDelete}
+          {#if beanPermissions.canDelete && !isEditing}
             <IconButton 
               on:click={handleDeleteBean} 
               ariaLabel="Delete bean" 
@@ -290,29 +355,99 @@
       <div class="bean-content">
         <!-- Bean Information -->
         <div class="detail-section card">
-          <h3>Bean Information</h3>
+          <div class="section-header">
+            <h3>Bean Information</h3>
+            {#if isEditing}
+              <div class="edit-actions">
+                <IconButton 
+                  on:click={handleCancelEdit} 
+                  ariaLabel="Cancel edit" 
+                  title="Cancel" 
+                  variant="neutral" 
+                  disabled={isSaving}
+                >
+                  <XMark />
+                </IconButton>
+                <IconButton 
+                  on:click={handleSaveEdit} 
+                  ariaLabel="Save changes" 
+                  title="Save" 
+                  variant="accent" 
+                  disabled={isSaving || !editFormData.name?.trim() || !editFormData.roaster_id}
+                >
+                  <CheckCircle />
+                </IconButton>
+              </div>
+            {/if}
+          </div>
+          
           <div class="bean-info-grid">
             <div class="info-item">
               <span class="info-label">Name</span>
-              <span class="info-value">{bean.name}</span>
+              {#if isEditing}
+                <input
+                  type="text"
+                  bind:value={editFormData.name}
+                  class="info-input"
+                  placeholder="Bean name"
+                  disabled={isSaving}
+                />
+              {:else}
+                <span class="info-value">{bean.name}</span>
+              {/if}
             </div>
             
             <div class="info-item">
               <span class="info-label">Roaster</span>
-              <span class="info-value">{roaster?.name || 'Unknown'}</span>
+              {#if isEditing}
+                <select
+                  bind:value={editFormData.roaster_id}
+                  class="info-select"
+                  disabled={isSaving}
+                >
+                  <option value="">Select roaster...</option>
+                  {#each roasters as roasterOption}
+                    <option value={roasterOption.id}>{roasterOption.name}</option>
+                  {/each}
+                </select>
+              {:else}
+                <span class="info-value">{roaster?.name || 'Unknown'}</span>
+              {/if}
             </div>
             
             <div class="info-item">
               <span class="info-label">Roast Level</span>
-              <span class="info-value">{bean.roast_level}</span>
+              {#if isEditing}
+                <select
+                  bind:value={editFormData.roast_level}
+                  class="info-select"
+                  disabled={isSaving}
+                >
+                  {#each roastLevels as level}
+                    <option value={level}>{level}</option>
+                  {/each}
+                </select>
+              {:else}
+                <span class="info-value">{bean.roast_level}</span>
+              {/if}
             </div>
             
-            {#if bean.country_of_origin}
-              <div class="info-item">
-                <span class="info-label">Origin</span>
+            <div class="info-item">
+              <span class="info-label">Origin</span>
+              {#if isEditing}
+                <input
+                  type="text"
+                  bind:value={editFormData.country_of_origin}
+                  class="info-input"
+                  placeholder="e.g., Ethiopia"
+                  disabled={isSaving}
+                />
+              {:else if bean.country_of_origin}
                 <span class="info-value">{bean.country_of_origin}</span>
-              </div>
-            {/if}
+              {:else}
+                <span class="info-value info-empty">Not specified</span>
+              {/if}
+            </div>
             
             <div class="info-item">
               <span class="info-label">Status</span>
@@ -329,12 +464,22 @@
             {/if}
           </div>
           
-          {#if bean.tasting_notes}
-            <div class="tasting-notes">
-              <h4>Tasting Notes</h4>
+          <div class="tasting-notes">
+            <h4>Tasting Notes</h4>
+            {#if isEditing}
+              <textarea
+                bind:value={editFormData.tasting_notes}
+                class="tasting-notes-input"
+                placeholder="e.g., Bright acidity, floral notes, citrus finish"
+                rows="3"
+                disabled={isSaving}
+              ></textarea>
+            {:else if bean.tasting_notes}
               <p>{bean.tasting_notes}</p>
-            </div>
-          {/if}
+            {:else}
+              <p class="info-empty">No tasting notes provided</p>
+            {/if}
+          </div>
         </div>
 
         <!-- Statistics and Rating -->
@@ -563,6 +708,22 @@
     font-size: 1.25rem;
   }
 
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .section-header h3 {
+    margin: 0;
+  }
+
+  .edit-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
   .bean-info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -587,6 +748,35 @@
     font-size: 1.05rem;
   }
 
+  .info-empty {
+    color: var(--text-ink-muted);
+    font-style: italic;
+  }
+
+  .info-input,
+  .info-select {
+    color: var(--text-ink-primary);
+    font-size: 1.05rem;
+    background: var(--bg-surface-paper);
+    border: 1px solid rgba(123, 94, 58, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+    transition: border-color var(--motion-fast);
+  }
+
+  .info-input:focus,
+  .info-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(123, 94, 58, 0.1);
+  }
+
+  .info-input:disabled,
+  .info-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   .tasting-notes {
     margin-top: 1rem;
   }
@@ -605,6 +795,40 @@
     border: 1px solid rgba(123, 94, 58, 0.2);
     border-radius: var(--radius-md);
     padding: 0.85rem 1rem;
+  }
+
+  .tasting-notes-input {
+    width: 100%;
+    color: var(--text-ink-secondary);
+    line-height: 1.6;
+    margin: 0;
+    background: var(--bg-surface-paper);
+    border: 1px solid rgba(123, 94, 58, 0.3);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color var(--motion-fast);
+  }
+
+  .tasting-notes-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(123, 94, 58, 0.1);
+  }
+
+  .tasting-notes-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .tasting-notes .info-empty {
+    background: var(--bg-surface-paper);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    margin: 0;
   }
 
   .rating-section {

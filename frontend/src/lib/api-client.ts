@@ -239,6 +239,14 @@ class ApiClient {
     });
   }
 
+  async updateBean(id: string, bean: Partial<CreateBeanRequest>): Promise<ApiResponse<Bean>> {
+    const sanitizedBean = stripNullish(bean);
+    return this.makeRequest<ApiResponse<Bean>>(`/beans/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(sanitizedBean),
+    });
+  }
+
   async createBeanRating(beanId: string, rating: CreateBeanRatingRequest): Promise<ApiResponse<void>> {
     return this.makeRequest<ApiResponse<void>>(`/beans/${beanId}/rating`, {
       method: 'POST',
@@ -380,6 +388,7 @@ export const {
   getBeans,
   getBean,
   createBean,
+  updateBean,
   createBeanRating,
   updateBeanRating,
   deleteBeanRating,
