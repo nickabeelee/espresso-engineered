@@ -103,8 +103,8 @@ This implementation plan transforms the existing bean and bag data model into a 
     - **Property 7: Social Signal Display**
     - **Validates: Requirements 8.1, 4.4**
 
-- [-] 7. Bean Detail Page Implementation
-  - [-] 7.1 Create BeanDetail component and route
+- [x] 7. Bean Detail Page Implementation
+  - [x] 7.1 Create BeanDetail component and route
     - Display comprehensive bean information and statistics
     - Show recent activity by other baristas
     - List all associated bags with ownership indicators
@@ -115,13 +115,13 @@ This implementation plan transforms the existing bean and bag data model into a 
     - **Property 10: Bag Visibility Completeness**
     - **Validates: Requirements 7.1, 4.5**
 
-  - [ ] 7.3 Integrate bean rating interface in detail view
+  - [x] 7.3 Integrate bean rating interface in detail view
     - Add 5-star rating component for personal ratings
     - Display current personal rating and community average
     - Handle rating creation, updates, and removal
     - _Requirements: 10.1, 10.2, 10.3_
 
-- [ ] 8. Bag Status Management Integration
+- [-] 8. Bag Status Management Integration
   - [ ] 8.1 Update bag components for inventory status
     - Add inventory_status field to bag creation and editing forms
     - Implement quick status update controls without full form navigation
