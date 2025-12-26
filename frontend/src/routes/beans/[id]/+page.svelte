@@ -369,29 +369,43 @@
         <!-- Bean Information -->
         <div class="detail-section card">
           <div class="section-header">
-            <h3>Bean Information</h3>
-            {#if isEditing}
-              <div class="edit-actions">
-                <IconButton 
-                  on:click={handleCancelEdit} 
-                  ariaLabel="Cancel edit" 
-                  title="Cancel" 
-                  variant="neutral" 
-                  disabled={isSaving}
-                >
-                  <XMark />
-                </IconButton>
-                <IconButton 
-                  on:click={handleSaveEdit} 
-                  ariaLabel="Save changes" 
-                  title="Save" 
-                  variant="accent" 
-                  disabled={isSaving || !editFormData.name?.trim() || !editFormData.roaster_id}
-                >
-                  <CheckCircle />
-                </IconButton>
-              </div>
-            {/if}
+            <div class="section-title-area">
+              <h3>Bean Information</h3>
+            </div>
+            <div class="section-actions">
+              {#if !isEditing}
+                <div class="meta-chips">
+                  <Chip variant={getOwnershipVariant(bean.ownership_status)} size="sm">
+                    {getOwnershipLabel(bean.ownership_status)}
+                  </Chip>
+                  {#if bean.most_used_by_me}
+                    <Chip variant="accent" size="sm">Most Used by Me</Chip>
+                  {/if}
+                </div>
+              {/if}
+              {#if isEditing}
+                <div class="edit-actions">
+                  <IconButton 
+                    on:click={handleCancelEdit} 
+                    ariaLabel="Cancel edit" 
+                    title="Cancel" 
+                    variant="neutral" 
+                    disabled={isSaving}
+                  >
+                    <XMark />
+                  </IconButton>
+                  <IconButton 
+                    on:click={handleSaveEdit} 
+                    ariaLabel="Save changes" 
+                    title="Save" 
+                    variant="accent" 
+                    disabled={isSaving || !editFormData.name?.trim() || !editFormData.roaster_id}
+                  >
+                    <CheckCircle />
+                  </IconButton>
+                </div>
+              {/if}
+            </div>
           </div>
           
           <div class="bean-info-grid">
@@ -423,53 +437,42 @@
               {/if}
             </div>
             
-            <div class="info-item">
-              <span class="info-label">Roast Level</span>
-              {#if isEditing}
-                <select
-                  bind:value={editFormData.roast_level}
-                  class="info-select"
-                  disabled={isSaving}
-                >
-                  {#each roastLevels as level}
-                    <option value={level}>{level}</option>
-                  {/each}
-                </select>
-              {:else}
-                <span class="info-value">{bean.roast_level}</span>
-              {/if}
-            </div>
-            
-            <div class="info-item">
-              <span class="info-label">Origin</span>
-              {#if isEditing}
-                <input
-                  type="text"
-                  bind:value={editFormData.country_of_origin}
-                  class="info-input"
-                  placeholder="e.g., Ethiopia"
-                  disabled={isSaving}
-                />
-              {:else if bean.country_of_origin}
-                <span class="info-value">{bean.country_of_origin}</span>
-              {:else}
-                <span class="info-value info-empty">Not specified</span>
-              {/if}
-            </div>
-            
-            <div class="info-item">
-              <span class="info-label">Status</span>
-              <Chip variant={getOwnershipVariant(bean.ownership_status)} size="sm">
-                {getOwnershipLabel(bean.ownership_status)}
-              </Chip>
-            </div>
-            
-            {#if bean.most_used_by_me}
+            <!-- Two main fields in one row -->
+            <div class="two-field-row">
               <div class="info-item">
-                <span class="info-label">Usage</span>
-                <Chip variant="accent" size="sm">Most Used by Me</Chip>
+                <span class="info-label">Roast Level</span>
+                {#if isEditing}
+                  <select
+                    bind:value={editFormData.roast_level}
+                    class="info-select"
+                    disabled={isSaving}
+                  >
+                    {#each roastLevels as level}
+                      <option value={level}>{level}</option>
+                    {/each}
+                  </select>
+                {:else}
+                  <span class="info-value">{bean.roast_level}</span>
+                {/if}
               </div>
-            {/if}
+              
+              <div class="info-item">
+                <span class="info-label">Origin</span>
+                {#if isEditing}
+                  <input
+                    type="text"
+                    bind:value={editFormData.country_of_origin}
+                    class="info-input"
+                    placeholder="e.g., Ethiopia"
+                    disabled={isSaving}
+                  />
+                {:else if bean.country_of_origin}
+                  <span class="info-value">{bean.country_of_origin}</span>
+                {:else}
+                  <span class="info-value info-empty">Not specified</span>
+                {/if}
+              </div>
+            </div>
           </div>
           
           <div class="tasting-notes">
@@ -723,8 +726,20 @@
     margin-bottom: 1rem;
   }
 
-  .section-header h3 {
+  .section-title-area h3 {
     margin: 0;
+  }
+
+  .section-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .meta-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .edit-actions {
@@ -737,6 +752,12 @@
     flex-direction: column;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
+  }
+
+  .two-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
   }
 
   .info-item {
@@ -1083,6 +1104,22 @@
   }
 
   @media (max-width: 768px) {
+    .two-field-row {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .section-actions {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+
+    .meta-chips {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .stats-grid {
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     }
