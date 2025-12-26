@@ -164,11 +164,6 @@
     acc[roaster.id] = roaster;
     return acc;
   }, {});
-
-  function handleBeanDeleted(event: CustomEvent<string>) {
-    const deletedBeanId = event.detail;
-    beans = beans.filter(bean => bean.id !== deletedBeanId);
-  }
 </script>
 
 <div class="bean-list">
@@ -327,7 +322,6 @@
           <BeanCard 
             {bean} 
             roaster={roasterRecord} 
-            on:beanDeleted={handleBeanDeleted}
           />
         {/each}
       </div>
