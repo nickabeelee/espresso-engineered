@@ -17,6 +17,7 @@ import type {
   Barista,
   CreateBeanRequest,
   CreateBagRequest,
+  UpdateBagRequest,
   CreateGrinderRequest,
   CreateMachineRequest,
   CreateRoasterRequest,
@@ -273,6 +274,14 @@ class ApiClient {
     });
   }
 
+  async updateBag(id: string, bag: Partial<UpdateBagRequest>): Promise<ApiResponse<Bag>> {
+    const sanitizedBag = stripNullish(bag);
+    return this.makeRequest<ApiResponse<Bag>>(`/bags/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(sanitizedBag),
+    });
+  }
+
   async previewBagName(bean_id: string, roast_date?: string): Promise<ApiResponse<{ name: string }>> {
     return this.makeRequest<ApiResponse<{ name: string }>>('/bags/preview-name', {
       method: 'POST',
@@ -370,6 +379,7 @@ export const {
   getBags,
   getBag,
   createBag,
+  updateBag,
   previewBagName,
   getGrinders,
   createGrinder,

@@ -161,6 +161,11 @@ export interface CreateBagRequest {
   weight_g?: number;
   price?: number;
   purchase_location?: string;
+  inventory_status?: InventoryStatus;
+}
+
+export interface UpdateBagRequest extends Partial<CreateBagRequest> {
+  id: string;
 }
 
 export interface CreateGrinderRequest {

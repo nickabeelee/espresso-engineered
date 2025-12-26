@@ -5,6 +5,7 @@
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
   import BeanRating from '$lib/components/BeanRating.svelte';
+  import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import { XMark, PencilSquare } from '$lib/icons';
@@ -128,6 +129,15 @@
     if (beanId) {
       await loadBeanDetails(beanId);
     }
+  }
+
+  async function handleBagStatusUpdated(event: CustomEvent<Bag>) {
+    const updatedBag = event.detail;
+    
+    // Update the bag in the local bags array
+    bags = bags.map(bag => 
+      bag.id === updatedBag.id ? updatedBag : bag
+    );
   }
 </script>
 
@@ -313,13 +323,6 @@
                       </div>
                     {/if}
                     
-                    {#if bag.weight_g}
-                      <div class="bag-detail">
-                        <span class="detail-label">Weight</span>
-                        <span class="detail-value">{bag.weight_g.toFixed(0)}g</span>
-                      </div>
-                    {/if}
-                    
                     {#if bag.purchase_location}
                       <div class="bag-detail">
                         <span class="detail-label">From</span>
@@ -334,6 +337,17 @@
                       </div>
                     {/if}
                   </div>
+
+                  <!-- Status updater for owned bags -->
+                  {#if ownershipStatus === 'owned'}
+                    <div class="bag-status-section">
+                      <h5>Update Status</h5>
+                      <BagStatusUpdater 
+                        {bag} 
+                        on:updated={handleBagStatusUpdated}
+                      />
+                    </div>
+                  {/if}
                 </div>
               {/each}
             </div>
@@ -675,6 +689,19 @@
     font-weight: 500;
     color: var(--text-ink-muted);
     font-size: 0.8rem;
+  }
+
+  .bag-status-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(123, 94, 58, 0.2);
+  }
+
+  .bag-status-section h5 {
+    margin: 0 0 0.75rem 0;
+    color: var(--text-ink-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
   }
 
   .detail-value {

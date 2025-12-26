@@ -122,7 +122,7 @@ This implementation plan transforms the existing bean and bag data model into a 
     - _Requirements: 10.1, 10.2, 10.3_
 
 - [-] 8. Bag Status Management Integration
-  - [ ] 8.1 Update bag components for inventory status
+  - [x] 8.1 Update bag components for inventory status
     - Add inventory_status field to bag creation and editing forms
     - Implement quick status update controls without full form navigation
     - Remove weight-based tracking displays and calculations
