@@ -315,7 +315,7 @@
               on:click={handleEditBean} 
               ariaLabel="Edit bean" 
               title="Edit bean" 
-              variant="neutral" 
+              variant="accent" 
               disabled={$isLoading}
             >
               <PencilSquare />

@@ -176,7 +176,6 @@
   {#if showBeanCreator}
     <div class="nested-creator">
       <InlineBeanCreator 
-        {roasters}
         on:created={handleBeanCreated}
         on:cancel={() => showBeanCreator = false}
       />

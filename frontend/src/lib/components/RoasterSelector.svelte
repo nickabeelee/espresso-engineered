@@ -2,7 +2,7 @@
   import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
+  import { ChevronDown, MagnifyingGlass, Plus, Link } from '$lib/icons';
 
   import InlineRoasterCreator from './InlineRoasterCreator.svelte';
 
@@ -189,7 +189,9 @@
                     >
                       <span class="option-title">{formatRoasterDisplay(roaster)}</span>
                       {#if roaster.website_url}
-                        <span class="option-meta">🌐 {roaster.website_url}</span>
+                        <span class="option-meta">
+                          <Link size={14} /> {roaster.website_url}
+                        </span>
                       {/if}
                     </button>
                   </li>
@@ -224,7 +226,7 @@
                 rel="noopener noreferrer"
                 class="website-link"
               >
-                🌐 Visit Website
+                <Link size={16} /> Visit Website
               </a>
             </div>
           {/if}
@@ -390,6 +392,9 @@
   .option-meta {
     font-size: 0.85rem;
     color: var(--text-ink-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
   }
 
   .combobox-empty {
@@ -420,7 +425,9 @@
   }
 
   .website-link {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     padding: 0.5rem 0.75rem;
     background: var(--accent-primary);
     color: var(--text-ink-inverted);

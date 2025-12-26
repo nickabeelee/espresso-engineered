@@ -13,3 +13,4 @@ export { default as MagnifyingGlass } from './outline/MagnifyingGlass.svelte';
 export { default as ExclamationTriangle } from './outline/ExclamationTriangle.svelte';
 export { default as InformationCircle } from './outline/InformationCircle.svelte';
 export { default as CheckCircle } from './outline/CheckCircle.svelte';
+export { default as Link } from './outline/Link.svelte';

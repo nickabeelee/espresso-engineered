@@ -121,6 +121,9 @@
     loadBeans(1, false);
   }
 
+  // Export function for parent components
+  export { refreshBeans };
+
   function refreshRoasters() {
     roasterError = null;
     loadRoasters();
