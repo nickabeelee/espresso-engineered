@@ -186,9 +186,9 @@ class EnhancedApiClient {
   
   // Bag operations
   
-  async getBags(): Promise<ListResponse<Bag>> {
+  async getBags(params?: { bean_id?: string; active_only?: boolean; inventory_status?: string }): Promise<ListResponse<Bag>> {
     return this.executeWithErrorHandling(
-      () => apiClient.getBags(),
+      () => apiClient.getBags(params),
       {
         operation: 'load',
         entityType: 'bags',

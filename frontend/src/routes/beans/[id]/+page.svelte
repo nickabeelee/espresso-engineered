@@ -43,7 +43,7 @@
       const [beanResponse, roastersResponse, bagsResponse, baristasResponse] = await Promise.all([
         enhancedApiClient.getBean(id),
         enhancedApiClient.getRoasters(),
-        enhancedApiClient.getBags(),
+        enhancedApiClient.getBags({ bean_id: id }), // Filter bags by bean_id on the server
         apiClient.getBaristas()
       ]);
 
@@ -54,8 +54,8 @@
         // Find the roaster for this bean
         roaster = roastersResponse.data.find(r => r.id === bean.roaster_id) || null;
         
-        // Filter bags for this bean
-        bags = bagsResponse.data.filter(bag => bag.bean_id === bean.id);
+        // Bags are already filtered by bean_id from the API
+        bags = bagsResponse.data;
         
         // Create baristas lookup
         baristasById = baristasResponse.data.reduce<Record<string, BaristaType>>((acc, barista) => {

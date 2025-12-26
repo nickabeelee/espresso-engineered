@@ -259,8 +259,15 @@ class ApiClient {
     });
   }
 
-  async getBags(): Promise<ListResponse<Bag>> {
-    return this.makeRequest<ListResponse<Bag>>('/bags');
+  async getBags(params?: { bean_id?: string; active_only?: boolean; inventory_status?: string }): Promise<ListResponse<Bag>> {
+    const searchParams = new URLSearchParams();
+    if (params?.bean_id) searchParams.append('bean_id', params.bean_id);
+    if (params?.active_only) searchParams.append('active_only', 'true');
+    if (params?.inventory_status) searchParams.append('inventory_status', params.inventory_status);
+    
+    const queryString = searchParams.toString();
+    const url = queryString ? `/bags?${queryString}` : '/bags';
+    return this.makeRequest<ListResponse<Bag>>(url);
   }
 
   async getBag(id: string): Promise<ApiResponse<Bag>> {
