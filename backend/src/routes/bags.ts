@@ -28,7 +28,9 @@ export async function bagRoutes(fastify: FastifyInstance) {
         if (inventory_status) {
           filters.inventory_status = inventory_status;
         }
-        bags = await bagRepository.findByBean(bean_id, authRequest.barista!.id);
+        // Use findAllByBean to show all bags for a bean (not just user's bags)
+        // This allows viewing related bags on bean detail pages
+        bags = await bagRepository.findAllByBean(bean_id);
         // Apply inventory_status filter if provided
         if (inventory_status) {
           bags = bags.filter(bag => bag.inventory_status === inventory_status);

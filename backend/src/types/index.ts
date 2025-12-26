@@ -77,6 +77,14 @@ export interface Bag {
   inventory_status?: InventoryStatus; // Status-based inventory tracking
 }
 
+export interface BagWithBarista extends Bag {
+  barista?: {
+    id: string;
+    username?: string;
+    display_name: string;
+  };
+}
+
 export interface Grinder {
   id: string;
   created_at: string;

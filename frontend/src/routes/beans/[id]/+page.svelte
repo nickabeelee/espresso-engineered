@@ -15,11 +15,11 @@
   import { barista } from '$lib/auth';
   import { getBeanPermissions, getBagPermissions } from '$lib/permissions';
   import { XMark, PencilSquare, Trash } from '$lib/icons';
-  import type { BeanWithContext, Roaster, Bag, Barista as BaristaType } from '@shared/types';
+  import type { BeanWithContext, Roaster, Bag, BagWithBarista, Barista as BaristaType } from '@shared/types';
 
   let bean: BeanWithContext | null = null;
   let roaster: Roaster | null = null;
-  let bags: Bag[] = [];
+  let bags: BagWithBarista[] = [];
   let baristasById: Record<string, BaristaType> = {};
   let error: AppError | null = null;
   let personalRating: number | null = null;
@@ -113,11 +113,15 @@
     return '★'.repeat(fullStars) + (hasHalfStar ? '½' : '');
   }
 
-  function getBagOwnershipStatus(bag: Bag): 'owned' | 'other' {
+  function getBagOwnershipStatus(bag: BagWithBarista): 'owned' | 'other' {
     return bag.owner_id === $barista?.id ? 'owned' : 'other';
   }
 
-  function getBagOwnerName(bag: Bag): string {
+  function getBagOwnerName(bag: BagWithBarista): string {
+    // Use embedded barista information if available, otherwise fall back to lookup
+    if (bag.barista?.display_name) {
+      return bag.barista.display_name;
+    }
     const owner = baristasById[bag.owner_id];
     return owner ? owner.display_name : 'Unknown';
   }
@@ -204,9 +208,9 @@
   async function handleBagStatusUpdated(event: CustomEvent<Bag>) {
     const updatedBag = event.detail;
     
-    // Update the bag in the local bags array
+    // Update the bag in the local bags array, preserving barista information
     bags = bags.map(bag => 
-      bag.id === updatedBag.id ? updatedBag : bag
+      bag.id === updatedBag.id ? { ...updatedBag, barista: bag.barista } : bag
     );
   }
 </script>

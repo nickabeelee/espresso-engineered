@@ -1,5 +1,5 @@
 import { BaseRepository } from './base.js';
-import { Bag } from '../types/index.js';
+import { Bag, BagWithBarista } from '../types/index.js';
 import { supabase } from '../config/supabase.js';
 
 /**
@@ -129,6 +129,39 @@ export class BagRepository extends BaseRepository<Bag> {
     }
 
     return (data as Bag[]) || [];
+  }
+
+  /**
+   * Find all bags by bean ID (public view for bean detail pages)
+   * Returns all bags for a bean regardless of ownership, relying on RLS for access control
+   */
+  async findAllByBean(beanId: string): Promise<BagWithBarista[]> {
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .select(`
+        *,
+        bean:bean_id (
+          id,
+          name,
+          roast_level,
+          roaster:roaster_id (
+            id,
+            name
+          )
+        ),
+        barista:owner_id (
+          id,
+          display_name
+        )
+      `)
+      .eq('bean_id', beanId)
+      .order('roast_date', { ascending: false });
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    return (data as BagWithBarista[]) || [];
   }
 
   /**
