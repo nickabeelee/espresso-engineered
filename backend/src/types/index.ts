@@ -2,6 +2,7 @@
 // These interfaces match the database schema and are shared between frontend and backend
 
 export type RoastLevel = 'Light' | 'Medium Light' | 'Medium' | 'Medium Dark' | 'Dark';
+export type InventoryStatus = 'unopened' | 'plenty' | 'getting_low' | 'empty';
 
 export interface Barista {
   id: string; // Primary key used throughout the app (maps to auth.users via FK)
@@ -31,6 +32,37 @@ export interface Bean {
   tasting_notes?: string;
 }
 
+export type OwnershipStatus = 'owned' | 'previously_owned' | 'never_owned';
+
+export interface BeanWithContext extends Bean {
+  ownership_status: OwnershipStatus;
+  personal_rating?: number | null;
+  average_rating?: number | null;
+  rating_count: number;
+  total_brews: number;
+  most_used_by_me: boolean;
+  bag_count: number;
+  recent_activity?: RecentActivity[];
+}
+
+export interface RecentActivity {
+  barista_display_name: string;
+  activity_type: 'brew' | 'rating' | 'bag_created';
+  created_at: string;
+  // For brew activities, include brew details for navigation
+  brew_id?: string;
+  brew_name?: string;
+}
+
+export interface BeanRating {
+  id: string;
+  bean_id: string;
+  barista_id: string;
+  rating: number; // 1-5 stars
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Bag {
   id: string;
   created_at: string;
@@ -42,6 +74,15 @@ export interface Bag {
   weight_g?: number; // Weight in grams with 0.1g precision
   price?: number;
   purchase_location?: string;
+  inventory_status?: InventoryStatus; // Status-based inventory tracking
+}
+
+export interface BagWithBarista extends Bag {
+  barista?: {
+    id: string;
+    username?: string;
+    display_name: string;
+  };
 }
 
 export interface Grinder {
@@ -136,6 +177,7 @@ export interface CreateBagRequest {
   weight_g?: number;
   price?: number;
   purchase_location?: string;
+  inventory_status?: InventoryStatus;
 }
 
 export interface CreateGrinderRequest {
@@ -155,6 +197,14 @@ export interface CreateMachineRequest {
 export interface CreateRoasterRequest {
   name: string;
   website_url?: string;
+}
+
+export interface CreateBeanRatingRequest {
+  rating: number; // 1-5 stars
+}
+
+export interface UpdateBeanRatingRequest {
+  rating: number; // 1-5 stars
 }
 
 // API response types

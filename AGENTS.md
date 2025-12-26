@@ -26,6 +26,25 @@ From repo root:
 - `barista.id` maps 1:1 with `auth.users.id` (no direct `auth.users` queries in app logic).
 - Enforce RLS for all tables; policies should reference `auth.uid()` and `barista.id`.
 
+## Admin Endpoint Usage Pattern
+- The backend provides two sets of endpoints for entity operations:
+  - **Regular endpoints** (e.g., `/api/bags/:id`) - enforce ownership/permission rules
+  - **Admin endpoints** (e.g., `/api/admin/bags/:id`) - bypass ownership for admin operations
+- **Frontend Implementation Pattern**: When implementing admin functionality, check both admin status and ownership:
+  ```typescript
+  const isAdmin = $barista?.is_admin === true;
+  const isOwner = entity.owner_id === $barista?.id;
+  
+  if (isAdmin && !isOwner) {
+    // Use adminService.updateEntity() - calls /api/admin/entity/:id
+    response = await adminService.updateEntity(id, data);
+  } else {
+    // Use apiClient.updateEntity() - calls /api/entity/:id  
+    response = await apiClient.updateEntity(id, data);
+  }
+  ```
+- **Key Principle**: Admins should seamlessly edit any entity without permission errors, while regular users are restricted to their own entities.
+
 ## Testing Guidelines
 - Frontend: Vitest (`frontend/src/**/*.test.ts`).
 - Backend: Jest (`backend/jest.config.js`).
