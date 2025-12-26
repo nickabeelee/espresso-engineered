@@ -410,6 +410,8 @@ export class BeanRepository extends BaseRepository<Bean> {
       const { data: recentBrews, error: brewError } = await supabase
         .from('brew')
         .select(`
+          id,
+          name,
           created_at,
           barista:barista_id (display_name)
         `)
@@ -421,7 +423,9 @@ export class BeanRepository extends BaseRepository<Bean> {
         activities.push(...recentBrews.map((brew: any) => ({
           barista_display_name: brew.barista?.display_name || 'Unknown',
           activity_type: 'brew' as const,
-          created_at: brew.created_at
+          created_at: brew.created_at,
+          brew_id: brew.id,
+          brew_name: brew.name
         })));
       }
     }

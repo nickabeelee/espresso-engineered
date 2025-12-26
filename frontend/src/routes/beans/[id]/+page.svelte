@@ -383,20 +383,33 @@
             <h3>Recent Activity</h3>
             <div class="activity-list">
               {#each bean.recent_activity as activity}
-                <div class="activity-item">
-                  <span class="activity-text">
-                    {activity.barista_display_name} 
-                    {#if activity.activity_type === 'brew'}
-                      brewed this bean
-                    {:else if activity.activity_type === 'rating'}
-                      rated this bean
-                    {:else if activity.activity_type === 'bag_created'}
-                      added a bag of this bean
-                    {:else}
-                      interacted with this bean
-                    {/if}
-                  </span>
-                  <span class="activity-date">{formatDate(activity.created_at)}</span>
+                <div class="activity-item" class:clickable={activity.activity_type === 'brew' && activity.brew_id}>
+                  {#if activity.activity_type === 'brew' && activity.brew_id}
+                    <button 
+                      class="activity-link"
+                      on:click={() => goto(`/brews/${activity.brew_id}`)}
+                      aria-label="View brew details"
+                    >
+                      <span class="activity-text">
+                        {activity.barista_display_name} {activity.brew_name || `brew from ${formatDate(activity.created_at)}`}
+                      </span>
+                      <span class="activity-date">{formatDate(activity.created_at)}</span>
+                    </button>
+                  {:else}
+                    <div class="activity-content">
+                      <span class="activity-text">
+                        {activity.barista_display_name} 
+                        {#if activity.activity_type === 'rating'}
+                          rated this bean
+                        {:else if activity.activity_type === 'bag_created'}
+                          added a bag of this bean
+                        {:else}
+                          interacted with this bean
+                        {/if}
+                      </span>
+                      <span class="activity-date">{formatDate(activity.created_at)}</span>
+                    </div>
+                  {/if}
                 </div>
               {/each}
             </div>
@@ -667,6 +680,40 @@
     background: var(--bg-surface-paper);
     border: 1px solid rgba(123, 94, 58, 0.2);
     border-radius: var(--radius-md);
+  }
+
+  .activity-item.clickable {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .activity-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color var(--motion-fast);
+  }
+
+  .activity-link:hover {
+    background: rgba(123, 94, 58, 0.05);
+  }
+
+  .activity-link:focus {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: -2px;
+  }
+
+  .activity-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
   }
 
   .activity-text {

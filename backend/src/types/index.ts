@@ -49,6 +49,9 @@ export interface RecentActivity {
   barista_display_name: string;
   activity_type: 'brew' | 'rating' | 'bag_created';
   created_at: string;
+  // For brew activities, include brew details for navigation
+  brew_id?: string;
+  brew_name?: string;
 }
 
 export interface BeanRating {
