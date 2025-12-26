@@ -7,6 +7,7 @@
   import Chip from '$lib/components/Chip.svelte';
   import BeanRating from '$lib/components/BeanRating.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
+  import EditableBagCard from '$lib/components/EditableBagCard.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
@@ -15,7 +16,7 @@
   import { AppError } from '$lib/utils/error-handling';
   import { barista } from '$lib/auth';
   import { getBeanPermissions, getBagPermissions } from '$lib/permissions';
-  import { XMark, PencilSquare, Trash, CheckCircle } from '$lib/icons';
+  import { XMark, PencilSquare, Trash, CheckCircle, Plus } from '$lib/icons';
   import type { BeanWithContext, Roaster, Bag, BagWithBarista, Barista as BaristaType, RoastLevel, CreateBeanRequest } from '@shared/types';
 
   let bean: BeanWithContext | null = null;
@@ -30,6 +31,7 @@
   let isEditing = false;
   let isSaving = false;
   let editFormData: Partial<CreateBeanRequest> = {};
+  let showBagCreator = false;
 
   const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
 
@@ -278,6 +280,29 @@
     bags = bags.map(bag => 
       bag.id === updatedBag.id ? { ...updatedBag, barista: bag.barista } : bag
     );
+  }
+
+  async function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
+    const updatedBag = event.detail;
+    
+    // Update the bag in the local bags array
+    bags = bags.map(bag => 
+      bag.id === updatedBag.id ? updatedBag : bag
+    );
+  }
+
+  async function handleBagCreated(event: CustomEvent<BagWithBarista>) {
+    const newBag = event.detail;
+    
+    // Add the new bag to the beginning of the list
+    bags = [newBag, ...bags];
+    
+    // Hide the bag creator
+    showBagCreator = false;
+  }
+
+  function handleNewBagCancel() {
+    showBagCreator = false;
   }
 
   async function handleRoasterCreated(event: CustomEvent<Roaster>) {
@@ -578,66 +603,47 @@
 
         <!-- Associated Bags -->
         <div class="detail-section card">
-          <h3>Associated Bags ({bags.length})</h3>
+          <div class="section-header">
+            <div class="section-title-area">
+              <h3>Associated Bags ({bags.length})</h3>
+            </div>
+            <div class="section-actions">
+              <IconButton 
+                on:click={() => showBagCreator = true} 
+                ariaLabel="New bag" 
+                title="Create new bag for this bean" 
+                variant="accent" 
+                size="sm"
+              >
+                <Plus />
+              </IconButton>
+            </div>
+          </div>
+
+          {#if showBagCreator}
+            <EditableBagCard
+              beanId={bean.id}
+              beanName={bean.name}
+              isNewBag={true}
+              on:created={handleBagCreated}
+              on:cancel={handleNewBagCancel}
+            />
+          {/if}
+
           {#if bags.length === 0}
             <div class="empty-state">
               <p>No bags found for this bean.</p>
+              <p class="empty-hint">Create your first bag to start tracking this bean's inventory.</p>
             </div>
           {:else}
             <div class="bags-grid">
               {#each bags as bag}
-                {@const ownershipStatus = getBagOwnershipStatus(bag)}
-                {@const ownerName = getBagOwnerName(bag)}
-                {@const bagPermissions = getBagPermissions($barista, bag)}
-                <div class="bag-card">
-                  <div class="bag-header">
-                    <div class="bag-title">
-                      <h4>{bag.name || bean.name}</h4>
-                      <span class="bag-owner" class:own={ownershipStatus === 'owned'}>
-                        {ownershipStatus === 'owned' ? 'Your bag' : `${ownerName}'s bag`}
-                      </span>
-                    </div>
-                    {#if bag.inventory_status}
-                      <span class="inventory-status {bag.inventory_status}">
-                        {formatInventoryStatus(bag.inventory_status)}
-                      </span>
-                    {/if}
-                  </div>
-                  
-                  <div class="bag-details">
-                    {#if bag.roast_date}
-                      <div class="bag-detail">
-                        <span class="detail-label">Roasted</span>
-                        <span class="detail-value">{formatDate(bag.roast_date)}</span>
-                      </div>
-                    {/if}
-                    
-                    {#if bag.purchase_location}
-                      <div class="bag-detail">
-                        <span class="detail-label">From</span>
-                        <span class="detail-value">{bag.purchase_location}</span>
-                      </div>
-                    {/if}
-                    
-                    {#if bag.price}
-                      <div class="bag-detail">
-                        <span class="detail-label">Price</span>
-                        <span class="detail-value">${bag.price.toFixed(2)}</span>
-                      </div>
-                    {/if}
-                  </div>
-
-                  <!-- Status updater for owned bags and admins -->
-                  {#if bagPermissions.canEdit}
-                    <div class="bag-status-section">
-                      <h5>Update Status</h5>
-                      <BagStatusUpdater 
-                        {bag} 
-                        on:updated={handleBagStatusUpdated}
-                      />
-                    </div>
-                  {/if}
-                </div>
+                <EditableBagCard
+                  {bag}
+                  beanName={bean.name}
+                  {baristasById}
+                  on:updated={handleBagUpdated}
+                />
               {/each}
             </div>
           {/if}
@@ -994,106 +1000,16 @@
     margin: 0;
   }
 
+  .empty-hint {
+    margin-top: 0.5rem !important;
+    font-size: 0.9rem;
+    opacity: 0.8;
+  }
+
   .bags-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1rem;
-  }
-
-  .bag-card {
-    background: var(--bg-surface-paper);
-    border: 1px solid rgba(123, 94, 58, 0.2);
-    border-radius: var(--radius-md);
-    padding: 1rem;
-  }
-
-  .bag-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .bag-title h4 {
-    margin: 0;
-    color: var(--text-ink-primary);
-    font-size: 1rem;
-  }
-
-  .bag-owner {
-    color: var(--text-ink-muted);
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
-  }
-
-  .bag-owner.own {
-    color: var(--semantic-success);
-    font-weight: 600;
-  }
-
-  .inventory-status {
-    padding: 0.2rem 0.5rem;
-    border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: capitalize;
-  }
-
-  .inventory-status.unopened {
-    background: rgba(85, 98, 74, 0.18);
-    color: var(--semantic-success);
-  }
-
-  .inventory-status.plenty {
-    background: rgba(85, 98, 74, 0.18);
-    color: var(--semantic-success);
-  }
-
-  .inventory-status.getting_low {
-    background: rgba(138, 106, 62, 0.18);
-    color: var(--semantic-warning);
-  }
-
-  .inventory-status.empty {
-    background: rgba(156, 69, 69, 0.18);
-    color: var(--semantic-error);
-  }
-
-  .bag-details {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.5rem;
-  }
-
-  .bag-detail {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-
-  .detail-label {
-    font-weight: 500;
-    color: var(--text-ink-muted);
-    font-size: 0.8rem;
-  }
-
-  .bag-status-section {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(123, 94, 58, 0.2);
-  }
-
-  .bag-status-section h5 {
-    margin: 0 0 0.75rem 0;
-    color: var(--text-ink-secondary);
-    font-size: 0.9rem;
-    font-weight: 600;
-  }
-
-  .detail-value {
-    color: var(--text-ink-primary);
-    font-size: 0.9rem;
   }
 
   @media (max-width: 768px) {
