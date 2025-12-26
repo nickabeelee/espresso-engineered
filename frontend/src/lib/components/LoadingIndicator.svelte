@@ -20,22 +20,26 @@
   {#if overlay}
     <div class="loading-overlay">
       <div class="loading-content">
-        <div class="loading-animation">
-          {#if variant === 'spinner'}
-            <div class="spinner"></div>
-          {:else if variant === 'dots'}
-            <div class="dots">
-              <div class="dot"></div>
-              <div class="dot"></div>
-              <div class="dot"></div>
-            </div>
-          {:else if variant === 'pulse'}
-            <div class="pulse"></div>
-          {/if}
+        <div class="loading-animation-container">
+          <div class="loading-animation">
+            {#if variant === 'spinner'}
+              <div class="spinner"></div>
+            {:else if variant === 'dots'}
+              <div class="dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
+            {:else if variant === 'pulse'}
+              <div class="pulse"></div>
+            {/if}
+          </div>
         </div>
         
         {#if message}
-          <div class="loading-message">{message}</div>
+          <div class="loading-message-container">
+            <div class="loading-message">{message}</div>
+          </div>
         {/if}
         
         {#if showProgress}
@@ -50,28 +54,32 @@
     </div>
   {:else}
     <div class="loading-content">
-      <div class="loading-animation">
-        {#if variant === 'spinner'}
-          <div class="spinner"></div>
-        {:else if variant === 'dots'}
-          <div class="dots">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-          </div>
-        {:else if variant === 'pulse'}
-          <div class="pulse"></div>
-        {:else if variant === 'skeleton'}
-          <div class="skeleton">
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line"></div>
-          </div>
-        {/if}
+      <div class="loading-animation-container">
+        <div class="loading-animation">
+          {#if variant === 'spinner'}
+            <div class="spinner"></div>
+          {:else if variant === 'dots'}
+            <div class="dots">
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+            </div>
+          {:else if variant === 'pulse'}
+            <div class="pulse"></div>
+          {:else if variant === 'skeleton'}
+            <div class="skeleton">
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+            </div>
+          {/if}
+        </div>
       </div>
       
       {#if message}
-        <div class="loading-message">{message}</div>
+        <div class="loading-message-container">
+          <div class="loading-message">{message}</div>
+        </div>
       {/if}
       
       {#if showProgress}
@@ -128,6 +136,8 @@
     background: var(--bg-surface-paper);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-soft);
+    /* Ensure no transforms are inherited */
+    transform: none;
   }
   
   .loading-indicator:not(.overlay) .loading-content {
@@ -136,10 +146,30 @@
     padding: 0;
   }
   
+  .loading-animation-container {
+    /* Isolate the animation container completely */
+    contain: layout style paint;
+    isolation: isolate;
+    transform: none;
+  }
+  
   .loading-animation {
     display: flex;
     align-items: center;
     justify-content: center;
+    /* Create a new stacking context to isolate transforms */
+    position: relative;
+    z-index: 0;
+    /* Ensure this container doesn't rotate */
+    transform: none;
+  }
+  
+  .loading-message-container {
+    /* Completely isolate the message from any animations */
+    contain: layout style paint;
+    isolation: isolate;
+    transform: none !important;
+    animation: none !important;
   }
   
   /* Spinner animation */
@@ -148,6 +178,13 @@
     border-top: 2px solid var(--accent-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
+    /* Isolate the transform to prevent affecting siblings */
+    will-change: transform;
+    transform-origin: center;
+    /* Ensure the spinner is contained */
+    contain: layout style paint;
+    /* Create isolation */
+    isolation: isolate;
   }
   
   .loading-indicator.sm .spinner {
@@ -301,6 +338,9 @@
     font-size: 0.9rem;
     text-align: center;
     max-width: 200px;
+    /* Ensure the message never rotates */
+    transform: none !important;
+    animation: none !important;
   }
   
   .loading-indicator.sm .loading-message {

@@ -261,6 +261,9 @@
     border-top: 4px solid var(--accent-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
+    /* Isolate the transform to prevent affecting siblings */
+    will-change: transform;
+    transform-origin: center;
   }
 
   @keyframes spin {

@@ -8,8 +8,8 @@
   import BeanRating from '$lib/components/BeanRating.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
-  import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
+  import { apiClient } from '$lib/api-client';
   import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
   import { AppError } from '$lib/utils/error-handling';
   import { barista } from '$lib/auth';
@@ -44,7 +44,7 @@
         enhancedApiClient.getBean(id),
         enhancedApiClient.getRoasters(),
         enhancedApiClient.getBags(),
-        enhancedApiClient.get('/baristas')
+        apiClient.getBaristas()
       ]);
 
       if (beanResponse.data) {
@@ -261,7 +261,7 @@
 
     {#if $isLoading}
       <div class="loading">
-        <LoadingIndicator variant="spinner" size="lg" message="Loading bean details..." />
+        <span>Loading bean details...</span>
       </div>
     {:else if error}
       <ErrorDisplay
