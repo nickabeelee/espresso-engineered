@@ -1,6 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import { barista } from '$lib/auth';
+  import { handlePermissionError } from '$lib/permissions';
   
   export let beanId: string;
   export let currentRating: number | null = null;
@@ -14,8 +16,15 @@
   let isSubmitting = false;
   let error: string | null = null;
 
+  $: canRate = !!$barista && !disabled;
+
   async function handleRatingClick(rating: number) {
-    if (disabled || isSubmitting) return;
+    if (!canRate || isSubmitting) return;
+    
+    if (!$barista) {
+      error = 'You must be logged in to rate beans.';
+      return;
+    }
     
     isSubmitting = true;
     error = null;
@@ -37,14 +46,14 @@
       
       dispatch('ratingChanged', { rating: currentRating });
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to update rating';
+      error = handlePermissionError(err as Error, 'rate', 'bean');
     } finally {
       isSubmitting = false;
     }
   }
 
   function handleMouseEnter(rating: number) {
-    if (!disabled && !isSubmitting) {
+    if (canRate && !isSubmitting) {
       hoveredRating = rating;
     }
   }
@@ -78,7 +87,7 @@
         class="star-button {getStarClass(star)}"
         class:active={isStarActive(star)}
         class:current={currentRating === star}
-        disabled={disabled || isSubmitting}
+        disabled={!canRate || isSubmitting}
         on:click={() => handleRatingClick(star)}
         on:mouseenter={() => handleMouseEnter(star)}
         aria-label={currentRating === star ? `Remove ${star} star rating` : `Rate ${star} star${star > 1 ? 's' : ''}`}
@@ -92,7 +101,7 @@
     {#if currentRating}
       <span class="current-rating">
         {currentRating}/5 stars
-        {#if !disabled}
+        {#if canRate}
           <button 
             type="button" 
             class="remove-rating" 
@@ -106,7 +115,7 @@
       </span>
     {:else}
       <span class="no-rating">
-        {disabled ? 'Not rated' : 'Click to rate'}
+        {!canRate ? ($barista ? 'Rating disabled' : 'Login to rate') : 'Click to rate'}
       </span>
     {/if}
   </div>
@@ -132,6 +141,10 @@
   }
 
   .bean-rating.disabled {
+    opacity: 0.7;
+  }
+
+  .bean-rating:has(.star-button:disabled) {
     opacity: 0.7;
   }
 

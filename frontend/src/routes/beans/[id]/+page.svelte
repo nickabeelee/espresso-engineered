@@ -8,7 +8,8 @@
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { XMark, PencilSquare } from '$lib/icons';
+  import { getBeanPermissions, getBagPermissions, handlePermissionError } from '$lib/permissions';
+  import { XMark, PencilSquare, Trash } from '$lib/icons';
   import type { BeanWithContext, Roaster, Bag, Barista as BaristaType } from '@shared/types';
 
   let bean: BeanWithContext | null = null;
@@ -18,8 +19,11 @@
   let loading = true;
   let error: string | null = null;
   let personalRating: number | null = null;
+  let isDeleting = false;
+  let permissionError: string | null = null;
 
   $: beanId = $page.params.id;
+  $: beanPermissions = getBeanPermissions($barista, bean || undefined);
 
   onMount(async () => {
     if (beanId) {
@@ -118,6 +122,39 @@
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
+  function handleEditBean() {
+    if (!beanPermissions.canEdit) {
+      permissionError = 'You don\'t have permission to edit this bean.';
+      return;
+    }
+    // TODO: Implement bean editing modal/form
+    console.log('Edit bean:', bean?.id);
+  }
+
+  async function handleDeleteBean() {
+    if (!bean || !beanPermissions.canDelete) {
+      permissionError = 'Only administrators can delete beans.';
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete "${bean.name}"? This action cannot be undone and will affect all associated bags and brews.`)) {
+      return;
+    }
+
+    isDeleting = true;
+    permissionError = null;
+
+    try {
+      await apiClient.delete(`/admin/beans/${bean.id}`);
+      goto('/beans');
+    } catch (err) {
+      permissionError = handlePermissionError(err as Error, 'delete', 'bean');
+      console.error('Failed to delete bean:', err);
+    } finally {
+      isDeleting = false;
+    }
+  }
+
   async function handleRatingChanged(event: CustomEvent<{ rating: number | null }>) {
     // Update the local state and reload bean details to get fresh data
     personalRating = event.detail.rating;
@@ -157,6 +194,32 @@
       </div>
       
       <div class="actions">
+        {#if bean && (beanPermissions.canEdit || beanPermissions.canDelete)}
+          {#if beanPermissions.canEdit}
+            <IconButton 
+              on:click={handleEditBean} 
+              ariaLabel="Edit bean" 
+              title="Edit bean" 
+              variant="neutral" 
+              disabled={loading}
+            >
+              <PencilSquare />
+            </IconButton>
+          {/if}
+          
+          {#if beanPermissions.canDelete}
+            <IconButton 
+              on:click={handleDeleteBean} 
+              ariaLabel="Delete bean" 
+              title="Delete bean" 
+              variant="danger" 
+              disabled={loading || isDeleting}
+            >
+              <Trash />
+            </IconButton>
+          {/if}
+        {/if}
+        
         <IconButton on:click={handleClose} ariaLabel="Back to beans" title="Close" variant="neutral" disabled={loading}>
           <XMark />
         </IconButton>
@@ -168,6 +231,13 @@
     {:else if error}
       <div class="error">Error: {error}</div>
     {:else if bean}
+      <!-- Permission error display -->
+      {#if permissionError}
+        <div class="permission-error">
+          {permissionError}
+        </div>
+      {/if}
+      
       <div class="bean-content">
         <!-- Bean Information -->
         <div class="detail-section card">
@@ -340,13 +410,16 @@
 
                   <!-- Status updater for owned bags -->
                   {#if ownershipStatus === 'owned'}
-                    <div class="bag-status-section">
-                      <h5>Update Status</h5>
-                      <BagStatusUpdater 
-                        {bag} 
-                        on:updated={handleBagStatusUpdated}
-                      />
-                    </div>
+                    {@const bagPermissions = getBagPermissions($barista, bag)}
+                    {#if bagPermissions.canEdit}
+                      <div class="bag-status-section">
+                        <h5>Update Status</h5>
+                        <BagStatusUpdater 
+                          {bag} 
+                          on:updated={handleBagStatusUpdated}
+                        />
+                      </div>
+                    {/if}
                   {/if}
                 </div>
               {/each}
@@ -400,6 +473,16 @@
 
   .error {
     color: var(--semantic-error);
+  }
+
+  .permission-error {
+    background: var(--semantic-error-bg);
+    color: var(--semantic-error);
+    border: 1px solid var(--semantic-error);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
   }
 
   .bean-content {

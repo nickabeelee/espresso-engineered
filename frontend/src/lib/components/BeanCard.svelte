@@ -1,9 +1,26 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { createEventDispatcher } from 'svelte';
+  import { barista } from '$lib/auth';
+  import { getBeanPermissions, handlePermissionError } from '$lib/permissions';
+  import { apiClient } from '$lib/api-client';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { PencilSquare, Trash } from '$lib/icons';
   import type { BeanWithContext, Roaster } from '@shared/types';
 
   export let bean: BeanWithContext;
   export let roaster: Roaster | null = null;
+
+  const dispatch = createEventDispatcher<{
+    beanUpdated: BeanWithContext;
+    beanDeleted: string;
+  }>();
+
+  let showActions = false;
+  let isDeleting = false;
+  let deleteError: string | null = null;
+
+  $: permissions = getBeanPermissions($barista, bean);
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString();
@@ -41,7 +58,11 @@
     return '★'.repeat(fullStars) + (hasHalfStar ? '½' : '');
   }
 
-  function handleCardClick() {
+  function handleCardClick(event: MouseEvent) {
+    // Don't navigate if clicking on action buttons
+    if ((event.target as HTMLElement).closest('.bean-actions')) {
+      return;
+    }
     goto(`/beans/${bean.id}`);
   }
 
@@ -49,6 +70,47 @@
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       goto(`/beans/${bean.id}`);
+    }
+  }
+
+  function handleMouseEnter() {
+    showActions = true;
+  }
+
+  function handleMouseLeave() {
+    showActions = false;
+    deleteError = null;
+  }
+
+  function handleEditClick(event: MouseEvent) {
+    event.stopPropagation();
+    // TODO: Implement bean editing modal/form
+    console.log('Edit bean:', bean.id);
+  }
+
+  async function handleDeleteClick(event: MouseEvent) {
+    event.stopPropagation();
+    
+    if (!permissions.canDelete) {
+      deleteError = 'Only administrators can delete beans.';
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete "${bean.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    isDeleting = true;
+    deleteError = null;
+
+    try {
+      await apiClient.delete(`/admin/beans/${bean.id}`);
+      dispatch('beanDeleted', bean.id);
+    } catch (error) {
+      deleteError = handlePermissionError(error as Error, 'delete', 'bean');
+      console.error('Failed to delete bean:', error);
+    } finally {
+      isDeleting = false;
     }
   }
 </script>
@@ -60,7 +122,47 @@
   aria-label={`View ${bean.name} details`}
   on:click={handleCardClick}
   on:keydown={handleCardKeydown}
+  on:mouseenter={handleMouseEnter}
+  on:mouseleave={handleMouseLeave}
 >
+  <!-- Permission-based action controls -->
+  {#if showActions && (permissions.canEdit || permissions.canDelete)}
+    <div class="bean-actions">
+      {#if permissions.canEdit}
+        <IconButton
+          type="button"
+          ariaLabel="Edit bean"
+          title="Edit bean"
+          variant="neutral"
+          size="sm"
+          on:click={handleEditClick}
+        >
+          <PencilSquare />
+        </IconButton>
+      {/if}
+      
+      {#if permissions.canDelete}
+        <IconButton
+          type="button"
+          ariaLabel="Delete bean"
+          title="Delete bean"
+          variant="danger"
+          size="sm"
+          disabled={isDeleting}
+          on:click={handleDeleteClick}
+        >
+          <Trash />
+        </IconButton>
+      {/if}
+    </div>
+  {/if}
+
+  <!-- Permission error display -->
+  {#if deleteError}
+    <div class="permission-error">
+      {deleteError}
+    </div>
+  {/if}
   <div class="bean-header">
     <div class="bean-chips">
       {#if roaster}
@@ -155,6 +257,7 @@
     padding: 1.5rem;
     transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
     cursor: pointer;
+    position: relative;
   }
 
   .bean-card:hover {
@@ -165,6 +268,34 @@
   .bean-card:focus-visible {
     outline: 2px solid rgba(176, 138, 90, 0.4);
     outline-offset: 2px;
+  }
+
+  .bean-actions {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    gap: 0.25rem;
+    background: var(--bg-surface-paper);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 0.25rem;
+    box-shadow: var(--shadow-soft);
+    z-index: 10;
+  }
+
+  .permission-error {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    background: var(--semantic-error-bg);
+    color: var(--semantic-error);
+    border: 1px solid var(--semantic-error);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    z-index: 10;
   }
 
   .bean-header {

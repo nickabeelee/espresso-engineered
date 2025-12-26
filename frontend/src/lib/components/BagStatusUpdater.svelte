@@ -1,6 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import { barista } from '$lib/auth';
+  import { getBagPermissions, handlePermissionError } from '$lib/permissions';
   import type { Bag, InventoryStatus } from '../../../../shared/types';
 
   export let bag: Bag;
@@ -13,6 +15,9 @@
   let updating = false;
   let error: string | null = null;
 
+  $: permissions = getBagPermissions($barista, bag);
+  $: canUpdate = permissions.canEdit && !disabled;
+
   const statusOptions = [
     { value: 'unopened', label: '📦 Unopened', color: 'bg-blue-100 text-blue-800' },
     { value: 'plenty', label: '✅ Plenty', color: 'bg-green-100 text-green-800' },
@@ -21,7 +26,12 @@
   ];
 
   async function updateStatus(newStatus: InventoryStatus) {
-    if (updating || disabled || newStatus === bag.inventory_status) return;
+    if (updating || !canUpdate || newStatus === bag.inventory_status) return;
+
+    if (!permissions.canEdit) {
+      error = 'You don\'t have permission to update this bag\'s status.';
+      return;
+    }
 
     try {
       updating = true;
@@ -37,7 +47,7 @@
         throw new Error('Failed to update bag status');
       }
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to update status';
+      error = handlePermissionError(err as Error, 'edit', 'bag');
       console.error('Failed to update bag status:', err);
     } finally {
       updating = false;
@@ -65,7 +75,7 @@
         class="status-btn {option.color}"
         class:active={bag.inventory_status === option.value}
         class:updating={updating}
-        disabled={disabled || updating}
+        disabled={!canUpdate || updating}
         on:click={() => updateStatus(option.value)}
         title="Set status to {option.label}"
       >
