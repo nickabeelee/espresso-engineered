@@ -410,11 +410,13 @@
     border-color: var(--accent-primary);
     border-style: dashed;
     background: rgba(176, 138, 90, 0.05);
+    margin-bottom: 1.5rem;
   }
 
   .bag-card.new-bag.editing {
     border-style: solid;
     background: var(--bg-surface-paper);
+    margin-bottom: 1.5rem;
   }
 
   .bag-header {
