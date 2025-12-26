@@ -1,5 +1,6 @@
 <script lang="ts">
   import AuthGuard from '$lib/components/AuthGuard.svelte';
+  import BeanList from '$lib/components/BeanList.svelte';
 </script>
 
 <svelte:head>
@@ -18,7 +19,7 @@
     </div>
 
     <div class="beans-content">
-      <p>Bean inventory management coming soon...</p>
+      <BeanList />
     </div>
   </div>
 </AuthGuard>
@@ -34,10 +35,5 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-  }
-
-  .beans-content p {
-    color: var(--text-ink-secondary);
-    font-size: 1rem;
   }
 </style>

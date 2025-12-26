@@ -80,8 +80,8 @@ This implementation plan transforms the existing bean and bag data model into a 
     - Test route navigation behavior
     - _Requirements: 1.1, 1.2_
 
-- [-] 6. Bean List Component Implementation
-  - [ ] 6.1 Create BeanList component based on BrewList patterns
+- [x] 6. Bean List Component Implementation
+  - [x] 6.1 Create BeanList component based on BrewList patterns
     - Implement search functionality across bean names and tasting notes
     - Add filter controls for roaster, roast level, and "My Beans" toggle
     - Display beans with ownership indicators and usage statistics
@@ -92,7 +92,7 @@ This implementation plan transforms the existing bean and bag data model into a 
     - **Property 1: Bean Display Completeness**
     - **Validates: Requirements 2.1, 2.3, 2.4, 4.2, 4.3**
 
-  - [ ] 6.3 Implement BeanCard component for list items
+  - [x] 6.3 Implement BeanCard component for list items
     - Display bean name, roaster, roast level, and ratings
     - Show ownership status and "most used by me" indicators
     - Include ambient social signals as secondary metadata
@@ -103,8 +103,8 @@ This implementation plan transforms the existing bean and bag data model into a 
     - **Property 7: Social Signal Display**
     - **Validates: Requirements 8.1, 4.4**
 
-- [ ] 7. Bean Detail Page Implementation
-  - [ ] 7.1 Create BeanDetail component and route
+- [-] 7. Bean Detail Page Implementation
+  - [-] 7.1 Create BeanDetail component and route
     - Display comprehensive bean information and statistics
     - Show recent activity by other baristas
     - List all associated bags with ownership indicators

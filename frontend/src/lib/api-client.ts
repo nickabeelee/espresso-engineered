@@ -9,6 +9,7 @@ import type {
   UpdateBrewRequest,
   PrefillData,
   Bean,
+  BeanWithContext,
   Bag,
   Grinder,
   Machine,
@@ -19,7 +20,10 @@ import type {
   CreateGrinderRequest,
   CreateMachineRequest,
   CreateRoasterRequest,
+  CreateBeanRatingRequest,
+  UpdateBeanRatingRequest,
   BrewFilters,
+  BeanFilters,
   PaginationParams
 } from '@shared/types';
 
@@ -198,14 +202,59 @@ class ApiClient {
   }
 
   // Entity endpoints
-  async getBeans(): Promise<ListResponse<Bean>> {
-    return this.makeRequest<ListResponse<Bean>>('/beans');
+  async getBeans(filters?: BeanFilters, pagination?: PaginationParams): Promise<ListResponse<BeanWithContext>> {
+    const params = new URLSearchParams();
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    if (pagination) {
+      Object.entries(pagination).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+
+    const queryString = params.toString();
+    const endpoint = `/beans${queryString ? `?${queryString}` : ''}`;
+    
+    return this.makeRequest<ListResponse<BeanWithContext>>(endpoint);
+  }
+
+  async getBean(id: string): Promise<ApiResponse<BeanWithContext>> {
+    return this.makeRequest<ApiResponse<BeanWithContext>>(`/beans/${id}`);
   }
 
   async createBean(bean: CreateBeanRequest): Promise<ApiResponse<Bean>> {
     return this.makeRequest<ApiResponse<Bean>>('/beans', {
       method: 'POST',
       body: JSON.stringify(bean),
+    });
+  }
+
+  async createBeanRating(beanId: string, rating: CreateBeanRatingRequest): Promise<ApiResponse<void>> {
+    return this.makeRequest<ApiResponse<void>>(`/beans/${beanId}/rating`, {
+      method: 'POST',
+      body: JSON.stringify(rating),
+    });
+  }
+
+  async updateBeanRating(beanId: string, rating: UpdateBeanRatingRequest): Promise<ApiResponse<void>> {
+    return this.makeRequest<ApiResponse<void>>(`/beans/${beanId}/rating`, {
+      method: 'PUT',
+      body: JSON.stringify(rating),
+    });
+  }
+
+  async deleteBeanRating(beanId: string): Promise<ApiResponse<void>> {
+    return this.makeRequest<ApiResponse<void>>(`/beans/${beanId}/rating`, {
+      method: 'DELETE',
     });
   }
 
@@ -313,7 +362,11 @@ export const {
   getDraftBrews,
   batchSyncBrews,
   getBeans,
+  getBean,
   createBean,
+  createBeanRating,
+  updateBeanRating,
+  deleteBeanRating,
   getBags,
   getBag,
   createBag,
