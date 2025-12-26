@@ -8,6 +8,7 @@
   import BeanRating from '$lib/components/BeanRating.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import RoasterSelector from '$lib/components/RoasterSelector.svelte';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
   import { apiClient } from '$lib/api-client';
   import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
@@ -278,6 +279,18 @@
       bag.id === updatedBag.id ? { ...updatedBag, barista: bag.barista } : bag
     );
   }
+
+  async function handleRoasterCreated(event: CustomEvent<Roaster>) {
+    const newRoaster = event.detail;
+    
+    // Add the new roaster to the roasters list
+    roasters = [newRoaster, ...roasters];
+    
+    // If we're editing, set the new roaster as selected
+    if (isEditing) {
+      editFormData.roaster_id = newRoaster.id;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -400,16 +413,11 @@
             <div class="info-item">
               <span class="info-label">Roaster</span>
               {#if isEditing}
-                <select
+                <RoasterSelector
                   bind:value={editFormData.roaster_id}
-                  class="info-select"
                   disabled={isSaving}
-                >
-                  <option value="">Select roaster...</option>
-                  {#each roasters as roasterOption}
-                    <option value={roasterOption.id}>{roasterOption.name}</option>
-                  {/each}
-                </select>
+                  on:roasterCreated={handleRoasterCreated}
+                />
               {:else}
                 <span class="info-value">{roaster?.name || 'Unknown'}</span>
               {/if}
@@ -725,9 +733,9 @@
   }
 
   .bean-info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
     margin-bottom: 1.5rem;
   }
 
@@ -1075,10 +1083,6 @@
   }
 
   @media (max-width: 768px) {
-    .bean-info-grid {
-      grid-template-columns: 1fr;
-    }
-
     .stats-grid {
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     }
