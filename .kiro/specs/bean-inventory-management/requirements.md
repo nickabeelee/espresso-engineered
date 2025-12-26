@@ -41,7 +41,6 @@ The Bean Inventory Management feature enables baristas to manage their personal 
 
 **User Story:** As a barista, I want to filter and search beans by various criteria, so that I can quickly find specific beans or discover beans with particular characteristics.
 
-#### Acceptance Criteria
 
 1. WHEN a barista uses the filter controls, THE Bean_Inventory_System SHALL filter beans by roaster
 2. WHEN a barista uses the filter controls, THE Bean_Inventory_System SHALL filter beans by roast level
