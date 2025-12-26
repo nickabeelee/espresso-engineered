@@ -9,6 +9,7 @@ import type {
   UpdateBrewRequest,
   PrefillData,
   Bean,
+  BeanWithContext,
   Bag,
   Grinder,
   Machine,
@@ -16,10 +17,14 @@ import type {
   Barista,
   CreateBeanRequest,
   CreateBagRequest,
+  UpdateBagRequest,
   CreateGrinderRequest,
   CreateMachineRequest,
   CreateRoasterRequest,
+  CreateBeanRatingRequest,
+  UpdateBeanRatingRequest,
   BrewFilters,
+  BeanFilters,
   PaginationParams
 } from '@shared/types';
 
@@ -198,8 +203,33 @@ class ApiClient {
   }
 
   // Entity endpoints
-  async getBeans(): Promise<ListResponse<Bean>> {
-    return this.makeRequest<ListResponse<Bean>>('/beans');
+  async getBeans(filters?: BeanFilters, pagination?: PaginationParams): Promise<ListResponse<BeanWithContext>> {
+    const params = new URLSearchParams();
+    
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    if (pagination) {
+      Object.entries(pagination).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+
+    const queryString = params.toString();
+    const endpoint = `/beans${queryString ? `?${queryString}` : ''}`;
+    
+    return this.makeRequest<ListResponse<BeanWithContext>>(endpoint);
+  }
+
+  async getBean(id: string): Promise<ApiResponse<BeanWithContext>> {
+    return this.makeRequest<ApiResponse<BeanWithContext>>(`/beans/${id}`);
   }
 
   async createBean(bean: CreateBeanRequest): Promise<ApiResponse<Bean>> {
@@ -209,8 +239,43 @@ class ApiClient {
     });
   }
 
-  async getBags(): Promise<ListResponse<Bag>> {
-    return this.makeRequest<ListResponse<Bag>>('/bags');
+  async updateBean(id: string, bean: Partial<CreateBeanRequest>): Promise<ApiResponse<Bean>> {
+    const sanitizedBean = stripNullish(bean);
+    return this.makeRequest<ApiResponse<Bean>>(`/beans/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(sanitizedBean),
+    });
+  }
+
+  async createBeanRating(beanId: string, rating: CreateBeanRatingRequest): Promise<ApiResponse<void>> {
+    return this.makeRequest<ApiResponse<void>>(`/beans/${beanId}/rating`, {
+      method: 'POST',
+      body: JSON.stringify(rating),
+    });
+  }
+
+  async updateBeanRating(beanId: string, rating: UpdateBeanRatingRequest): Promise<ApiResponse<void>> {
+    return this.makeRequest<ApiResponse<void>>(`/beans/${beanId}/rating`, {
+      method: 'PUT',
+      body: JSON.stringify(rating),
+    });
+  }
+
+  async deleteBeanRating(beanId: string): Promise<ApiResponse<void>> {
+    return this.makeRequest<ApiResponse<void>>(`/beans/${beanId}/rating`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getBags(params?: { bean_id?: string; active_only?: boolean; inventory_status?: string }): Promise<ListResponse<Bag>> {
+    const searchParams = new URLSearchParams();
+    if (params?.bean_id) searchParams.append('bean_id', params.bean_id);
+    if (params?.active_only) searchParams.append('active_only', 'true');
+    if (params?.inventory_status) searchParams.append('inventory_status', params.inventory_status);
+    
+    const queryString = searchParams.toString();
+    const url = queryString ? `/bags?${queryString}` : '/bags';
+    return this.makeRequest<ListResponse<Bag>>(url);
   }
 
   async getBag(id: string): Promise<ApiResponse<Bag>> {
@@ -221,6 +286,14 @@ class ApiClient {
     return this.makeRequest<ApiResponse<Bag>>('/bags', {
       method: 'POST',
       body: JSON.stringify(bag),
+    });
+  }
+
+  async updateBag(id: string, bag: Partial<UpdateBagRequest>): Promise<ApiResponse<Bag>> {
+    const sanitizedBag = stripNullish(bag);
+    return this.makeRequest<ApiResponse<Bag>>(`/bags/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(sanitizedBag),
     });
   }
 
@@ -313,10 +386,16 @@ export const {
   getDraftBrews,
   batchSyncBrews,
   getBeans,
+  getBean,
   createBean,
+  updateBean,
+  createBeanRating,
+  updateBeanRating,
+  deleteBeanRating,
   getBags,
   getBag,
   createBag,
+  updateBag,
   previewBagName,
   getGrinders,
   createGrinder,

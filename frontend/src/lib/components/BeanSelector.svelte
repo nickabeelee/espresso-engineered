@@ -82,7 +82,6 @@
     </div>
   {:else if showCreateForm}
     <InlineBeanCreator 
-      {roasters}
       on:created={handleBeanCreated}
       on:cancel={() => showCreateForm = false}
     />

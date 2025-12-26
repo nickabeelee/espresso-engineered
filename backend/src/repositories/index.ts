@@ -3,6 +3,7 @@ export { BaseRepository } from './base.js';
 export { BrewRepository } from './brew.js';
 export { RoasterRepository } from './roaster.js';
 export { BeanRepository } from './bean.js';
+export { BeanRatingRepository } from './bean-rating.js';
 export { GrinderRepository } from './grinder.js';
 export { MachineRepository } from './machine.js';
 export { BagRepository } from './bag.js';

@@ -351,7 +351,66 @@ Typography carries most of the aesthetic weight. It should feel **printed, edito
 
 ---
 
-### 7.2 Voice (Execution Rules)
+### 7.2 Button Variants & Sentiment
+
+Button variants must follow semantic meaning and visual hierarchy. Each variant serves a specific purpose and should never be used arbitrarily.
+
+**Accent (Primary Actions)**
+
+* Variant: `accent`
+* Color: `--accent-primary` (#B08A5A)
+* Usage:
+  * Edit/Modify actions (Edit Bean, Edit Profile)
+  * Primary creation actions (Create Bean, Save Brew)
+  * Main call-to-action buttons
+  * Confirmation of positive actions
+
+**Success (Completion Actions)**
+
+* Variant: `success`
+* Color: `--semantic-success` (#55624A)
+* Usage:
+  * Save/Submit actions in forms
+  * Completion confirmations
+  * Positive state changes
+
+**Danger (Destructive Actions)**
+
+* Variant: `danger`
+* Color: `--semantic-error` (#7A3E2F)
+* Usage:
+  * Delete actions
+  * Destructive operations
+  * Actions that cannot be undone
+  * Critical warnings
+
+**Neutral (Secondary Actions)**
+
+* Variant: `neutral`
+* Color: `--text-ink-secondary` (#4A3A2C)
+* Usage:
+  * Navigation actions (Back, Close, Cancel)
+  * Secondary options
+  * Non-committal actions
+  * Utility functions (Refresh, Filter)
+
+**Visual Hierarchy Rules**
+
+1. Only one accent button per logical section
+2. Destructive actions always use danger variant
+3. Navigation/dismissal actions always use neutral
+4. When in doubt, default to neutral rather than accent
+
+**Common Patterns**
+
+* Edit forms: Cancel (neutral) + Save (accent)
+* Delete confirmations: Cancel (neutral) + Delete (danger)
+* Creation flows: Cancel (neutral) + Create (accent)
+* Detail pages: Close (neutral) + Edit (accent) + Delete (danger)
+
+---
+
+### 7.3 Voice (Execution Rules)
 
 Voice appears only in **quiet moments**. It should feel like a presence beside the user — attentive, aware, and restrained. The tone carries **implied intimacy and feminine draw** that is *felt*, not stated.
 
@@ -464,7 +523,7 @@ Voice should always suggest presence, awareness, and quiet confidence — nothin
 
 ---
 
-## 8. Imagery & Iconography
+## 9. Imagery & Iconography
 
 **Photography**
 
@@ -480,7 +539,7 @@ Voice should always suggest presence, awareness, and quiet confidence — nothin
 
 ---
 
-## 9. Page Templates
+## 10. Page Templates
 
 ### Home
 
@@ -507,7 +566,7 @@ Voice should always suggest presence, awareness, and quiet confidence — nothin
 
 ---
 
-## 10. Forms & Foreign Keys
+## 11. Forms & Foreign Keys
 
 **Simple FK (<20 items)**
 
@@ -525,21 +584,7 @@ Inline create allowed only on paper surfaces.
 
 ---
 
-## 11. Enforcement
-
-This document is the source of truth.
-
-If ambiguous:
-
-1. Default to restraint
-2. Default to voice silence
-3. Update this document before implementing.
-
-* No illustrative cartoons
-
----
-
-## 9. Accessibility & Restraint
+## 12. Accessibility & Restraint
 
 * Accessibility is mandatory
 * High contrast without harshness
@@ -547,7 +592,7 @@ If ambiguous:
 
 ---
 
-## 10. Enforcement
+## 13. Enforcement
 
 This document is the source of truth.
 

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       bag: {
@@ -44,6 +19,9 @@ export type Database = {
           bean_id: string
           created_at: string
           id: string
+          inventory_status:
+            | Database["public"]["Enums"]["inventory_status"]
+            | null
           modified_at: string
           name: string | null
           owner_id: string
@@ -56,6 +34,9 @@ export type Database = {
           bean_id: string
           created_at?: string
           id?: string
+          inventory_status?:
+            | Database["public"]["Enums"]["inventory_status"]
+            | null
           modified_at?: string
           name?: string | null
           owner_id: string
@@ -68,6 +49,9 @@ export type Database = {
           bean_id?: string
           created_at?: string
           id?: string
+          inventory_status?:
+            | Database["public"]["Enums"]["inventory_status"]
+            | null
           modified_at?: string
           name?: string | null
           owner_id?: string
@@ -160,6 +144,48 @@ export type Database = {
             columns: ["roaster_id"]
             isOneToOne: false
             referencedRelation: "roaster"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bean_rating: {
+        Row: {
+          barista_id: string
+          bean_id: string
+          created_at: string | null
+          id: string
+          rating: number
+          updated_at: string | null
+        }
+        Insert: {
+          barista_id: string
+          bean_id: string
+          created_at?: string | null
+          id?: string
+          rating: number
+          updated_at?: string | null
+        }
+        Update: {
+          barista_id?: string
+          bean_id?: string
+          created_at?: string | null
+          id?: string
+          rating?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bean_rating_barista_id_fkey"
+            columns: ["barista_id"]
+            isOneToOne: false
+            referencedRelation: "barista"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bean_rating_bean_id_fkey"
+            columns: ["bean_id"]
+            isOneToOne: false
+            referencedRelation: "bean"
             referencedColumns: ["id"]
           },
         ]
@@ -345,6 +371,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      inventory_status: "unopened" | "plenty" | "getting_low" | "empty"
       roast_levels: "Dark" | "Medium Dark" | "Medium" | "Medium Light" | "Light"
     }
     CompositeTypes: {
@@ -471,11 +498,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
+      inventory_status: ["unopened", "plenty", "getting_low", "empty"],
       roast_levels: ["Dark", "Medium Dark", "Medium", "Medium Light", "Light"],
     },
   },
