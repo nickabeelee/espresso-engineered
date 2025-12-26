@@ -588,7 +588,8 @@
               {#each bags as bag}
                 {@const ownershipStatus = getBagOwnershipStatus(bag)}
                 {@const ownerName = getBagOwnerName(bag)}
-                <div class="bag-card" class:owned={ownershipStatus === 'owned'}>
+                {@const bagPermissions = getBagPermissions($barista, bag)}
+                <div class="bag-card">
                   <div class="bag-header">
                     <div class="bag-title">
                       <h4>{bag.name || bean.name}</h4>
@@ -626,18 +627,15 @@
                     {/if}
                   </div>
 
-                  <!-- Status updater for owned bags -->
-                  {#if ownershipStatus === 'owned'}
-                    {@const bagPermissions = getBagPermissions($barista, bag)}
-                    {#if bagPermissions.canEdit}
-                      <div class="bag-status-section">
-                        <h5>Update Status</h5>
-                        <BagStatusUpdater 
-                          {bag} 
-                          on:updated={handleBagStatusUpdated}
-                        />
-                      </div>
-                    {/if}
+                  <!-- Status updater for owned bags and admins -->
+                  {#if bagPermissions.canEdit}
+                    <div class="bag-status-section">
+                      <h5>Update Status</h5>
+                      <BagStatusUpdater 
+                        {bag} 
+                        on:updated={handleBagStatusUpdated}
+                      />
+                    </div>
                   {/if}
                 </div>
               {/each}
@@ -1007,11 +1005,6 @@
     border: 1px solid rgba(123, 94, 58, 0.2);
     border-radius: var(--radius-md);
     padding: 1rem;
-  }
-
-  .bag-card.owned {
-    border-color: rgba(85, 98, 74, 0.35);
-    background: rgba(85, 98, 74, 0.05);
   }
 
   .bag-header {
