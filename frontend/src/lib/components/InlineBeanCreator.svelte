@@ -100,7 +100,7 @@
         form="bean-create-form"
         ariaLabel="Create bean" 
         title="Create Bean" 
-        variant="accent" 
+        variant="success" 
         disabled={loading || !name.trim() || !roaster_id}
       >
         <CheckCircle />

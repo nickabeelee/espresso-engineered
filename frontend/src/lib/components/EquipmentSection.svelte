@@ -4,7 +4,7 @@
   import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
   import ImageUpload from '$lib/components/ImageUpload.svelte';
-  import { ArrowDownTray, ArrowPath, PencilSquare, Trash, XMark } from '$lib/icons';
+  import { ArrowDownTray, ArrowPath, PencilSquare, Trash, XMark, CheckCircle } from '$lib/icons';
   import { getImageUrl } from '$lib/utils/image-utils';
   import { buildEquipmentUsageStats, formatMostUsedBy } from '$lib/utils/usage-stats';
   import type { Barista } from '@shared/types';
@@ -327,9 +327,28 @@
       <div class="form-header">
         <h3>{editingId ? `Edit ${selectedConfig.singular}` : `Add ${selectedConfig.singular}`}</h3>
         {#if editingId}
-          <button type="button" class="btn-quiet" on:click={handleCancelEdit} disabled={saving}>
-            Cancel edit
-          </button>
+          <div class="edit-actions">
+            <IconButton
+              type="button"
+              on:click={handleCancelEdit}
+              ariaLabel="Cancel edit"
+              title="Cancel"
+              variant="neutral"
+              disabled={saving}
+            >
+              <XMark />
+            </IconButton>
+            <IconButton
+              type="submit"
+              form={`${equipmentType}-form`}
+              ariaLabel="Save changes"
+              title="Save"
+              variant="success"
+              disabled={saving || !manufacturer.trim() || !model.trim()}
+            >
+              <CheckCircle />
+            </IconButton>
+          </div>
         {/if}
       </div>
 
@@ -340,7 +359,7 @@
         <div class="notice success">{formNotice}</div>
       {/if}
 
-      <form on:submit|preventDefault={handleSubmit}>
+      <form id={`${equipmentType}-form`} on:submit|preventDefault={handleSubmit}>
         <div class="form-row">
         <div class="form-group">
           <label for={`${equipmentType}-manufacturer`}>Manufacturer *</label>
@@ -423,29 +442,19 @@
           {/if}
         </div>
 
-        <div class="form-actions">
-          {#if editingId}
+        {#if !editingId}
+          <div class="form-actions">
             <IconButton
-              type="button"
-              on:click={handleCancelEdit}
-              ariaLabel="Cancel edit"
-              title="Cancel"
-              variant="neutral"
+              type="submit"
+              ariaLabel={`Add ${selectedConfig.singular}`}
+              title="Add"
+              variant="accent"
               disabled={saving}
             >
-              <XMark />
+              <ArrowDownTray />
             </IconButton>
-          {/if}
-          <IconButton
-            type="submit"
-            ariaLabel={editingId ? `Save ${selectedConfig.singular}` : `Add ${selectedConfig.singular}`}
-            title={editingId ? 'Save' : 'Add'}
-            variant="accent"
-            disabled={saving}
-          >
-            <ArrowDownTray />
-          </IconButton>
-        </div>
+          </div>
+        {/if}
       </form>
     </div>
   {/if}
@@ -564,6 +573,11 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+  }
+
+  .edit-actions {
+    display: inline-flex;
+    gap: 0.5rem;
   }
 
   .form-header h3,

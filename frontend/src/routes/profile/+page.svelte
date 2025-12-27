@@ -4,7 +4,7 @@
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BaristaProfile from '$lib/components/BaristaProfile.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ArrowDownTray, XMark } from '$lib/icons';
+  import { CheckCircle, XMark } from '$lib/icons';
 
   let passwordChangeMode = false;
   let currentPassword = '';
@@ -156,10 +156,10 @@
                 type="submit"
                 ariaLabel={passwordLoading ? 'Updating password' : 'Save password'}
                 title={passwordLoading ? 'Updating...' : 'Save password'}
-                variant="accent"
+                variant="success"
                 disabled={passwordLoading}
               >
-                <ArrowDownTray />
+                <CheckCircle />
               </IconButton>
               <IconButton type="button" on:click={cancelPasswordChange} ariaLabel="Cancel password change" title="Cancel" variant="neutral" disabled={passwordLoading}>
                 <XMark />

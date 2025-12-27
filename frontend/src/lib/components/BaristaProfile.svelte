@@ -1,7 +1,7 @@
 <script lang="ts">
   import { authService, barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ArrowDownTray, PencilSquare, XMark } from '$lib/icons';
+  import { CheckCircle, PencilSquare, XMark } from '$lib/icons';
 
   export let showEditForm = false;
   export let compact = false;
@@ -153,10 +153,10 @@
               type="submit"
               ariaLabel={loading ? 'Saving profile' : 'Save profile'}
               title={loading ? 'Saving...' : 'Save changes'}
-              variant="accent"
+              variant="success"
               disabled={loading}
             >
-              <ArrowDownTray />
+              <CheckCircle />
             </IconButton>
             <IconButton type="button" on:click={cancelEdit} ariaLabel="Cancel profile edit" title="Cancel" variant="neutral" disabled={loading}>
               <XMark />
