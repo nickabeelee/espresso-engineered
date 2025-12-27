@@ -198,6 +198,10 @@
     formData.image_path = '';
   }
 
+  function handleImageError(event: CustomEvent<{ message: string }>) {
+    error = `Image upload failed: ${event.detail.message}`;
+  }
+
   function selectManufacturer(name: string) {
     formData.manufacturer = name;
   }
@@ -374,9 +378,12 @@
       <div class="grinder-detail image-detail">
         <span class="detail-label">Image</span>
         <ImageUpload
-          currentImagePath={formData.image_path}
-          on:uploaded={handleImageUpload}
-          on:deleted={handleImageDelete}
+          currentImageUrl={formData.image_path}
+          entityType="grinder"
+          entityId={grinder?.id || ''}
+          on:upload={handleImageUpload}
+          on:delete={handleImageDelete}
+          on:error={handleImageError}
           disabled={isSaving}
         />
       </div>
