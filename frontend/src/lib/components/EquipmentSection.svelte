@@ -3,35 +3,27 @@
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
-  import ImageUpload from '$lib/components/ImageUpload.svelte';
-  import { ArrowDownTray, ArrowPath, PencilSquare, Trash, XMark, CheckCircle } from '$lib/icons';
+  import EditableMachineCard from '$lib/components/EditableMachineCard.svelte';
+  import EditableGrinderCard from '$lib/components/EditableGrinderCard.svelte';
+  import { Plus } from '$lib/icons';
   import { getImageUrl } from '$lib/utils/image-utils';
-  import { buildEquipmentUsageStats, formatMostUsedBy } from '$lib/utils/usage-stats';
-  import type { Barista } from '@shared/types';
+  import { buildEquipmentUsageStats } from '$lib/utils/usage-stats';
+  import type { Machine, Grinder, Barista } from '@shared/types';
 
   export let equipmentType: 'machine' | 'grinder';
-  export let showForm = true;
-
-  type LinkField = 'user_manual_link' | 'setting_guide_chart_url';
 
   const config = {
     machine: {
       title: 'Machines',
       singular: 'Machine',
       description: 'The machines that shape your extraction.',
-      linkField: 'user_manual_link' as LinkField,
-      linkLabel: 'User Manual URL',
-      linkPlaceholder: 'https://example.com/manual.pdf',
-      linkHelper: 'Link to the official manual or care guide.'
+      voiceText: 'Each one has its own character.'
     },
     grinder: {
       title: 'Grinders',
-      singular: 'Grinder',
+      singular: 'Grinder', 
       description: 'The grinders that set the tone for every shot.',
-      linkField: 'setting_guide_chart_url' as LinkField,
-      linkLabel: 'Setting Guide URL',
-      linkPlaceholder: 'https://example.com/setting-guide',
-      linkHelper: 'Link to a setting guide or chart.'
+      voiceText: 'Precision starts here.'
     }
   };
 
@@ -40,24 +32,22 @@
   let items: (Machine | Grinder)[] = [];
   let loading = true;
   let error = '';
-  let saving = false;
-  let formError = '';
-  let formNotice = '';
-  let validationErrors: Record<string, string> = {};
-  let editingId: string | null = null;
   let usageById: Record<string, number> = {};
   let mostUsedBy: Record<string, Barista | undefined> = {};
-  let isAdmin = false;
-
-  let manufacturer = '';
-  let model = '';
-  let linkValue = '';
-  let image_path = '';
+  let showNewForm = false;
 
   onMount(() => {
     loadItems();
     loadUsageStats();
   });
+
+  // React to equipmentType changes
+  $: if (equipmentType) {
+    selectedConfig = config[equipmentType];
+    showNewForm = false; // Reset form state when switching types
+    loadItems();
+    loadUsageStats();
+  }
 
   async function loadItems() {
     try {
@@ -94,456 +84,112 @@
     }
   }
 
-  function resetForm({ preserveNotice = false }: { preserveNotice?: boolean } = {}) {
-    manufacturer = '';
-    model = '';
-    linkValue = '';
-    image_path = '';
-    editingId = null;
-    formError = '';
-    if (!preserveNotice) {
-      formNotice = '';
-    }
-    validationErrors = {};
+  function handleNewEquipment() {
+    showNewForm = true;
   }
 
-  function startEdit(item: Machine | Grinder) {
-    editingId = item.id;
-    manufacturer = item.manufacturer || '';
-    model = item.model || '';
-    linkValue = getLinkValue(item);
-    image_path = item.image_path || '';
-    formError = '';
-    formNotice = '';
-    validationErrors = {};
+  function handleEquipmentCreated(event: CustomEvent<Machine | Grinder>) {
+    const newItem = event.detail;
+    items = [newItem, ...items];
+    showNewForm = false;
   }
 
-  function getLinkValue(item: Machine | Grinder): string {
-    if (equipmentType === 'machine') {
-      return (item as Machine).user_manual_link || '';
-    }
-    return (item as Grinder).setting_guide_chart_url || '';
+  function handleEquipmentUpdated(event: CustomEvent<Machine | Grinder>) {
+    const updatedItem = event.detail;
+    items = items.map(item => item.id === updatedItem.id ? updatedItem : item);
   }
 
-  function isValidUrl(value: string): boolean {
-    if (!value) return true;
-    try {
-      new URL(value);
-      return true;
-    } catch {
-      return false;
-    }
+  function handleEquipmentDeleted(event: CustomEvent<string>) {
+    const deletedId = event.detail;
+    items = items.filter(item => item.id !== deletedId);
   }
 
-  function validateForm(): boolean {
-    validationErrors = {};
-
-    if (!manufacturer.trim()) {
-      validationErrors.manufacturer = 'Manufacturer is required';
-    }
-
-    if (!model.trim()) {
-      validationErrors.model = 'Model is required';
-    }
-
-    if (linkValue && !isValidUrl(linkValue)) {
-      validationErrors.link = 'Please enter a valid URL';
-    }
-
-    return Object.keys(validationErrors).length === 0;
+  function handleNewFormCancel() {
+    showNewForm = false;
   }
-
-  const placeholders = {
-    machine: {
-      manufacturer: 'e.g., La Marzocco',
-      model: 'e.g., Linea Mini'
-    },
-    grinder: {
-      manufacturer: 'e.g., Mazzer',
-      model: 'e.g., Robur'
-    }
-  };
-
-  const commonManufacturers = {
-    machine: [
-      'La Marzocco',
-      'Synesso',
-      'Slayer',
-      'Victoria Arduino',
-      'Rocket Espresso',
-      'Lelit',
-      'Profitec',
-      'ECM',
-      'Rancilio',
-      'Gaggia',
-      'Breville',
-      'Decent Espresso'
-    ],
-    grinder: [
-      'Weber Workshops',
-      'Niche',
-      'Lagom',
-      'Mazzer',
-      'Eureka',
-      'Ceado',
-      'Fellow',
-      'Comandante',
-      'Timemore',
-      'Baratza',
-      'DF64',
-      'Option-O'
-    ]
-  };
-
-  function selectManufacturer(name: string) {
-    manufacturer = name;
-  }
-
-  function buildPayload() {
-    const payload: Partial<CreateMachineRequest & CreateGrinderRequest> = {
-      manufacturer: manufacturer.trim(),
-      model: model.trim()
-    };
-
-    const trimmedLink = linkValue.trim();
-    if (trimmedLink) {
-      (payload as Record<string, string>)[selectedConfig.linkField] = trimmedLink;
-    }
-
-    return payload;
-  }
-
-  async function handleSubmit() {
-    if (!validateForm()) {
-      formError = 'Please fix validation errors';
-      return;
-    }
-
-    try {
-      saving = true;
-      formError = '';
-      formNotice = '';
-
-      const payload = buildPayload();
-
-      if (editingId) {
-        const response = equipmentType === 'machine'
-          ? await apiClient.updateMachine(editingId, payload)
-          : await apiClient.updateGrinder(editingId, payload);
-
-        if (response?.data) {
-          items = items.map((item) => item.id === editingId ? response.data as Machine | Grinder : item);
-        }
-        formNotice = `${selectedConfig.singular} updated.`;
-      } else {
-        const response = equipmentType === 'machine'
-          ? await apiClient.createMachine(payload as CreateMachineRequest)
-          : await apiClient.createGrinder(payload as CreateGrinderRequest);
-
-        if (response?.data) {
-          items = [response.data, ...items];
-        }
-        formNotice = `${selectedConfig.singular} added.`;
-      }
-
-      resetForm({ preserveNotice: true });
-    } catch (err) {
-      formError = err instanceof Error ? err.message : `Failed to save ${selectedConfig.singular.toLowerCase()}`;
-    } finally {
-      saving = false;
-    }
-  }
-
-  async function handleDelete(item: Machine | Grinder) {
-    const confirmed = window.confirm(`Delete this ${selectedConfig.singular.toLowerCase()}? This cannot be undone.`);
-    if (!confirmed) return;
-
-    try {
-      saving = true;
-      formError = '';
-      formNotice = '';
-
-      if (equipmentType === 'machine') {
-        await apiClient.deleteMachine(item.id);
-      } else {
-        await apiClient.deleteGrinder(item.id);
-      }
-
-      items = items.filter((entry) => entry.id !== item.id);
-      if (editingId === item.id) {
-        resetForm();
-      }
-      formNotice = `${selectedConfig.singular} removed.`;
-    } catch (err) {
-      formError = err instanceof Error ? err.message : `Failed to delete ${selectedConfig.singular.toLowerCase()}`;
-    } finally {
-      saving = false;
-    }
-  }
-
-  function handleCancelEdit() {
-    resetForm();
-  }
-
-  function handleImageUpload(event: CustomEvent<{ file: File; imageUrl: string }>) {
-    image_path = event.detail.imageUrl;
-    if (editingId) {
-      items = items.map((item) =>
-        item.id === editingId ? { ...item, image_path: event.detail.imageUrl } : item
-      );
-    }
-  }
-
-  function handleImageDelete() {
-    image_path = '';
-    if (editingId) {
-      items = items.map((item) => item.id === editingId ? { ...item, image_path: '' } : item);
-    }
-  }
-
-  function handleImageError(event: CustomEvent<{ message: string }>) {
-    formError = event.detail.message;
-  }
-
-  function formatDisplayName(item: Machine | Grinder): string {
-    const parts = [item.manufacturer, item.model].filter(Boolean);
-    return parts.join(' ');
-  }
-
-  $: isAdmin = Boolean($barista?.is_admin);
-  $: selectedConfig = config[equipmentType];
 </script>
 
-<section class="equipment-section">
-  <div class="section-heading">
-    <div>
+<div class="equipment-section">
+  <div class="section-header">
+    <div class="section-info">
+      <p class="voice-text">{selectedConfig.voiceText}</p>
       <h2>{selectedConfig.title}</h2>
-      <p>{selectedConfig.description}</p>
+      <p class="description">{selectedConfig.description}</p>
     </div>
+    
+    <IconButton 
+      on:click={handleNewEquipment}
+      ariaLabel="Add new {selectedConfig.singular.toLowerCase()}"
+      title="Add {selectedConfig.singular}"
+      variant="accent"
+    >
+      <Plus />
+    </IconButton>
   </div>
 
-  {#if showForm}
-    <div class="form-section card" id={`${equipmentType}-form`}>
-      <div class="form-header">
-        <h3>{editingId ? `Edit ${selectedConfig.singular}` : `Add ${selectedConfig.singular}`}</h3>
-        {#if editingId}
-          <div class="edit-actions">
-            <IconButton
-              type="button"
-              on:click={handleCancelEdit}
-              ariaLabel="Cancel edit"
-              title="Cancel"
-              variant="neutral"
-              disabled={saving}
-            >
-              <XMark />
-            </IconButton>
-            <IconButton
-              type="submit"
-              form={`${equipmentType}-form`}
-              ariaLabel="Save changes"
-              title="Save"
-              variant="success"
-              disabled={saving || !manufacturer.trim() || !model.trim()}
-            >
-              <CheckCircle />
-            </IconButton>
-          </div>
-        {/if}
-      </div>
-
-      {#if formError}
-        <div class="notice error">{formError}</div>
-      {/if}
-      {#if formNotice}
-        <div class="notice success">{formNotice}</div>
-      {/if}
-
-      <form id={`${equipmentType}-form`} on:submit|preventDefault={handleSubmit}>
-        <div class="form-row">
-        <div class="form-group">
-          <label for={`${equipmentType}-manufacturer`}>Manufacturer *</label>
-          <input
-            id={`${equipmentType}-manufacturer`}
-            type="text"
-            bind:value={manufacturer}
-            placeholder={placeholders[equipmentType].manufacturer}
-            disabled={saving}
-            required
-          />
-          {#if validationErrors.manufacturer}
-            <span class="error-text">{validationErrors.manufacturer}</span>
-          {/if}
-          <div class="manufacturer-presets">
-            <span class="presets-label">Common:</span>
-            <div class="preset-buttons">
-              {#each commonManufacturers[equipmentType] as brand}
-                <button
-                  type="button"
-                  on:click={() => selectManufacturer(brand)}
-                  class="preset-btn"
-                  class:selected={manufacturer === brand}
-                  disabled={saving}
-                >
-                  {brand}
-                </button>
-              {/each}
-            </div>
-          </div>
-        </div>
-
-          <div class="form-group">
-            <label for={`${equipmentType}-model`}>Model *</label>
-          <input
-            id={`${equipmentType}-model`}
-            type="text"
-            bind:value={model}
-            placeholder={placeholders[equipmentType].model}
-            disabled={saving}
-            required
-          />
-            {#if validationErrors.model}
-              <span class="error-text">{validationErrors.model}</span>
-            {/if}
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for={`${equipmentType}-link`}>{selectedConfig.linkLabel}</label>
-          <input
-            id={`${equipmentType}-link`}
-            type="url"
-            bind:value={linkValue}
-            placeholder={selectedConfig.linkPlaceholder}
-            disabled={saving}
-          />
-          {#if validationErrors.link}
-            <span class="error-text">{validationErrors.link}</span>
-          {/if}
-          <small>{selectedConfig.linkHelper}</small>
-        </div>
-
-        <div class="form-group">
-          <label>Image</label>
-          {#if editingId}
-            <ImageUpload
-              entityType={equipmentType}
-              entityId={editingId}
-              currentImageUrl={getImageUrl(image_path, equipmentType)}
-              disabled={saving}
-              on:upload={handleImageUpload}
-              on:delete={handleImageDelete}
-              on:error={handleImageError}
-            />
-          {:else}
-            <div class="image-hint">
-              <p>Save this {selectedConfig.singular.toLowerCase()} to add an image.</p>
-            </div>
-          {/if}
-        </div>
-
-        {#if !editingId}
-          <div class="form-actions">
-            <IconButton
-              type="submit"
-              ariaLabel={`Add ${selectedConfig.singular}`}
-              title="Add"
-              variant="accent"
-              disabled={saving}
-            >
-              <ArrowDownTray />
-            </IconButton>
-          </div>
-        {/if}
-      </form>
+  {#if error}
+    <div class="error-message">
+      {error}
     </div>
   {/if}
 
-  <div class="list-section card">
-    <div class="list-header">
-      <h3>{selectedConfig.title}</h3>
-      <IconButton
-        type="button"
-        ariaLabel={`Refresh ${selectedConfig.title}`}
-        title="Refresh"
-        on:click={loadItems}
-        disabled={loading}
-      >
-        <ArrowPath />
-      </IconButton>
-    </div>
+  <div class="equipment-list">
+    <!-- New equipment form -->
+    {#if showNewForm}
+      {#if equipmentType === 'machine'}
+        <EditableMachineCard
+          isNewMachine={true}
+          on:created={handleEquipmentCreated}
+          on:cancel={handleNewFormCancel}
+        />
+      {:else}
+        <EditableGrinderCard
+          isNewGrinder={true}
+          on:created={handleEquipmentCreated}
+          on:cancel={handleNewFormCancel}
+        />
+      {/if}
+    {/if}
 
-    {#if error}
-      <div class="notice error">{error}</div>
-    {:else if loading}
-      <div class="list-empty">Loading...</div>
+    {#if loading}
+      <div class="loading-state">
+        <p>Loading {selectedConfig.title.toLowerCase()}...</p>
+      </div>
     {:else if items.length === 0}
-      <div class="list-empty">
-        <p class="voice-line">Nothing here yet.</p>
-        <p>Add the {selectedConfig.title.toLowerCase()} you rely on.</p>
+      <div class="empty-state">
+        <p class="voice-text">Nothing here yet.</p>
+        <p class="empty-title">No {selectedConfig.title.toLowerCase()} yet.</p>
+        <p class="empty-description">Add your first {selectedConfig.singular.toLowerCase()} to get started.</p>
       </div>
     {:else}
-      <div class="equipment-list">
-        {#each items as item (item.id)}
-          <article class="equipment-item" class:is-editing={editingId === item.id}>
-            <div class="item-main">
-              <div class="item-header">
-                <h4>{formatDisplayName(item)}</h4>
-                <div class="item-actions">
-                  <IconButton
-                    on:click={() => startEdit(item)}
-                    ariaLabel={`Edit ${selectedConfig.singular}`}
-                    title="Edit"
-                    variant="accent"
-                    disabled={saving}
-                  >
-                    <PencilSquare />
-                  </IconButton>
-                  {#if isAdmin}
-                    <IconButton
-                      on:click={() => handleDelete(item)}
-                      ariaLabel={`Delete ${selectedConfig.singular}`}
-                      title="Delete"
-                      variant="danger"
-                      disabled={saving}
-                    >
-                      <Trash />
-                    </IconButton>
-                  {/if}
-                </div>
-              </div>
-              <div class="item-meta">
-                <span>{item.manufacturer}</span>
-                <span class="separator">/</span>
-                <span>{item.model}</span>
-              </div>
-              <div class="item-usage">
-                <span>{usageById[item.id] ?? 0} brews</span>
-                <span class="separator">/</span>
-                <span>Most used by {formatMostUsedBy(item.id, usageById, mostUsedBy)}</span>
-              </div>
-              {#if getLinkValue(item)}
-                <a href={getLinkValue(item)} target="_blank" rel="noopener noreferrer" class="item-link">
-                  {equipmentType === 'machine' ? 'Manual' : 'Setting guide'}
-                </a>
+      <div class="equipment-grid-shell">
+        <div class="equipment-grid">
+          {#each items as item (item.id)}
+            <div class="equipment-item">
+              {#if equipmentType === 'machine'}
+                <EditableMachineCard
+                  machine={item}
+                  usageCount={usageById[item.id] || 0}
+                  mostUsedBy={mostUsedBy[item.id]}
+                  on:updated={handleEquipmentUpdated}
+                  on:deleted={handleEquipmentDeleted}
+                />
+              {:else}
+                <EditableGrinderCard
+                  grinder={item}
+                  usageCount={usageById[item.id] || 0}
+                  mostUsedBy={mostUsedBy[item.id]}
+                  on:updated={handleEquipmentUpdated}
+                  on:deleted={handleEquipmentDeleted}
+                />
               {/if}
             </div>
-            {#if item.image_path}
-              <div class="item-image">
-                <img
-                  src={getImageUrl(item.image_path, equipmentType)}
-                  alt={formatDisplayName(item)}
-                  loading="lazy"
-                  on:error={(e) => (e.currentTarget.style.display = 'none')}
-                />
-              </div>
-            {/if}
-          </article>
-        {/each}
+          {/each}
+        </div>
       </div>
     {/if}
   </div>
-</section>
+</div>
 
 <style>
   .equipment-section {
@@ -552,144 +198,49 @@
     gap: 1.5rem;
   }
 
-  .section-heading h2 {
-    font-size: 1.4rem;
-    margin-bottom: 0.4rem;
-  }
-
-  .section-heading p {
-    margin: 0;
-    color: var(--text-ink-muted);
-  }
-
-  form {
+  .section-header {
     display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .form-header {
-    display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: flex-start;
     gap: 1rem;
   }
 
-  .edit-actions {
-    display: inline-flex;
-    gap: 0.5rem;
+  .section-info {
+    flex: 1;
   }
 
-  .form-header h3,
-  .list-header h3 {
-    margin: 0;
-    font-size: 1.1rem;
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .form-group label {
-    font-weight: 600;
+  .voice-text {
+    font-family: "Libre Baskerville", serif;
     color: var(--text-ink-secondary);
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin: 0 0 0.5rem 0;
+    font-style: italic;
   }
 
-  .manufacturer-presets {
-    margin-top: 0.35rem;
-  }
-
-  .presets-label {
-    font-size: 0.8rem;
-    color: var(--text-ink-muted);
-    margin-bottom: 0.35rem;
-    display: block;
-  }
-
-  .preset-buttons {
-    display: flex;
-    gap: 0.35rem;
-    flex-wrap: wrap;
-  }
-
-  .preset-btn {
-    background: rgba(123, 94, 58, 0.12);
-    color: var(--text-ink-secondary);
-    border: 1px solid var(--border-subtle);
-    padding: 0.2rem 0.55rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.75rem;
+  .section-info h2 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-ink-primary);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 1.5rem;
     font-weight: 500;
-    transition: background var(--motion-fast) ease, border-color var(--motion-fast) ease;
   }
 
-  .preset-btn:hover:not(:disabled) {
-    background: rgba(123, 94, 58, 0.2);
-    border-color: var(--border-strong);
-  }
-
-  .preset-btn.selected {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border-color: var(--accent-primary);
-  }
-
-  .preset-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-
-  .form-group small {
-    color: var(--text-ink-muted);
-    font-size: 0.85rem;
-  }
-
-  .error-text {
-    color: var(--semantic-error);
-    font-size: 0.85rem;
-  }
-
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-  }
-
-  .image-hint {
-    padding: 1rem;
-    border-radius: var(--radius-md);
-    border: 1px dashed var(--border-subtle);
-    background: rgba(123, 94, 58, 0.08);
-    text-align: center;
-  }
-
-  .image-hint p {
+  .description {
     margin: 0;
-    color: var(--text-ink-muted);
+    color: var(--text-ink-secondary);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
     font-size: 0.9rem;
   }
 
-  .list-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .list-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+  .error-message {
+    background: rgba(122, 62, 47, 0.1);
+    color: var(--semantic-error);
+    border: 1px solid rgba(122, 62, 47, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 0.9rem;
   }
 
   .equipment-list {
@@ -698,120 +249,53 @@
     gap: 1rem;
   }
 
-  .equipment-item {
-    display: flex;
-    justify-content: space-between;
-    gap: 1.5rem;
-    padding: 1rem;
+  .equipment-grid-shell {
+    background: var(--bg-surface-secondary);
+    border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    background: var(--bg-surface-paper);
-    border: 1px solid rgba(123, 94, 58, 0.2);
+    padding: 1.5rem;
   }
 
-  .equipment-item.is-editing {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 1px rgba(176, 138, 90, 0.3);
-  }
-
-  .item-main {
+  .equipment-grid {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    flex: 1;
-  }
-
-  .item-header {
-    display: flex;
-    justify-content: space-between;
     gap: 1rem;
-    align-items: flex-start;
   }
 
-  .item-header h4 {
-    margin: 0;
-    font-size: 1.1rem;
-    color: var(--text-ink-primary);
+  .equipment-item {
+    position: relative;
   }
 
-  .item-actions {
-    display: inline-flex;
-    gap: 0.5rem;
-  }
-
-  .item-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text-ink-muted);
-    font-size: 0.9rem;
-  }
-
-  .item-usage {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text-ink-secondary);
-    font-size: 0.85rem;
-  }
-
-  .item-meta .separator,
-  .item-usage .separator {
-    color: var(--text-ink-muted);
-  }
-
-  .item-link {
-    font-size: 0.9rem;
-    color: var(--accent-primary);
-    text-decoration: none;
-  }
-
-  .item-link:hover {
-    text-decoration: underline;
-  }
-
-  .item-image {
-    flex-shrink: 0;
-    width: 120px;
-    height: 90px;
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    border: 1px solid rgba(123, 94, 58, 0.2);
-    background: rgba(123, 94, 58, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .item-image img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: cover;
-  }
-
-  .list-empty {
+  .loading-state,
+  .empty-state {
     text-align: center;
-    color: var(--text-ink-muted);
-    padding: 1rem 0;
+    padding: 2rem;
   }
 
-  @media (max-width: 768px) {
-    .equipment-item {
-      flex-direction: column;
-    }
+  .loading-state {
+    color: var(--text-ink-muted);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+  }
 
-    .item-header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
+  .empty-state .voice-text {
+    font-family: "Libre Baskerville", serif;
+    color: var(--text-ink-secondary);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    font-style: italic;
+  }
 
-    .item-actions {
-      align-self: flex-start;
-    }
+  .empty-title {
+    margin: 0.5rem 0;
+    font-weight: 600;
+    color: var(--text-ink-primary);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+  }
 
-    .item-image {
-      width: 100%;
-      height: auto;
-      max-height: 160px;
-    }
+  .empty-description {
+    margin: 0.5rem 0;
+    color: var(--text-ink-muted);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
   }
 </style>
