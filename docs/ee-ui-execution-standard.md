@@ -206,8 +206,16 @@ All colors are defined as **design tokens**. No additional colors may be introdu
 * Usage:
 
   * Helper text
-  * Placeholders
   * Disabled states
+
+**Placeholder Ink (Input Prompts)**
+
+* Token: `text.ink.placeholder`
+* Hex: `#958573`
+* Usage:
+
+  * Input placeholders
+  * Selector empty-state text
 
 **Inverted Ink (Text on Dark)**
 
@@ -332,10 +340,16 @@ Typography carries most of the aesthetic weight. It should feel **printed, edito
 * Color: `text.ink.secondary`
 * Size: 14px
 
-**Helper / Placeholder**
+**Helper Text**
 
 * Font: IBM Plex Sans
 * Color: `text.ink.muted`
+* Size: 14px
+
+**Placeholder Text**
+
+* Font: IBM Plex Sans
+* Color: `text.ink.placeholder`
 * Size: 14px
 
 ---

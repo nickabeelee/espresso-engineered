@@ -71,10 +71,10 @@ This implementation plan creates a reusable visual roast level component using c
   - **Property 13: Basic Accessibility Attributes**
   - **Validates: Requirements 8.1, 8.2**
 
-- [ ] 5. Checkpoint - Core component complete
+- [x] 5. Checkpoint - Core component complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Replace roast level in BeanCard component
+- [x] 6. Replace roast level in BeanCard component
   - Update BeanCard.svelte to use RoastLevel component instead of text
   - Configure appropriate size and view-only mode
   - Test visual integration and spacing

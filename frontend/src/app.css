@@ -8,7 +8,7 @@
   --text-ink-muted: #6A5A4A;
   --text-ink-inverted: #D6C7AE;
   --text-ink-inverted-muted: #B9AA92;
-  --text-placeholder-opacity: 0.65;
+  --text-ink-placeholder: #958573;
   --accent-primary: #B08A5A;
   --accent-primary-dark: #8E6C44;
   --semantic-success: #55624A;
@@ -99,8 +99,7 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--text-ink-muted);
-  opacity: var(--text-placeholder-opacity);
+  color: var(--text-ink-placeholder);
 }
 
 input:focus,

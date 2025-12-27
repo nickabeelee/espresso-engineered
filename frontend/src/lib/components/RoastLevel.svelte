@@ -159,6 +159,9 @@
 <div 
   class="roast-level-component"
   class:editable
+  class:small={size === 'small'}
+  class:medium={size === 'medium'}
+  class:large={size === 'large'}
   on:mouseleave={handleMouseLeave}
   on:keydown={handleKeyDown}
   role={editable ? 'slider' : 'img'}
@@ -199,6 +202,19 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
+    --bean-size: 20px;
+  }
+
+  .roast-level-component.small {
+    --bean-size: 16px;
+  }
+
+  .roast-level-component.medium {
+    --bean-size: 20px;
+  }
+
+  .roast-level-component.large {
+    --bean-size: 24px;
   }
 
   .bean-row {
@@ -216,6 +232,15 @@
     padding: 0;
     cursor: default;
     transition: color var(--motion-fast) ease;
+    flex-shrink: 0;
+  }
+
+  .bean-icon :global(svg) {
+    display: block;
+    flex-shrink: 0;
+    height: var(--bean-size);
+    width: auto;
+    overflow: visible;
   }
 
   .bean-icon.clickable {
@@ -233,7 +258,7 @@
   }
 
   .bean-inactive {
-    color: var(--text-ink-muted);
+    color: var(--text-ink-placeholder);
   }
 
   .bean-hover-preview {

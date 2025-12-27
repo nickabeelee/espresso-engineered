@@ -282,7 +282,7 @@
 
   .form-group input::placeholder,
   .form-group textarea::placeholder {
-    color: var(--text-ink-muted);
+    color: var(--text-ink-placeholder);
     font-family: 'IBM Plex Sans', sans-serif;
   }
 

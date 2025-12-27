@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import Chip from '$lib/components/Chip.svelte';
+  import RoastLevel from '$lib/components/RoastLevel.svelte';
   import type { BeanWithContext, Roaster } from '@shared/types';
 
   export let bean: BeanWithContext;
@@ -82,7 +83,9 @@
       <h3 class="bean-title">{bean.name}</h3>
       <div class="bean-meta">
         {#if bean.roast_level}
-          <span class="roast-level">{bean.roast_level}</span>
+          <div class="roast-level-container">
+            <RoastLevel value={bean.roast_level} size="small" />
+          </div>
         {/if}
         {#if bean.country_of_origin}
           <span class="origin">{bean.country_of_origin}</span>
@@ -192,13 +195,15 @@
 
   .bean-meta {
     display: flex;
+    align-items: center;
     gap: 0.75rem;
     color: var(--text-ink-muted);
     font-size: 0.9rem;
   }
 
-  .roast-level {
-    font-weight: 500;
+  .roast-level-container {
+    display: flex;
+    align-items: center;
   }
 
   .origin {
