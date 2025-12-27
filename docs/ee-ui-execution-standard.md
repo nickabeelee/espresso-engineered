@@ -301,9 +301,10 @@ Typography carries most of the aesthetic weight. It should feel **printed, edito
 **Voice Text**
 
 * Font: Libre Baskerville
-* Color: `text.ink.secondary` or `text.ink.inverted`
+* Color: `text.ink.muted` (#6A5A4A)
 * Size: 14–16px
 * Line height: 1.7
+* Font style: Normal (never italic)
 
 **Body Text**
 
@@ -433,6 +434,25 @@ It acknowledges the user’s presence and history, and occasionally their intent
 * Post-save confirmations
 * Contextual assistance during creation (subtle, optional)
 
+**Typography Requirements (Critical)**
+
+Voice text must follow these exact specifications to maintain the "typewriter on paper" aesthetic:
+
+* **Font**: Libre Baskerville (never IBM Plex Sans)
+* **Color**: `text.ink.muted` (#6A5A4A) - provides the faded, typewriter ink appearance
+* **Size**: 14–16px (0.9–1rem)
+* **Line height**: 1.7
+* **Font style**: Normal (NEVER italic - italics break the typewriter aesthetic)
+* **Letter spacing**: 0.02em (subtle spacing for typewriter feel)
+
+**Implementation Rules**
+
+* Use `.voice-line` class for page-level voice text
+* Use `.voice-text` class for component-level voice text
+* Both classes must follow identical typography specifications
+* Never apply `font-style: italic` to voice text
+* Never use `text.ink.secondary` - always use `text.ink.muted` for proper contrast
+
 **Disallowed Locations**
 
 * Errors
@@ -520,6 +540,86 @@ These lines are **illustrative patterns**, not fixed strings. They encode pacing
 Voice should always suggest presence, awareness, and quiet confidence — nothing more.
 
 ---
+
+---
+
+## 8. Chip Component Standard
+
+Chips are used throughout the application to display contextual information, status indicators, and suggestions. All chips must follow the standardized design system to ensure visual consistency.
+
+### 8.1 Design Principles
+
+Chips follow the same color token system as icon buttons but with subtle background colors to provide visual grouping and context. They should feel integrated into the surface they appear on while maintaining clear readability.
+
+### 8.2 Chip Variants
+
+All chips must use the standardized `Chip` component with these variants:
+
+**Neutral (Default/Community Content)**
+* Variant: `neutral`
+* Background: `rgba(123, 94, 58, 0.12)`
+* Text Color: `--text-ink-secondary`
+* Border: `rgba(123, 94, 58, 0.25)`
+* Usage: Roaster names, general information, community content
+
+**Accent (Personal Highlights)**
+* Variant: `accent`
+* Background: `rgba(176, 138, 90, 0.18)`
+* Text Color: `--accent-primary`
+* Border: `rgba(176, 138, 90, 0.35)`
+* Usage: "Most Used by Me", personal preferences, featured content
+
+**Success (Positive Status)**
+* Variant: `success`
+* Background: `rgba(85, 98, 74, 0.18)`
+* Text Color: `--semantic-success`
+* Border: `rgba(85, 98, 74, 0.35)`
+* Usage: "In Collection", owned items, positive states
+
+**Warning (Cautionary Status)**
+* Variant: `warning`
+* Background: `rgba(138, 106, 62, 0.18)`
+* Text Color: `--semantic-warning`
+* Border: `rgba(138, 106, 62, 0.35)`
+* Usage: "Previously Owned", temporary states, cautionary information
+
+**Error (Negative Status)**
+* Variant: `error`
+* Background: `rgba(122, 62, 47, 0.18)`
+* Text Color: `--semantic-error`
+* Border: `rgba(122, 62, 47, 0.35)`
+* Usage: Error states, unavailable items, negative status
+
+### 8.3 Implementation Rules
+
+1. **Always use the standardized Chip component** - Never create custom chip styles
+2. **Choose variants based on semantic meaning** - Not visual preference
+3. **Size variants**: Use `sm` for dense layouts, `md` for standard layouts
+4. **Grouping**: Related chips should be grouped with consistent spacing (0.5rem gap)
+5. **Placement**: Chips should appear in logical groups, typically at the top of cards or sections
+
+### 8.4 Common Usage Patterns
+
+**Bean Cards**
+* Roaster name: `neutral`
+* "Most Used by Me": `accent`
+* "In Collection": `success`
+* "Previously Owned": `warning`
+* "Community Bean": `neutral`
+
+**Equipment Cards (Machines/Grinders)**
+* Usage statistics: `neutral`
+* "Most used by [name]": `accent`
+* Manufacturer suggestions: `neutral`
+
+**Suggestion Chips**
+* General suggestions: `neutral`
+* Personal recommendations: `accent`
+* Popular choices: `success`
+
+### 8.5 Enforcement
+
+All chip implementations must use the standardized `Chip` component. Custom chip styles are prohibited. When adding new chip types, first determine the appropriate semantic variant, then implement using the existing component.
 
 ---
 

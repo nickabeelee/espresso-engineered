@@ -250,7 +250,7 @@
           on:click={handleEdit} 
           ariaLabel="Edit bag" 
           title="Edit bag" 
-          variant="neutral" 
+          variant="accent" 
           size="sm"
         >
           <PencilSquare />
@@ -273,7 +273,7 @@
             on:click={handleSave} 
             ariaLabel={isNewBag ? "Create bag" : "Save changes"} 
             title={isNewBag ? "Create bag" : "Save"} 
-            variant="accent" 
+            variant="success" 
             size="sm"
             disabled={isSaving}
           >

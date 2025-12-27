@@ -21,6 +21,21 @@ From repo root:
 - Use lowerCamelCase for variables/functions and UpperCamelCase for types/classes.
 - Svelte components and stores should stay lightweight; keep auth/session state in `frontend/src/lib`.
 
+## UI Component Standards
+- **Chips**: Always use the standardized `Chip` component with semantic variants (neutral, accent, success, warning, error). Never create custom chip styles. Choose variants based on meaning: neutral for general info, accent for personal highlights, success for positive status, warning for cautionary states, error for negative status. See `docs/ee-ui-execution-standard.md` section 8 for complete chip standards.
+- **Icon Buttons**: Use semantic variants based on action type:
+  - `accent`: Edit/modify actions, primary CTAs (Edit Bean, Edit Profile)
+  - `success`: Save/submit actions, completion confirmations (Save, Create)
+  - `danger`: Delete actions, destructive operations (Delete, Remove)
+  - `neutral`: Navigation, cancel, secondary actions (Back, Close, Cancel)
+  See `docs/ee-ui-execution-standard.md` section 7.2 for complete button standards.
+- **Voice Text**: Always follow the exact typography specifications for the "typewriter on paper" aesthetic:
+  - Use Libre Baskerville font (never IBM Plex Sans)
+  - Use `text.ink.muted` color (never `text.ink.secondary`)
+  - NEVER apply `font-style: italic` - this breaks the typewriter aesthetic
+  - Use `.voice-line` class for page-level voice text, `.voice-text` for component-level
+  - See `docs/ee-ui-execution-standard.md` section 7.3 for complete voice typography standards.
+
 ## Auth & Data Access (Important)
 - Supabase Auth issues JWTs; app logic uses `barista` as the user model.
 - `barista.id` maps 1:1 with `auth.users.id` (no direct `auth.users` queries in app logic).
