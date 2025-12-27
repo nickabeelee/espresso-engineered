@@ -4,6 +4,7 @@
   import { adminService } from '$lib/admin-service';
   import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
+  import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
 
   import InlineBagCreator from './InlineBagCreator.svelte';
@@ -96,15 +97,24 @@
     return roaster?.name || 'Unknown Roaster';
   }
 
+  function getStatusLabel(status: string): string {
+    const statusLabels = {
+      'unopened': 'Unopened',
+      'plenty': 'Plenty',
+      'getting_low': 'Getting Low',
+      'empty': 'Empty'
+    };
+    return statusLabels[status as keyof typeof statusLabels] || status;
+  }
+
   function formatBagDisplay(bag: Bag): string {
     const bean = getBeanInfo(bag.bean_id);
     if (!bean) return 'Unknown Bean';
-    
-    const roasterName = getRoasterName(bean.roaster_id);
-    const weight = bag.weight_g ? ` (${bag.weight_g.toFixed(0)}g)` : '';
+
+    const status = bag.inventory_status ? ` (${getStatusLabel(bag.inventory_status)})` : '';
     const roastDate = bag.roast_date ? ` - ${new Date(bag.roast_date).toLocaleDateString()}` : '';
-    
-    return `${bean.name} - ${roasterName}${weight}${roastDate}`;
+
+    return `${bean.name}${status}${roastDate}`;
   }
 
   function getLastUseByBagId(brews: Brew[]): Record<string, number> {
@@ -126,9 +136,12 @@
     return daysDiff > 30; // Consider expired after 30 days
   }
 
-  function isLowWeight(bag: Bag): boolean {
-    if (!bag.weight_g) return false;
-    return bag.weight_g < 50; // Less than 50g
+  function isLowOrEmpty(bag: Bag): boolean {
+    return bag.inventory_status === 'getting_low' || bag.inventory_status === 'empty';
+  }
+
+  function isEmpty(bag: Bag): boolean {
+    return bag.inventory_status === 'empty';
   }
 
   $: isAdmin = Boolean($barista?.is_admin);
@@ -382,16 +395,18 @@
           <div class="bag-meta">
             <span class="roaster">{bean ? getRoasterName(bean.roaster_id) : 'Unknown'}</span>
             {#if bean}
-              <span class="roast-level">{bean.roast_level}</span>
+              <div class="roast-level-wrapper">
+                <RoastLevel value={bean.roast_level} size="small" />
+              </div>
             {/if}
             {#if selectedBag.roast_date}
               <span class="roast-date">
                 Roasted {new Date(selectedBag.roast_date).toLocaleDateString()}
               </span>
             {/if}
-            {#if selectedBag.weight_g}
-              <span class="weight" class:low={isLowWeight(selectedBag)}>
-                {selectedBag.weight_g.toFixed(0)}g remaining
+            {#if selectedBag.inventory_status}
+              <span class="status" class:low={isLowOrEmpty(selectedBag)} class:empty={isEmpty(selectedBag)}>
+                {getStatusLabel(selectedBag.inventory_status)}
               </span>
             {/if}
           </div>
@@ -401,9 +416,13 @@
               ⚠️ This coffee is over 30 days old and may be stale
             </div>
           {/if}
-          {#if isLowWeight(selectedBag)}
-            <div class="warning low-weight-warning">
-              📉 Running low on this coffee
+          {#if isLowOrEmpty(selectedBag)}
+            <div class="warning low-status-warning">
+              {#if isEmpty(selectedBag)}
+                📭 This bag is empty
+              {:else}
+                📉 Running low on this coffee
+              {/if}
             </div>
           {/if}
 
@@ -536,8 +555,7 @@
     padding: 0.6rem 0.75rem 0.6rem 2.3rem;
   }
   .selection-placeholder {
-    color: var(--text-ink-muted);
-    opacity: var(--text-placeholder-opacity);
+    color: var(--text-ink-placeholder);
   }
 
   .bag-options {
@@ -650,9 +668,12 @@
     color: var(--text-ink-secondary);
   }
 
-  .roast-level {
+  .roast-level-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
     background: rgba(138, 106, 62, 0.18);
-    color: var(--semantic-warning);
   }
 
   .roast-date {
@@ -660,12 +681,17 @@
     color: var(--semantic-success);
   }
 
-  .weight {
+  .status {
     background: rgba(123, 94, 58, 0.15);
     color: var(--text-ink-secondary);
   }
 
-  .weight.low {
+  .status.low {
+    background: rgba(138, 106, 62, 0.18);
+    color: var(--semantic-warning);
+  }
+
+  .status.empty {
     background: rgba(122, 62, 47, 0.12);
     color: var(--semantic-error);
   }
@@ -683,7 +709,7 @@
     border: 1px solid rgba(138, 106, 62, 0.25);
   }
 
-  .low-weight-warning {
+  .low-status-warning {
     background: rgba(122, 62, 47, 0.12);
     color: var(--semantic-error);
     border: 1px solid rgba(122, 62, 47, 0.25);

@@ -5,7 +5,7 @@
   import { barista } from '$lib/auth';
   import { debounceAsync } from '$lib/utils/debounce';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ArrowDownTray, XMark } from '$lib/icons';
+  import { CheckCircle, XMark } from '$lib/icons';
 
   import BeanSelector from './BeanSelector.svelte';
   import BagSelector from './BagSelector.svelte';
@@ -460,10 +460,10 @@
         type="submit"
         ariaLabel={loading ? 'Saving brew' : (brew ? 'Save changes' : 'Save brew')}
         title={loading ? 'Saving...' : (brew ? 'Save changes' : 'Save brew')}
-        variant="accent"
+        variant="success"
         disabled={loading}
       >
-        <ArrowDownTray />
+        <CheckCircle />
       </IconButton>
     </div>
   </form>

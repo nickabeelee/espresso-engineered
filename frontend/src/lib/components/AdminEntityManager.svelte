@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { adminService } from '../admin-service.js';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ArrowDownTray, ArrowPath, PencilSquare, Trash, XMark } from '$lib/icons';
+  import { CheckCircle, ArrowPath, PencilSquare, Trash, XMark } from '$lib/icons';
 
 
   export let entityType: 'brews' | 'beans' | 'bags' | 'grinders' | 'machines' | 'roasters' | 'baristas';
@@ -33,7 +33,7 @@
     bags: {
       title: 'Bags',
       icon: '📦',
-      fields: ['name', 'bean_id', 'owner_id', 'roast_date', 'weight_g', 'price', 'created_at'],
+      fields: ['name', 'bean_id', 'owner_id', 'roast_date', 'weight_g', 'price', 'inventory_status', 'created_at'],
       supportsNameOverride: true
     },
     grinders: {
@@ -226,6 +226,16 @@
       return `$${value}`;
     }
     
+    if (field === 'inventory_status') {
+      const statusLabels = {
+        'unopened': '📦 Unopened',
+        'plenty': '✅ Plenty',
+        'getting_low': '⚠️ Getting Low',
+        'empty': '❌ Empty'
+      };
+      return statusLabels[value as keyof typeof statusLabels] || value.toString();
+    }
+    
     // Special handling for name field to show override indicator
     if (field === 'name' && entity && config.supportsNameOverride) {
       // Check if this entity has been modified (indicating potential override)
@@ -353,11 +363,24 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 {field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </label>
-              <input
-                type="text"
-                bind:value={selectedEntity[field]}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {#if field === 'inventory_status'}
+                <select
+                  bind:value={selectedEntity[field]}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select status...</option>
+                  <option value="unopened">📦 Unopened</option>
+                  <option value="plenty">✅ Plenty</option>
+                  <option value="getting_low">⚠️ Getting Low</option>
+                  <option value="empty">❌ Empty</option>
+                </select>
+              {:else}
+                <input
+                  type="text"
+                  bind:value={selectedEntity[field]}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              {/if}
             </div>
           {/each}
         </div>
@@ -366,8 +389,8 @@
           <IconButton on:click={closeEditModal} ariaLabel="Cancel edit" title="Cancel" variant="neutral">
             <XMark />
           </IconButton>
-          <IconButton on:click={saveEntity} ariaLabel="Save" title="Save" variant="accent">
-            <ArrowDownTray />
+          <IconButton on:click={saveEntity} ariaLabel="Save" title="Save" variant="success">
+            <CheckCircle />
           </IconButton>
         </div>
       </div>

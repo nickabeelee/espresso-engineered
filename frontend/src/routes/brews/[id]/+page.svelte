@@ -5,6 +5,7 @@
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BrewForm from '$lib/components/BrewForm.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
+  import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import { PencilSquare, Trash, XMark } from '$lib/icons';
@@ -362,15 +363,12 @@
                         <span>{roaster?.name || 'Unknown roaster'}</span>
                         {#if bean?.roast_level}
                           <span class="separator">/</span>
-                          <span>{bean.roast_level}</span>
+                          <RoastLevel value={bean.roast_level} size="small" />
                         {/if}
                       </div>
                       <div class="equipment-tags">
                         {#if bag.roast_date}
                           <span class="equipment-tag">Roasted {new Date(bag.roast_date).toLocaleDateString()}</span>
-                        {/if}
-                        {#if bag.weight_g}
-                          <span class="equipment-tag">{bag.weight_g.toFixed(0)}g remaining</span>
                         {/if}
                         {#if bag.purchase_location}
                           <span class="equipment-tag">From {bag.purchase_location}</span>

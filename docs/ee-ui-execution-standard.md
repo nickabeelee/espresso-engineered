@@ -206,8 +206,16 @@ All colors are defined as **design tokens**. No additional colors may be introdu
 * Usage:
 
   * Helper text
-  * Placeholders
   * Disabled states
+
+**Placeholder Ink (Input Prompts)**
+
+* Token: `text.ink.placeholder`
+* Hex: `#958573`
+* Usage:
+
+  * Input placeholders
+  * Selector empty-state text
 
 **Inverted Ink (Text on Dark)**
 
@@ -301,9 +309,10 @@ Typography carries most of the aesthetic weight. It should feel **printed, edito
 **Voice Text**
 
 * Font: Libre Baskerville
-* Color: `text.ink.secondary` or `text.ink.inverted`
+* Color: `text.ink.muted` (#6A5A4A)
 * Size: 14–16px
 * Line height: 1.7
+* Font style: Normal (never italic)
 
 **Body Text**
 
@@ -331,10 +340,16 @@ Typography carries most of the aesthetic weight. It should feel **printed, edito
 * Color: `text.ink.secondary`
 * Size: 14px
 
-**Helper / Placeholder**
+**Helper Text**
 
 * Font: IBM Plex Sans
 * Color: `text.ink.muted`
+* Size: 14px
+
+**Placeholder Text**
+
+* Font: IBM Plex Sans
+* Color: `text.ink.placeholder`
 * Size: 14px
 
 ---
@@ -351,7 +366,66 @@ Typography carries most of the aesthetic weight. It should feel **printed, edito
 
 ---
 
-### 7.2 Voice (Execution Rules)
+### 7.2 Button Variants & Sentiment
+
+Button variants must follow semantic meaning and visual hierarchy. Each variant serves a specific purpose and should never be used arbitrarily.
+
+**Accent (Primary Actions)**
+
+* Variant: `accent`
+* Color: `--accent-primary` (#B08A5A)
+* Usage:
+  * Edit/Modify actions (Edit Bean, Edit Profile)
+  * Primary creation actions (Create Bean, Save Brew)
+  * Main call-to-action buttons
+  * Confirmation of positive actions
+
+**Success (Completion Actions)**
+
+* Variant: `success`
+* Color: `--semantic-success` (#55624A)
+* Usage:
+  * Save/Submit actions in forms
+  * Completion confirmations
+  * Positive state changes
+
+**Danger (Destructive Actions)**
+
+* Variant: `danger`
+* Color: `--semantic-error` (#7A3E2F)
+* Usage:
+  * Delete actions
+  * Destructive operations
+  * Actions that cannot be undone
+  * Critical warnings
+
+**Neutral (Secondary Actions)**
+
+* Variant: `neutral`
+* Color: `--text-ink-secondary` (#4A3A2C)
+* Usage:
+  * Navigation actions (Back, Close, Cancel)
+  * Secondary options
+  * Non-committal actions
+  * Utility functions (Refresh, Filter)
+
+**Visual Hierarchy Rules**
+
+1. Only one accent button per logical section
+2. Destructive actions always use danger variant
+3. Navigation/dismissal actions always use neutral
+4. When in doubt, default to neutral rather than accent
+
+**Common Patterns**
+
+* Edit forms: Cancel (neutral) + Save (accent)
+* Delete confirmations: Cancel (neutral) + Delete (danger)
+* Creation flows: Cancel (neutral) + Create (accent)
+* Detail pages: Close (neutral) + Edit (accent) + Delete (danger)
+
+---
+
+### 7.3 Voice (Execution Rules)
 
 Voice appears only in **quiet moments**. It should feel like a presence beside the user — attentive, aware, and restrained. The tone carries **implied intimacy and feminine draw** that is *felt*, not stated.
 
@@ -373,6 +447,25 @@ It acknowledges the user’s presence and history, and occasionally their intent
 * Empty states
 * Post-save confirmations
 * Contextual assistance during creation (subtle, optional)
+
+**Typography Requirements (Critical)**
+
+Voice text must follow these exact specifications to maintain the "typewriter on paper" aesthetic:
+
+* **Font**: Libre Baskerville (never IBM Plex Sans)
+* **Color**: `text.ink.muted` (#6A5A4A) - provides the faded, typewriter ink appearance
+* **Size**: 14–16px (0.9–1rem)
+* **Line height**: 1.7
+* **Font style**: Normal (NEVER italic - italics break the typewriter aesthetic)
+* **Letter spacing**: 0.02em (subtle spacing for typewriter feel)
+
+**Implementation Rules**
+
+* Use `.voice-line` class for page-level voice text
+* Use `.voice-text` class for component-level voice text
+* Both classes must follow identical typography specifications
+* Never apply `font-style: italic` to voice text
+* Never use `text.ink.secondary` - always use `text.ink.muted` for proper contrast
 
 **Disallowed Locations**
 
@@ -464,7 +557,87 @@ Voice should always suggest presence, awareness, and quiet confidence — nothin
 
 ---
 
-## 8. Imagery & Iconography
+## 8. Chip Component Standard
+
+Chips are used throughout the application to display contextual information, status indicators, and suggestions. All chips must follow the standardized design system to ensure visual consistency.
+
+### 8.1 Design Principles
+
+Chips follow the same color token system as icon buttons but with subtle background colors to provide visual grouping and context. They should feel integrated into the surface they appear on while maintaining clear readability.
+
+### 8.2 Chip Variants
+
+All chips must use the standardized `Chip` component with these variants:
+
+**Neutral (Default/Community Content)**
+* Variant: `neutral`
+* Background: `rgba(123, 94, 58, 0.12)`
+* Text Color: `--text-ink-secondary`
+* Border: `rgba(123, 94, 58, 0.25)`
+* Usage: Roaster names, general information, community content
+
+**Accent (Personal Highlights)**
+* Variant: `accent`
+* Background: `rgba(176, 138, 90, 0.18)`
+* Text Color: `--accent-primary`
+* Border: `rgba(176, 138, 90, 0.35)`
+* Usage: "Most Used by Me", personal preferences, featured content
+
+**Success (Positive Status)**
+* Variant: `success`
+* Background: `rgba(85, 98, 74, 0.18)`
+* Text Color: `--semantic-success`
+* Border: `rgba(85, 98, 74, 0.35)`
+* Usage: "In Collection", owned items, positive states
+
+**Warning (Cautionary Status)**
+* Variant: `warning`
+* Background: `rgba(138, 106, 62, 0.18)`
+* Text Color: `--semantic-warning`
+* Border: `rgba(138, 106, 62, 0.35)`
+* Usage: "Previously Owned", temporary states, cautionary information
+
+**Error (Negative Status)**
+* Variant: `error`
+* Background: `rgba(122, 62, 47, 0.18)`
+* Text Color: `--semantic-error`
+* Border: `rgba(122, 62, 47, 0.35)`
+* Usage: Error states, unavailable items, negative status
+
+### 8.3 Implementation Rules
+
+1. **Always use the standardized Chip component** - Never create custom chip styles
+2. **Choose variants based on semantic meaning** - Not visual preference
+3. **Size variants**: Use `sm` for dense layouts, `md` for standard layouts
+4. **Grouping**: Related chips should be grouped with consistent spacing (0.5rem gap)
+5. **Placement**: Chips should appear in logical groups, typically at the top of cards or sections
+
+### 8.4 Common Usage Patterns
+
+**Bean Cards**
+* Roaster name: `neutral`
+* "Most Used by Me": `accent`
+* "In Collection": `success`
+* "Previously Owned": `warning`
+* "Community Bean": `neutral`
+
+**Equipment Cards (Machines/Grinders)**
+* Usage statistics: `neutral`
+* "Most used by [name]": `accent`
+* Manufacturer suggestions: `neutral`
+
+**Suggestion Chips**
+* General suggestions: `neutral`
+* Personal recommendations: `accent`
+* Popular choices: `success`
+
+### 8.5 Enforcement
+
+All chip implementations must use the standardized `Chip` component. Custom chip styles are prohibited. When adding new chip types, first determine the appropriate semantic variant, then implement using the existing component.
+
+---
+
+## 9. Imagery & Iconography
 
 **Photography**
 
@@ -480,7 +653,7 @@ Voice should always suggest presence, awareness, and quiet confidence — nothin
 
 ---
 
-## 9. Page Templates
+## 10. Page Templates
 
 ### Home
 
@@ -507,7 +680,7 @@ Voice should always suggest presence, awareness, and quiet confidence — nothin
 
 ---
 
-## 10. Forms & Foreign Keys
+## 11. Forms & Foreign Keys
 
 **Simple FK (<20 items)**
 
@@ -525,21 +698,7 @@ Inline create allowed only on paper surfaces.
 
 ---
 
-## 11. Enforcement
-
-This document is the source of truth.
-
-If ambiguous:
-
-1. Default to restraint
-2. Default to voice silence
-3. Update this document before implementing.
-
-* No illustrative cartoons
-
----
-
-## 9. Accessibility & Restraint
+## 12. Accessibility & Restraint
 
 * Accessibility is mandatory
 * High contrast without harshness
@@ -547,7 +706,7 @@ If ambiguous:
 
 ---
 
-## 10. Enforcement
+## 13. Enforcement
 
 This document is the source of truth.
 

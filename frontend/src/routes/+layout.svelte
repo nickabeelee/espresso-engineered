@@ -128,6 +128,12 @@
               Reflection
             </a>
             <a
+              href="/beans"
+              class:active={$page.url.pathname === '/beans' || $page.url.pathname.startsWith('/beans/')}
+            >
+              Beans
+            </a>
+            <a
               href="/equipment"
               class:active={$page.url.pathname === '/equipment' || $page.url.pathname.startsWith('/equipment/')}
             >
@@ -255,6 +261,9 @@
     border-top: 4px solid var(--accent-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
+    /* Isolate the transform to prevent affecting siblings */
+    will-change: transform;
+    transform-origin: center;
   }
 
   @keyframes spin {

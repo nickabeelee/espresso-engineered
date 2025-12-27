@@ -2,11 +2,10 @@
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { XMark } from '$lib/icons';
-
-  import InlineRoasterCreator from './InlineRoasterCreator.svelte';
-
-  export let roasters: Roaster[] = [];
+  import RoasterSelector from '$lib/components/RoasterSelector.svelte';
+  import RoastLevel from '$lib/components/RoastLevel.svelte';
+  import { XMark, CheckCircle } from '$lib/icons';
+  import type { Bean, Roaster, RoastLevel as RoastLevelType, CreateBeanRequest } from '@shared/types';
 
   const dispatch = createEventDispatcher<{
     created: Bean;
@@ -16,7 +15,7 @@
   // Form fields
   let name = '';
   let roaster_id = '';
-  let roast_level: RoastLevel = 'Medium';
+  let roast_level: RoastLevelType | null = null;
   let country_of_origin = '';
   let tasting_notes = '';
 
@@ -24,9 +23,6 @@
   let loading = false;
   let error: string | null = null;
   let validationErrors: Record<string, string> = {};
-  let showRoasterCreator = false;
-
-  const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
 
   function validateForm(): boolean {
     validationErrors = {};
@@ -36,6 +32,9 @@
     }
     if (!roaster_id) {
       validationErrors.roaster_id = 'Roaster is required';
+    }
+    if (!roast_level) {
+      validationErrors.roast_level = 'Roast level is required';
     }
 
     return Object.keys(validationErrors).length === 0;
@@ -54,7 +53,7 @@
       const beanData: CreateBeanRequest = {
         name: name.trim(),
         roaster_id,
-        roast_level,
+        roast_level: roast_level as RoastLevelType,
         country_of_origin: country_of_origin.trim() || undefined,
         tasting_notes: tasting_notes.trim() || undefined
       };
@@ -79,120 +78,110 @@
   }
 
   function handleRoasterCreated(event: CustomEvent<Roaster>) {
-    const newRoaster = event.detail;
-    roasters = [newRoaster, ...roasters];
-    roaster_id = newRoaster.id;
-    showRoasterCreator = false;
-  }
-
-  function getRoasterName(id: string): string {
-    const roaster = roasters.find(r => r.id === id);
-    return roaster?.name || 'Unknown Roaster';
+    // RoasterSelector handles updating its own roaster list and selection
+    // No additional action needed here
   }
 </script>
 
 <div class="inline-bean-creator">
   <div class="creator-header">
     <h4>Create New Bean</h4>
-    <button type="button" on:click={handleCancel} class="close-btn" disabled={loading}>
-      ✕
-    </button>
+    <div class="edit-actions">
+      <IconButton 
+        type="button" 
+        on:click={handleCancel} 
+        ariaLabel="Cancel bean" 
+        title="Cancel" 
+        variant="neutral" 
+        disabled={loading}
+      >
+        <XMark />
+      </IconButton>
+      <IconButton 
+        type="submit" 
+        form="bean-create-form"
+        ariaLabel="Create bean" 
+        title="Create Bean" 
+        variant="success" 
+        disabled={loading || !name.trim() || !roaster_id || !roast_level}
+      >
+        <CheckCircle />
+      </IconButton>
+    </div>
   </div>
 
   {#if error}
     <div class="error-banner">{error}</div>
   {/if}
 
-  {#if showRoasterCreator}
-    <div class="nested-creator">
-      <InlineRoasterCreator 
-        on:created={handleRoasterCreated}
-        on:cancel={() => showRoasterCreator = false}
-      />
-    </div>
-  {:else}
-    <form on:submit|preventDefault={handleSubmit} class="creator-form">
-      <div class="form-row">
-        <div class="form-group">
-          <label for="bean-name">Bean Name *</label>
-          <input
-            id="bean-name"
-            type="text"
-            bind:value={name}
-            placeholder="e.g., Ethiopian Yirgacheffe"
-            disabled={loading}
-            required
-          />
-          {#if validationErrors.name}
-            <span class="error-text">{validationErrors.name}</span>
-          {/if}
-        </div>
-
-        <div class="form-group">
-          <label for="roast-level">Roast Level *</label>
-          <select id="roast-level" bind:value={roast_level} disabled={loading} required>
-            {#each roastLevels as level}
-              <option value={level}>{level}</option>
-            {/each}
-          </select>
-        </div>
-      </div>
-
+  <form id="bean-create-form" on:submit|preventDefault={handleSubmit} class="creator-form">
+    <div class="form-row">
       <div class="form-group">
-        <label for="roaster">Roaster *</label>
-        <div class="roaster-input-group">
-          <select id="roaster" bind:value={roaster_id} disabled={loading} required>
-            <option value="">Select a roaster...</option>
-            {#each roasters as roaster}
-              <option value={roaster.id}>{roaster.name}</option>
-            {/each}
-          </select>
-          <button 
-            type="button" 
-            on:click={() => showRoasterCreator = true}
-            class="add-roaster-btn"
-            disabled={loading}
-          >
-            + New
-          </button>
-        </div>
-        {#if validationErrors.roaster_id}
-          <span class="error-text">{validationErrors.roaster_id}</span>
+        <label for="bean-name">Bean Name *</label>
+        <input
+          id="bean-name"
+          type="text"
+          bind:value={name}
+          placeholder="e.g., Ethiopian Yirgacheffe"
+          disabled={loading}
+          required
+        />
+        {#if validationErrors.name}
+          <span class="error-text">{validationErrors.name}</span>
         {/if}
       </div>
 
       <div class="form-group">
-        <label for="country">Country of Origin</label>
-        <input
-          id="country"
-          type="text"
-          bind:value={country_of_origin}
-          placeholder="e.g., Ethiopia"
-          disabled={loading}
-        />
+        <label>Roast Level *</label>
+        <div class="roast-level-picker" aria-disabled={loading}>
+          <RoastLevel
+            bind:value={roast_level}
+            editable={!loading}
+            size="medium"
+            showLabel={true}
+          />
+        </div>
+        {#if validationErrors.roast_level}
+          <span class="error-text">{validationErrors.roast_level}</span>
+        {/if}
       </div>
+    </div>
 
-      <div class="form-group">
-        <label for="tasting-notes">Tasting Notes</label>
-        <textarea
-          id="tasting-notes"
-          bind:value={tasting_notes}
-          rows="2"
-          placeholder="e.g., stone fruit and florals"
-          disabled={loading}
-        />
-      </div>
+    <div class="form-group">
+      <label for="roaster">Roaster *</label>
+      <RoasterSelector
+        bind:value={roaster_id}
+        disabled={loading}
+        showDetails={false}
+        on:roasterCreated={handleRoasterCreated}
+      />
+      {#if validationErrors.roaster_id}
+        <span class="error-text">{validationErrors.roaster_id}</span>
+      {/if}
+    </div>
 
-      <div class="form-actions">
-        <IconButton type="button" on:click={handleCancel} ariaLabel="Cancel bean" title="Cancel" variant="neutral" disabled={loading}>
-          <XMark />
-        </IconButton>
-        <button type="submit" class="btn-primary" disabled={loading}>
-          {loading ? 'Creating...' : 'Create Bean'}
-        </button>
-      </div>
-    </form>
-  {/if}
+    <div class="form-group">
+      <label for="country">Country of Origin</label>
+      <input
+        id="country"
+        type="text"
+        bind:value={country_of_origin}
+        placeholder="e.g., Ethiopia"
+        disabled={loading}
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="tasting-notes">Tasting Notes</label>
+      <textarea
+        id="tasting-notes"
+        bind:value={tasting_notes}
+        rows="2"
+        placeholder="e.g., stone fruit and florals"
+        disabled={loading}
+      />
+    </div>
+  </form>
 </div>
 
 <style>
@@ -214,26 +203,14 @@
   .creator-header h4 {
     margin: 0;
     color: var(--accent-primary);
+    font-family: 'IBM Plex Sans', sans-serif;
     font-size: 1.1rem;
+    font-weight: 600;
   }
 
-  .close-btn {
-    background: none;
-    border: 1px solid transparent;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: var(--text-ink-muted);
-    padding: 0.25rem;
-    line-height: 1;
-  }
-
-  .close-btn:hover:not(:disabled) {
-    color: var(--semantic-error);
-  }
-
-  .close-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
+  .edit-actions {
+    display: flex;
+    gap: 0.5rem;
   }
 
   .error-banner {
@@ -241,9 +218,10 @@
     border: 1px solid rgba(122, 62, 47, 0.25);
     color: var(--semantic-error);
     padding: 0.75rem;
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     margin-bottom: 1rem;
     font-size: 0.9rem;
+    font-family: 'IBM Plex Sans', sans-serif;
   }
 
   .nested-creator {
@@ -268,23 +246,52 @@
   .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
   }
 
   .form-group label {
+    font-family: 'IBM Plex Sans', sans-serif;
     font-weight: 600;
-    color: var(--text-ink-primary);
-    font-size: 0.9rem;
+    color: var(--text-ink-secondary);
+    font-size: 14px;
+    display: block;
+    margin-bottom: 0.25rem;
   }
 
   .form-group input,
   .form-group select,
   .form-group textarea {
-    padding: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
     border: 1px solid var(--border-subtle);
-    border-radius: 999px;
-    font-size: 0.9rem;
-    font-family: inherit;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--text-ink-primary);
+    background: var(--bg-surface-paper);
+    transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+  }
+
+  .roast-level-picker {
+    display: flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface-paper);
+  }
+
+  .roast-level-picker:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+  }
+
+  .roast-level-picker[aria-disabled='true'] {
+    background: var(--bg-surface-paper-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   .form-group input:focus,
@@ -300,61 +307,32 @@
   .form-group textarea:disabled {
     background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
+    opacity: 0.6;
   }
 
-  .roaster-input-group {
-    display: flex;
-    gap: 0.5rem;
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    color: var(--text-ink-placeholder);
+    font-family: 'IBM Plex Sans', sans-serif;
   }
 
-  .roaster-input-group select {
-    flex: 1;
-  }
-
-  .add-roaster-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid transparent;
-    padding: 0.5rem 0.75rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .add-roaster-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .add-roaster-btn:disabled {
-    background: rgba(123, 94, 58, 0.6);
-    cursor: not-allowed;
+  .form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+    font-family: 'IBM Plex Sans', sans-serif;
   }
 
   .error-text {
     color: var(--semantic-error);
-    font-size: 0.8rem;
-  }
-
-  .form-actions {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: flex-end;
-    margin-top: 0.5rem;
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    margin-top: 0.125rem;
+    display: block;
   }
 
   @media (max-width: 768px) {
     .form-row {
       grid-template-columns: 1fr;
-    }
-
-    .roaster-input-group {
-      flex-direction: column;
-    }
-
-    .form-actions {
-      flex-direction: column;
     }
   }
 </style>
