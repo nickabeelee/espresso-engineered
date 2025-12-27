@@ -5,6 +5,7 @@
   import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
   import ImageUpload from '$lib/components/ImageUpload.svelte';
+  import Chip from '$lib/components/Chip.svelte';
   import { PencilSquare, CheckCircle, XMark, Plus } from '$lib/icons';
   import { getImageUrl } from '$lib/utils/image-utils';
   import { formatMostUsedBy } from '$lib/utils/usage-stats';
@@ -223,11 +224,10 @@
         <span class="machine-info">Add a new espresso machine</span>
       {:else if machine}
         <h4>{machine.manufacturer} {machine.model}</h4>
-        <div class="machine-info-row">
-          <span class="machine-info">Global equipment</span>
-          {#if usageCount > 0}
-            <span class="usage-badge">{usageCount} brews</span>
-          {/if}
+        <div class="machine-meta">
+          <span>{machine.manufacturer}</span>
+          <span class="separator">/</span>
+          <span>{machine.model}</span>
         </div>
       {/if}
     </div>
@@ -296,14 +296,16 @@
           {/if}
           <div class="manufacturer-suggestions">
             {#each commonManufacturers as name}
-              <button
-                type="button"
-                class="manufacturer-suggestion"
-                on:click={() => selectManufacturer(name)}
-                disabled={isSaving}
-              >
-                {name}
-              </button>
+              <Chip variant="neutral" size="sm">
+                <button
+                  type="button"
+                  class="manufacturer-suggestion-button"
+                  on:click={() => selectManufacturer(name)}
+                  disabled={isSaving}
+                >
+                  {name}
+                </button>
+              </Chip>
             {/each}
           </div>
         </div>
@@ -380,9 +382,16 @@
     {/if}
   </div>
 
-  {#if !isEditing && !isNewMachine && mostUsedBy}
+  {#if !isEditing && !isNewMachine && (usageCount > 0 || mostUsedBy)}
     <div class="usage-stats">
-      <span class="most-used-by">Most used by {mostUsedBy.display_name}</span>
+      <div class="equipment-chips">
+        {#if usageCount > 0}
+          <Chip variant="neutral" size="sm">{usageCount} brews</Chip>
+        {/if}
+        {#if mostUsedBy}
+          <Chip variant="accent" size="sm">Most used by {mostUsedBy.display_name}</Chip>
+        {/if}
+      </div>
     </div>
   {/if}
 
@@ -457,21 +466,15 @@
     display: block;
   }
 
-  .machine-info-row {
+  .machine-meta {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     margin-top: 0.25rem;
   }
 
-  .usage-badge {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.2rem 0.5rem;
-    border-radius: var(--radius-sm);
+  .machine-meta .separator {
+    color: var(--text-ink-muted);
   }
 
   .machine-actions {
@@ -583,25 +586,22 @@
     gap: 0.25rem;
   }
 
-  .manufacturer-suggestion {
-    background: var(--bg-surface-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    padding: 0.2rem 0.5rem;
-    font-size: 0.8rem;
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    color: var(--text-ink-inverted);
+  .manufacturer-suggestion-button {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    font-family: inherit;
+    color: inherit;
     cursor: pointer;
     transition: all var(--motion-fast);
   }
 
-  .manufacturer-suggestion:hover {
-    background: var(--accent-primary);
-    color: var(--text-ink-primary);
-    border-color: var(--accent-primary);
+  .manufacturer-suggestion-button:hover {
+    opacity: 0.8;
   }
 
-  .manufacturer-suggestion:disabled {
+  .manufacturer-suggestion-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
@@ -621,16 +621,13 @@
   }
 
   .usage-stats {
-    padding: 0.75rem;
-    background: var(--bg-surface-secondary);
-    border-radius: var(--radius-sm);
     margin-top: 0.75rem;
   }
 
-  .most-used-by {
-    color: var(--text-ink-inverted-muted);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 0.8rem;
+  .equipment-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .machine-actions-section {

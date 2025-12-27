@@ -21,6 +21,10 @@ From repo root:
 - Use lowerCamelCase for variables/functions and UpperCamelCase for types/classes.
 - Svelte components and stores should stay lightweight; keep auth/session state in `frontend/src/lib`.
 
+## UI Component Standards
+- **Chips**: Always use the standardized `Chip` component with semantic variants (neutral, accent, success, warning, error). Never create custom chip styles. Choose variants based on meaning: neutral for general info, accent for personal highlights, success for positive status, warning for cautionary states, error for negative status. See `docs/ee-ui-execution-standard.md` section 8 for complete chip standards.
+- **Icon Buttons**: Follow the standard color tokens (neutral, accent, warning, error, success) as defined in the UI execution standard.
+
 ## Auth & Data Access (Important)
 - Supabase Auth issues JWTs; app logic uses `barista` as the user model.
 - `barista.id` maps 1:1 with `auth.users.id` (no direct `auth.users` queries in app logic).

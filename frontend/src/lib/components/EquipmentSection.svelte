@@ -250,7 +250,7 @@
   }
 
   .equipment-grid-shell {
-    background: var(--bg-surface-secondary);
+    background: var(--bg-surface-paper-secondary);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     padding: 1.5rem;
