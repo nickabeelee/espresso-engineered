@@ -6,6 +6,7 @@
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
+  import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { ArrowPath, MagnifyingGlass } from '$lib/icons';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
   import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
@@ -26,10 +27,8 @@
   // Filter state
   let searchTerm = '';
   let selectedRoaster = '';
-  let selectedRoastLevel: RoastLevel | '' = '';
+  let selectedRoastLevel: RoastLevel | null = null;
   let myBeansOnly = false;
-
-  const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
 
   // Loading states
   $: isLoading = globalLoadingManager.isLoading(LoadingKeys.BEANS_LIST);
@@ -138,13 +137,23 @@
   function clearFilters() {
     searchTerm = '';
     selectedRoaster = '';
-    selectedRoastLevel = '';
+    selectedRoastLevel = null;
     myBeansOnly = false;
     applyFilters();
   }
 
   function handleSearchInput() {
     debouncedSearch();
+  }
+
+  function handleRoastLevelChange(event: CustomEvent<RoastLevel>) {
+    selectedRoastLevel = event.detail;
+    applyFilters();
+  }
+
+  function handleRoastLevelClear() {
+    selectedRoastLevel = null;
+    applyFilters();
   }
 
   function handleRetryBeans() {
@@ -201,12 +210,30 @@
 
       <div class="filter-group">
         <label for="roast-level-filter">Roast Level</label>
-        <select id="roast-level-filter" bind:value={selectedRoastLevel} on:change={applyFilters} class="filter-select" disabled={!isOnline}>
-          <option value="">All levels</option>
-          {#each roastLevels as level}
-            <option value={level}>{level}</option>
-          {/each}
-        </select>
+        <div class="roast-level-filter">
+          <RoastLevel
+            value={selectedRoastLevel}
+            editable={isOnline}
+            size="small"
+            showLabel={false}
+            on:change={handleRoastLevelChange}
+          />
+          {#if selectedRoastLevel}
+            <button
+              type="button"
+              class="clear-roast-level"
+              on:click={handleRoastLevelClear}
+              disabled={!isOnline}
+              title="Clear roast level filter"
+              aria-label="Clear roast level filter"
+            >
+              ×
+            </button>
+          {/if}
+          <span class="roast-level-hint">
+            {selectedRoastLevel || 'All levels'}
+          </span>
+        </div>
       </div>
 
       <label class="quick-toggle">
@@ -426,6 +453,61 @@
     outline: none;
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+  }
+
+  .roast-level-filter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface-paper);
+    min-width: 120px;
+    position: relative;
+  }
+
+  .roast-level-filter:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+  }
+
+  .clear-roast-level {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--text-ink-muted);
+    cursor: pointer;
+    transition: all var(--motion-fast);
+  }
+
+  .clear-roast-level:hover {
+    background: var(--semantic-error);
+    color: white;
+    border-color: var(--semantic-error);
+  }
+
+  .clear-roast-level:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .roast-level-hint {
+    font-size: 0.75rem;
+    color: var(--text-ink-muted);
+    text-align: center;
+    font-weight: 500;
   }
 
   .quick-toggle {

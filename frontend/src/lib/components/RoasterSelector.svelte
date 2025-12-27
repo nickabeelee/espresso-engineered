@@ -8,6 +8,7 @@
 
   export let value: string = '';
   export let disabled = false;
+  export let showDetails = true;
 
   const dispatch = createEventDispatcher<{
     roasterCreated: Roaster;
@@ -213,7 +214,7 @@
       </IconButton>
     </div>
 
-    {#if selectedRoaster}
+    {#if selectedRoaster && showDetails}
       <div class="selected-roaster-details">
         <div class="roaster-info">
           <h4>{formatRoasterDisplay(selectedRoaster)}</h4>
@@ -351,8 +352,7 @@
     padding: 0.6rem 0.75rem 0.6rem 2.3rem;
   }
   .selection-placeholder {
-    color: var(--text-ink-muted);
-    opacity: var(--text-placeholder-opacity);
+    color: var(--text-ink-placeholder);
   }
 
   .roaster-options {

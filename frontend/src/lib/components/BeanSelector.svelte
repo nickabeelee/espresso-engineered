@@ -240,7 +240,7 @@
   }
 
   .search-input::placeholder {
-    color: var(--text-ink-muted);
+    color: var(--text-ink-placeholder);
   }
 
   .search-input:focus {
