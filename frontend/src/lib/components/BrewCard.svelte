@@ -78,6 +78,13 @@
       <span class="value">{brew.dose_g.toFixed(1)}g</span>
     </div>
 
+    {#if brew.grind_setting}
+      <div class="detail-row">
+        <span class="label">Grind:</span>
+        <span class="value">{brew.grind_setting}</span>
+      </div>
+    {/if}
+
     {#if brew.yield_g}
       <div class="detail-row">
         <span class="label">Yield:</span>
