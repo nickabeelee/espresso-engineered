@@ -356,22 +356,6 @@
       
       <div class="form-row">
         <div class="form-group">
-          <label for="yield">Yield (g)</label>
-          <input
-            id="yield"
-            type="number"
-            bind:value={yield_g}
-            step="0.1"
-            min="0.1"
-            placeholder="e.g., 36"
-            disabled={loading}
-          />
-          {#if validationErrors.yield_g}
-            <span class="error-text">{validationErrors.yield_g}</span>
-          {/if}
-        </div>
-
-        <div class="form-group">
           <label for="brew_time">Brew Time (s)</label>
           <input
             id="brew_time"
@@ -384,6 +368,22 @@
           />
           {#if validationErrors.brew_time_s}
             <span class="error-text">{validationErrors.brew_time_s}</span>
+          {/if}
+        </div>
+
+        <div class="form-group">
+          <label for="yield">Yield (g)</label>
+          <input
+            id="yield"
+            type="number"
+            bind:value={yield_g}
+            step="0.1"
+            min="0.1"
+            placeholder="e.g., 36"
+            disabled={loading}
+          />
+          {#if validationErrors.yield_g}
+            <span class="error-text">{validationErrors.yield_g}</span>
           {/if}
         </div>
       </div>
