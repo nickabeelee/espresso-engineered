@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, tick } from 'svelte';
   import type { RoastLevel } from '../../../shared/types';
   import CoffeeBeanMicro from '$lib/icons/micro/CoffeeBean.svelte';
   import CoffeeBeanMini from '$lib/icons/mini/CoffeeBean.svelte';
   import CoffeeBeanSolid from '$lib/icons/solid/CoffeeBean.svelte';
 
   // Props interface
-  export let value: RoastLevel | null = null;
+  export let value: RoastLevel | null | undefined = null;
   export let editable: boolean = false;
   export let size: 'small' | 'medium' | 'large' = 'medium';
   export let showLabel: boolean = false;
@@ -15,11 +15,14 @@
   // Event dispatcher for Svelte events
   const dispatch = createEventDispatcher<{
     change: RoastLevel;
+    value: RoastLevel;
   }>();
 
-  // Internal state for hover interactions
-  let hoverValue: RoastLevel | null = null;
-  let isHovering: boolean = false;
+  const beanIndices = [1, 2, 3, 4, 5];
+  let draftValue: RoastLevel | null = value ?? null;
+  let lastPropValue: RoastLevel | null | undefined = value;
+  let activeBeanCount = 0;
+  let buttonRefs: Array<HTMLButtonElement | null> = [];
 
   // Roast level mapping to number of active beans
   const roastLevelMap: Record<RoastLevel, number> = {
@@ -53,34 +56,12 @@
     }
   }
 
-  // Get number of active beans for current display state
-  function getActiveBeanCount(): number {
-    const displayValue = isHovering && hoverValue ? hoverValue : value;
-    return displayValue ? roastLevelMap[displayValue] : 0;
-  }
-
-  // Handle mouse enter on bean
-  function handleBeanHover(beanIndex: number) {
-    if (!editable) return;
-    
-    isHovering = true;
-    hoverValue = beanPositionToRoastLevel[beanIndex];
-  }
-
-  // Handle mouse leave from component
-  function handleMouseLeave() {
-    if (!editable) return;
-    
-    isHovering = false;
-    hoverValue = null;
-  }
-
   // Handle click on bean
   function handleBeanClick(beanIndex: number) {
     if (!editable) return;
     
     const newValue = beanPositionToRoastLevel[beanIndex];
-    value = newValue;
+    draftValue = newValue;
     
     // Call onChange prop if provided
     if (onChange) {
@@ -89,44 +70,26 @@
     
     // Dispatch Svelte event
     dispatch('change', newValue);
+    dispatch('value', newValue);
     
-    // Clear hover state
-    isHovering = false;
-    hoverValue = null;
   }
 
-  // Get the CSS class for a bean based on its state
-  function getBeanClass(beanIndex: number): string {
-    const activeBeanCount = getActiveBeanCount();
-    const isActive = beanIndex <= activeBeanCount;
-    const isHoverPreview = isHovering && hoverValue && beanIndex <= roastLevelMap[hoverValue];
-    
-    if (isHoverPreview) {
-      return 'bean-icon bean-active bean-hover-preview';
-    } else if (isActive) {
-      return 'bean-icon bean-active';
-    } else {
-      return 'bean-icon bean-inactive';
-    }
-  }
-
-  // Handle keyboard navigation for editable mode
-  function handleKeyDown(event: KeyboardEvent) {
+  async function handleKeyDown(event: KeyboardEvent) {
     if (!editable) return;
-    
-    const currentLevel = value ? roastLevelMap[value] : 0;
-    let newLevel = currentLevel;
-    
+
+    const currentLevel = activeBeanCount || 0;
+    let newLevel = currentLevel || 1;
+
     switch (event.key) {
       case 'ArrowLeft':
       case 'ArrowDown':
         event.preventDefault();
-        newLevel = Math.max(1, currentLevel - 1);
+        newLevel = Math.max(1, currentLevel - 1 || 1);
         break;
       case 'ArrowRight':
       case 'ArrowUp':
         event.preventDefault();
-        newLevel = Math.min(5, currentLevel + 1);
+        newLevel = Math.min(5, currentLevel + 1 || 1);
         break;
       case 'Home':
         event.preventDefault();
@@ -139,59 +102,75 @@
       default:
         return;
     }
-    
-    if (newLevel !== currentLevel) {
-      const newValue = beanPositionToRoastLevel[newLevel];
-      value = newValue;
-      
-      if (onChange) {
-        onChange(newValue);
-      }
-      
-      dispatch('change', newValue);
-    }
+
+    handleBeanClick(newLevel);
+    await tick();
+    buttonRefs[newLevel - 1]?.focus();
   }
 
   $: IconComponent = getIconComponent(size);
-  $: displayValue = isHovering && hoverValue ? hoverValue : value;
+  $: if (value !== lastPropValue) {
+    draftValue = value ?? null;
+    lastPropValue = value;
+  }
+  $: activeBeanCount = draftValue ? roastLevelMap[draftValue] : 0;
 </script>
 
-<div 
+<div
   class="roast-level-component"
   class:editable
   class:small={size === 'small'}
   class:medium={size === 'medium'}
   class:large={size === 'large'}
-  on:mouseleave={handleMouseLeave}
+  role="radiogroup"
+  aria-label={draftValue ? `Roast level: ${draftValue}` : 'Roast level not set'}
+  tabindex={editable ? 0 : undefined}
   on:keydown={handleKeyDown}
-  role={editable ? 'slider' : 'img'}
-  aria-label={value ? `Roast level: ${value}` : 'Roast level not set'}
-  aria-valuemin={editable ? 1 : undefined}
-  aria-valuemax={editable ? 5 : undefined}
-  aria-valuenow={editable && value ? roastLevelMap[value] : undefined}
-  aria-valuetext={editable && value ? value : undefined}
-  tabindex={editable ? 0 : -1}
-  title={value || 'Roast level not set'}
+  title={draftValue || 'Roast level not set'}
 >
   <div class="bean-row">
-    {#each Array(5) as _, index}
-      <button
-        class={getBeanClass(index + 1)}
-        class:clickable={editable}
-        on:mouseenter={() => handleBeanHover(index + 1)}
-        on:click={() => handleBeanClick(index + 1)}
-        disabled={!editable}
-        aria-label={`Set roast level to ${beanPositionToRoastLevel[index + 1]}`}
-        title={editable ? `Set roast level to ${beanPositionToRoastLevel[index + 1]}` : ''}
-      >
-        <svelte:component this={IconComponent} />
-      </button>
-    {/each}
+    {#key draftValue}
+      {#each beanIndices as beanIndex}
+        {#if beanIndex <= activeBeanCount}
+          <button
+            type="button"
+            class="bean-icon bean-active"
+            class:clickable={editable}
+            on:click={() => handleBeanClick(beanIndex)}
+            disabled={!editable}
+            role="radio"
+            aria-checked="true"
+            tabindex={editable && beanIndex === activeBeanCount ? 0 : -1}
+            aria-label={`Set roast level to ${beanPositionToRoastLevel[beanIndex]}`}
+            title={editable ? `Set roast level to ${beanPositionToRoastLevel[beanIndex]}` : ''}
+            bind:this={buttonRefs[beanIndex - 1]}
+          >
+            <svelte:component this={IconComponent} />
+          </button>
+        {:else}
+          <button
+            type="button"
+            class="bean-icon bean-inactive"
+            class:clickable={editable}
+            on:click={() => handleBeanClick(beanIndex)}
+            disabled={!editable}
+            role="radio"
+            aria-checked="false"
+            tabindex={editable && activeBeanCount === 0 && beanIndex === 1 ? 0 : -1}
+            aria-label={`Set roast level to ${beanPositionToRoastLevel[beanIndex]}`}
+            title={editable ? `Set roast level to ${beanPositionToRoastLevel[beanIndex]}` : ''}
+            bind:this={buttonRefs[beanIndex - 1]}
+          >
+            <svelte:component this={IconComponent} />
+          </button>
+        {/if}
+      {/each}
+    {/key}
   </div>
   
-  {#if showLabel && value}
+  {#if showLabel && draftValue}
     <div class="roast-label">
-      {value}
+      ({draftValue})
     </div>
   {/if}
 </div>
@@ -199,7 +178,7 @@
 <style>
   .roast-level-component {
     display: inline-flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     gap: 0.5rem;
     --bean-size: 20px;
@@ -231,7 +210,7 @@
     border: none;
     padding: 0;
     cursor: default;
-    transition: color var(--motion-fast) ease;
+    transition: color var(--motion-fast) ease, transform var(--motion-fast) ease, filter var(--motion-fast) ease;
     flex-shrink: 0;
   }
 
@@ -261,8 +240,24 @@
     color: var(--text-ink-placeholder);
   }
 
-  .bean-hover-preview {
+  .roast-level-component.editable .bean-row button:hover,
+  .roast-level-component.editable .bean-row button:focus-visible {
+    transform: translateY(-2px) scale(1.08);
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18));
+  }
+
+  .roast-level-component.editable .bean-row:has(button:nth-child(1):hover) button:nth-child(-n + 1),
+  .roast-level-component.editable .bean-row:has(button:nth-child(2):hover) button:nth-child(-n + 2),
+  .roast-level-component.editable .bean-row:has(button:nth-child(3):hover) button:nth-child(-n + 3),
+  .roast-level-component.editable .bean-row:has(button:nth-child(4):hover) button:nth-child(-n + 4),
+  .roast-level-component.editable .bean-row:has(button:nth-child(5):hover) button:nth-child(-n + 5),
+  .roast-level-component.editable .bean-row:has(button:nth-child(1):focus-visible) button:nth-child(-n + 1),
+  .roast-level-component.editable .bean-row:has(button:nth-child(2):focus-visible) button:nth-child(-n + 2),
+  .roast-level-component.editable .bean-row:has(button:nth-child(3):focus-visible) button:nth-child(-n + 3),
+  .roast-level-component.editable .bean-row:has(button:nth-child(4):focus-visible) button:nth-child(-n + 4),
+  .roast-level-component.editable .bean-row:has(button:nth-child(5):focus-visible) button:nth-child(-n + 5) {
     color: var(--accent-primary);
+    transform: translateY(-1px) scale(1.05);
   }
 
   .roast-label {

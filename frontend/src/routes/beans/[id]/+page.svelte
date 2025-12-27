@@ -32,6 +32,7 @@
   let isEditing = false;
   let isSaving = false;
   let editFormData: Partial<CreateBeanRequest> = {};
+  let editRoastLevel: RoastLevel | null = null;
   let showBagCreator = false;
 
   const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
@@ -163,6 +164,7 @@
       country_of_origin: bean.country_of_origin || '',
       tasting_notes: bean.tasting_notes || ''
     };
+    editRoastLevel = bean.roast_level ?? null;
     
     isEditing = true;
   }
@@ -170,6 +172,7 @@
   function handleCancelEdit() {
     isEditing = false;
     editFormData = {};
+    editRoastLevel = null;
     permissionError = null;
   }
 
@@ -186,6 +189,11 @@
       isSaving = true;
       permissionError = null;
       
+      editFormData = {
+        ...editFormData,
+        roast_level: editRoastLevel ?? undefined
+      };
+
       const response = await apiClient.updateBean(bean.id, editFormData);
       
       // Update local bean data
@@ -196,6 +204,7 @@
       
       isEditing = false;
       editFormData = {};
+      editRoastLevel = null;
       
       // Reload to get fresh context data
       if (beanId) {
@@ -318,11 +327,6 @@
     }
   }
 
-  function handleRoastLevelChange(newRoastLevel: RoastLevel) {
-    if (isEditing) {
-      editFormData.roast_level = newRoastLevel;
-    }
-  }
 </script>
 
 <svelte:head>
@@ -476,11 +480,10 @@
                 {#if isEditing}
                   <div class="roast-level-editor">
                     <RoastLevelComponent
-                      value={editFormData.roast_level || null}
+                      bind:value={editRoastLevel}
                       editable={true}
                       size="medium"
                       showLabel={true}
-                      onChange={handleRoastLevelChange}
                     />
                   </div>
                 {:else}
