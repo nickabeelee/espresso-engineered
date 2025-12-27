@@ -423,7 +423,7 @@
                     on:click={handleSaveEdit} 
                     ariaLabel="Save changes" 
                     title="Save" 
-                    variant="accent" 
+                    variant="success" 
                     disabled={isSaving || !editFormData.name?.trim() || !editFormData.roaster_id}
                   >
                     <CheckCircle />

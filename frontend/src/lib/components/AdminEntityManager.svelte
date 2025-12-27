@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { adminService } from '../admin-service.js';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ArrowDownTray, ArrowPath, PencilSquare, Trash, XMark } from '$lib/icons';
+  import { CheckCircle, ArrowPath, PencilSquare, Trash, XMark } from '$lib/icons';
 
 
   export let entityType: 'brews' | 'beans' | 'bags' | 'grinders' | 'machines' | 'roasters' | 'baristas';
@@ -389,8 +389,8 @@
           <IconButton on:click={closeEditModal} ariaLabel="Cancel edit" title="Cancel" variant="neutral">
             <XMark />
           </IconButton>
-          <IconButton on:click={saveEntity} ariaLabel="Save" title="Save" variant="accent">
-            <ArrowDownTray />
+          <IconButton on:click={saveEntity} ariaLabel="Save" title="Save" variant="success">
+            <CheckCircle />
           </IconButton>
         </div>
       </div>
