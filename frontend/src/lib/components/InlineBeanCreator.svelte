@@ -3,8 +3,9 @@
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
+  import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { XMark, CheckCircle } from '$lib/icons';
-  import type { Bean, Roaster, RoastLevel, CreateBeanRequest } from '@shared/types';
+  import type { Bean, Roaster, RoastLevel as RoastLevelType, CreateBeanRequest } from '@shared/types';
 
   const dispatch = createEventDispatcher<{
     created: Bean;
@@ -14,7 +15,7 @@
   // Form fields
   let name = '';
   let roaster_id = '';
-  let roast_level: RoastLevel = 'Medium';
+  let roast_level: RoastLevelType | null = null;
   let country_of_origin = '';
   let tasting_notes = '';
 
@@ -22,8 +23,6 @@
   let loading = false;
   let error: string | null = null;
   let validationErrors: Record<string, string> = {};
-
-  const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
 
   function validateForm(): boolean {
     validationErrors = {};
@@ -33,6 +32,9 @@
     }
     if (!roaster_id) {
       validationErrors.roaster_id = 'Roaster is required';
+    }
+    if (!roast_level) {
+      validationErrors.roast_level = 'Roast level is required';
     }
 
     return Object.keys(validationErrors).length === 0;
@@ -51,7 +53,7 @@
       const beanData: CreateBeanRequest = {
         name: name.trim(),
         roaster_id,
-        roast_level,
+        roast_level: roast_level as RoastLevelType,
         country_of_origin: country_of_origin.trim() || undefined,
         tasting_notes: tasting_notes.trim() || undefined
       };
@@ -101,7 +103,7 @@
         ariaLabel="Create bean" 
         title="Create Bean" 
         variant="success" 
-        disabled={loading || !name.trim() || !roaster_id}
+        disabled={loading || !name.trim() || !roaster_id || !roast_level}
       >
         <CheckCircle />
       </IconButton>
@@ -130,12 +132,18 @@
       </div>
 
       <div class="form-group">
-        <label for="roast-level">Roast Level *</label>
-        <select id="roast-level" bind:value={roast_level} disabled={loading} required>
-          {#each roastLevels as level}
-            <option value={level}>{level}</option>
-          {/each}
-        </select>
+        <label>Roast Level *</label>
+        <div class="roast-level-picker" aria-disabled={loading}>
+          <RoastLevel
+            bind:value={roast_level}
+            editable={!loading}
+            size="medium"
+            showLabel={true}
+          />
+        </div>
+        {#if validationErrors.roast_level}
+          <span class="error-text">{validationErrors.roast_level}</span>
+        {/if}
       </div>
     </div>
 
@@ -144,6 +152,7 @@
       <RoasterSelector
         bind:value={roaster_id}
         disabled={loading}
+        showDetails={false}
         on:roasterCreated={handleRoasterCreated}
       />
       {#if validationErrors.roaster_id}
@@ -262,6 +271,27 @@
     color: var(--text-ink-primary);
     background: var(--bg-surface-paper);
     transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+  }
+
+  .roast-level-picker {
+    display: flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface-paper);
+  }
+
+  .roast-level-picker:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+  }
+
+  .roast-level-picker[aria-disabled='true'] {
+    background: var(--bg-surface-paper-secondary);
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   .form-group input:focus,
