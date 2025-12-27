@@ -6,7 +6,7 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import ImageUpload from '$lib/components/ImageUpload.svelte';
   import Chip from '$lib/components/Chip.svelte';
-  import { PencilSquare, CheckCircle, XMark, Plus } from '$lib/icons';
+  import { PencilSquare, CheckCircle, XMark, Plus, Trash } from '$lib/icons';
   import { getImageUrl } from '$lib/utils/image-utils';
   import { formatMostUsedBy } from '$lib/utils/usage-stats';
   import type { Machine, CreateMachineRequest, Barista } from '@shared/types';
@@ -243,6 +243,16 @@
         >
           <PencilSquare />
         </IconButton>
+        <IconButton 
+          on:click={handleDelete} 
+          ariaLabel="Delete machine" 
+          title="Delete machine" 
+          variant="danger" 
+          size="sm"
+          disabled={isSaving}
+        >
+          <Trash />
+        </IconButton>
       {/if}
       
       {#if isEditing}
@@ -392,19 +402,6 @@
           <Chip variant="accent" size="sm">Most used by {mostUsedBy.display_name}</Chip>
         {/if}
       </div>
-    </div>
-  {/if}
-
-  {#if !isEditing && !isNewMachine && canEdit}
-    <div class="machine-actions-section">
-      <button
-        type="button"
-        class="delete-button"
-        on:click={handleDelete}
-        disabled={isSaving}
-      >
-        Delete Machine
-      </button>
     </div>
   {/if}
 </div>
@@ -628,33 +625,5 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-  }
-
-  .machine-actions-section {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border-subtle);
-  }
-
-  .delete-button {
-    background: transparent;
-    border: 1px solid var(--semantic-error);
-    color: var(--semantic-error);
-    border-radius: var(--radius-sm);
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    cursor: pointer;
-    transition: all var(--motion-fast);
-  }
-
-  .delete-button:hover {
-    background: var(--semantic-error);
-    color: var(--text-ink-inverted);
-  }
-
-  .delete-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
   }
 </style>

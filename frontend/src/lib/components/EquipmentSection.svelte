@@ -114,7 +114,7 @@
     <div class="section-info">
       <p class="voice-text">{selectedConfig.voiceText}</p>
       <h2>{selectedConfig.title}</h2>
-      <p class="description">{selectedConfig.description}</p>
+      <p class="voice-text">{selectedConfig.description}</p>
     </div>
     
     <IconButton 
@@ -211,11 +211,10 @@
 
   .voice-text {
     font-family: "Libre Baskerville", serif;
-    color: var(--text-ink-secondary);
+    color: var(--text-ink-muted);
     font-size: 0.9rem;
     line-height: 1.7;
     margin: 0 0 0.5rem 0;
-    font-style: italic;
   }
 
   .section-info h2 {
@@ -224,13 +223,6 @@
     font-family: "IBM Plex Sans", system-ui, sans-serif;
     font-size: 1.5rem;
     font-weight: 500;
-  }
-
-  .description {
-    margin: 0;
-    color: var(--text-ink-secondary);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 0.9rem;
   }
 
   .error-message {
@@ -279,11 +271,10 @@
 
   .empty-state .voice-text {
     font-family: "Libre Baskerville", serif;
-    color: var(--text-ink-secondary);
+    color: var(--text-ink-muted);
     font-size: 0.9rem;
     line-height: 1.7;
     margin-bottom: 1rem;
-    font-style: italic;
   }
 
   .empty-title {

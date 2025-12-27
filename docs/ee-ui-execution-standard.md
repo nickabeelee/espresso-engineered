@@ -301,9 +301,10 @@ Typography carries most of the aesthetic weight. It should feel **printed, edito
 **Voice Text**
 
 * Font: Libre Baskerville
-* Color: `text.ink.secondary` or `text.ink.inverted`
+* Color: `text.ink.muted` (#6A5A4A)
 * Size: 14–16px
 * Line height: 1.7
+* Font style: Normal (never italic)
 
 **Body Text**
 
@@ -432,6 +433,25 @@ It acknowledges the user’s presence and history, and occasionally their intent
 * Empty states
 * Post-save confirmations
 * Contextual assistance during creation (subtle, optional)
+
+**Typography Requirements (Critical)**
+
+Voice text must follow these exact specifications to maintain the "typewriter on paper" aesthetic:
+
+* **Font**: Libre Baskerville (never IBM Plex Sans)
+* **Color**: `text.ink.muted` (#6A5A4A) - provides the faded, typewriter ink appearance
+* **Size**: 14–16px (0.9–1rem)
+* **Line height**: 1.7
+* **Font style**: Normal (NEVER italic - italics break the typewriter aesthetic)
+* **Letter spacing**: 0.02em (subtle spacing for typewriter feel)
+
+**Implementation Rules**
+
+* Use `.voice-line` class for page-level voice text
+* Use `.voice-text` class for component-level voice text
+* Both classes must follow identical typography specifications
+* Never apply `font-style: italic` to voice text
+* Never use `text.ink.secondary` - always use `text.ink.muted` for proper contrast
 
 **Disallowed Locations**
 
