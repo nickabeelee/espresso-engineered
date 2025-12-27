@@ -80,24 +80,24 @@ This implementation plan creates a reusable visual roast level component using c
   - Test visual integration and spacing
   - _Requirements: 7.1_
 
-- [ ] 7. Replace roast level in BagSelector component
+- [x] 7. Replace roast level in BagSelector component
   - Update BagSelector.svelte to use RoastLevel component
   - Ensure proper sizing for selector context
   - Maintain existing layout and spacing
   - _Requirements: 7.2_
 
-- [ ] 8. Replace roast level in bean edit forms
+- [x] 8. Replace roast level in bean edit forms
   - Update bean detail page edit form to use editable RoastLevel component
   - Replace select dropdown with interactive bean component
   - Implement proper event handling for form submission
   - _Requirements: 7.3_
 
-- [ ] 9. Replace roast level in brew detail pages
+- [x] 9. Replace roast level in brew detail pages
   - Update brew detail page to show RoastLevel component for bean information
   - Use view-only mode with appropriate sizing
   - _Requirements: 7.4_
 
-- [ ] 10. Replace roast level filter in BeanList
+- [x] 10. Replace roast level filter in BeanList
   - Update BeanList.svelte filter section to use RoastLevel component
   - Implement filter selection using editable mode
   - Add "All levels" state handling (no beans active)
@@ -108,14 +108,14 @@ This implementation plan creates a reusable visual roast level component using c
   - Test roast level filter integration with existing search and roaster filters
   - Test filter state management and URL synchronization
 
-- [ ] 11. Final integration testing
+- [x] 11. Final integration testing
   - Test component across all integration points
   - Verify consistent sizing and styling
   - Ensure all interactive functionality works correctly
   - Test responsive behavior on different screen sizes
   - _Requirements: 7.6_
 
-- [ ] 12. Final checkpoint - Complete implementation
+- [x] 12. Final checkpoint - Complete implementation
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

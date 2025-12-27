@@ -10,6 +10,7 @@
   import EditableBagCard from '$lib/components/EditableBagCard.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
+  import RoastLevelComponent from '$lib/components/RoastLevel.svelte';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
   import { apiClient } from '$lib/api-client';
   import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
@@ -316,6 +317,12 @@
       editFormData.roaster_id = newRoaster.id;
     }
   }
+
+  function handleRoastLevelChange(newRoastLevel: RoastLevel) {
+    if (isEditing) {
+      editFormData.roast_level = newRoastLevel;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -467,17 +474,24 @@
               <div class="info-item">
                 <span class="info-label">Roast Level</span>
                 {#if isEditing}
-                  <select
-                    bind:value={editFormData.roast_level}
-                    class="info-select"
-                    disabled={isSaving}
-                  >
-                    {#each roastLevels as level}
-                      <option value={level}>{level}</option>
-                    {/each}
-                  </select>
+                  <div class="roast-level-editor">
+                    <RoastLevelComponent
+                      value={editFormData.roast_level || null}
+                      editable={true}
+                      size="medium"
+                      showLabel={true}
+                      onChange={handleRoastLevelChange}
+                    />
+                  </div>
                 {:else}
-                  <span class="info-value">{bean.roast_level}</span>
+                  <div class="roast-level-display">
+                    <RoastLevelComponent
+                      value={bean.roast_level}
+                      editable={false}
+                      size="medium"
+                      showLabel={true}
+                    />
+                  </div>
                 {/if}
               </div>
               
@@ -862,6 +876,28 @@
     border-radius: var(--radius-md);
     padding: 0.85rem 1rem;
     margin: 0;
+  }
+
+  .roast-level-editor,
+  .roast-level-display {
+    display: flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0.5rem 0;
+  }
+
+  .roast-level-editor {
+    /* Add subtle background to indicate it's editable */
+    background: var(--bg-surface-paper);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    transition: border-color var(--motion-fast);
+  }
+
+  .roast-level-editor:focus-within {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(123, 94, 58, 0.1);
   }
 
   .rating-section {
