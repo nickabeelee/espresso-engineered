@@ -704,7 +704,13 @@ export class NamingService {
     const timezone = timezoneDetection.detected || timezoneDetection.fallback;
 
     const timeOfDay = this.getTimeOfDayLabel(createdAt, timezone);
-    const brewSequence = await this.getBrewSequenceForDayAndTimeOfDay(baristaId, createdAt, timeOfDay, timezone);
+    const brewSequence = await this.getBrewSequenceForDayAndTimeOfDay(
+      baristaId,
+      bagId,
+      createdAt,
+      timeOfDay,
+      timezone
+    );
     const brewDate = this.formatBrewDate(createdAt, timezone);
 
     return {
@@ -1041,6 +1047,7 @@ export class NamingService {
    */
   private async getBrewSequenceForDayAndTimeOfDay(
     baristaId: string,
+    bagId: string,
     createdAt: Date,
     timeOfDay: string,
     timezone?: string
@@ -1062,6 +1069,7 @@ export class NamingService {
             .from('brew')
             .select('id', { count: 'exact', head: true })
             .eq('barista_id', baristaId)
+            .eq('bag_id', bagId)
             .gte('created_at', range.start.toISOString())
             .lt('created_at', range.end.toISOString());
 
@@ -1079,8 +1087,8 @@ export class NamingService {
         operationName: 'getBrewSequenceForDayAndTimeOfDay',
         table: 'brew',
         query: Array.isArray(start)
-          ? `SELECT count(*) FROM brew WHERE barista_id = '${baristaId}' AND ((created_at >= '${(start as Date[])[0].toISOString()}' AND created_at < '${(end as Date[])[0].toISOString()}') OR (created_at >= '${(start as Date[])[1].toISOString()}' AND created_at < '${(end as Date[])[1].toISOString()}'))`
-          : `SELECT count(*) FROM brew WHERE barista_id = '${baristaId}' AND created_at >= '${(start as Date).toISOString()}' AND created_at < '${(end as Date).toISOString()}'`,
+          ? `SELECT count(*) FROM brew WHERE barista_id = '${baristaId}' AND bag_id = '${bagId}' AND ((created_at >= '${(start as Date[])[0].toISOString()}' AND created_at < '${(end as Date[])[0].toISOString()}') OR (created_at >= '${(start as Date[])[1].toISOString()}' AND created_at < '${(end as Date[])[1].toISOString()}'))`
+          : `SELECT count(*) FROM brew WHERE barista_id = '${baristaId}' AND bag_id = '${bagId}' AND created_at >= '${(start as Date).toISOString()}' AND created_at < '${(end as Date).toISOString()}'`,
         entityType: 'brew',
         entityId: baristaId
       }
