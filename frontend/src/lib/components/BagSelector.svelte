@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount, tick } from 'svelte';
+  import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { adminService } from '$lib/admin-service';
   import { barista } from '$lib/auth';
@@ -12,10 +12,16 @@
   export let value = '';
   export let disabled = false;
 
+  const dispatch = createEventDispatcher<{
+    bagSelected: { bag: Bag | null; bean: Bean | null };
+    brewsLoaded: { brews: Brew[] };
+  }>();
+
   let bags = [];
   let hasLoadedAdminBags = false;
   let beans = [];
   let roasters = [];
+  let brewHistory: Brew[] = [];
   let lastUseByBagId: Record<string, number> = {};
   let loading = true;
   let error = null;
@@ -24,6 +30,7 @@
   let searchTerm = '';
   let searchInput: HTMLInputElement | null = null;
   let comboboxRoot: HTMLDivElement | null = null;
+  let lastNotifiedBagId = '';
 
   onMount(() => {
     loadData();
@@ -48,8 +55,10 @@
         bags = adminBags;
         beans = beansResponse.data;
         roasters = roastersResponse.data;
+        brewHistory = brewsResponse.data;
         hasLoadedAdminBags = true;
         lastUseByBagId = getLastUseByBagId(brewsResponse.data);
+        dispatch('brewsLoaded', { brews: brewHistory });
       } else {
         const [bagsResponse, beansResponse, roastersResponse, brewsResponse] = await Promise.all([
           apiClient.getBags(),
@@ -61,12 +70,16 @@
         bags = bagsResponse.data;
         beans = beansResponse.data;
         roasters = roastersResponse.data;
+        brewHistory = brewsResponse.data;
         hasLoadedAdminBags = false;
         lastUseByBagId = getLastUseByBagId(brewsResponse.data);
+        dispatch('brewsLoaded', { brews: brewHistory });
       }
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load bags';
       console.error('Failed to load bags:', err);
+      brewHistory = [];
+      dispatch('brewsLoaded', { brews: brewHistory });
     } finally {
       loading = false;
     }
@@ -153,7 +166,15 @@
   $: userBags = bags.filter(bag => bag.owner_id === $barista?.id);
   $: otherBags = isAdmin ? bags.filter(bag => bag.owner_id !== $barista?.id) : [];
   $: selectedBag = bags.find((bag) => bag.id === value) || null;
+  $: selectedBean = selectedBag ? getBeanInfo(selectedBag.bean_id) || null : null;
   $: selectedLabel = selectedBag ? formatBagDisplay(selectedBag) : 'Select a bag...';
+  $: {
+    const currentBagId = selectedBag?.id || '';
+    if (currentBagId !== lastNotifiedBagId) {
+      lastNotifiedBagId = currentBagId;
+      dispatch('bagSelected', { bag: selectedBag, bean: selectedBean });
+    }
+  }
 
   // Filtered bags based on search
   const matchesSearch = (bag: Bag) => {
