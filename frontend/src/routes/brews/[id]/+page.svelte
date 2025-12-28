@@ -194,6 +194,19 @@
   function handleClose() {
     goto('/brews');
   }
+
+  function handleBagCardClick() {
+    if (!bean) return;
+    goto(`/beans/${bean.id}`);
+  }
+
+  function handleBagCardKeydown(event: KeyboardEvent) {
+    if (!bean) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      goto(`/beans/${bean.id}`);
+    }
+  }
 </script>
 
 <svelte:head>
@@ -350,7 +363,15 @@
                   {/if}
                 </article>
 
-                <article class="equipment-card">
+                <article
+                  class="equipment-card bag-card"
+                  class:bag-card--clickable={Boolean(bean)}
+                  role={bean ? 'link' : undefined}
+                  tabindex={bean ? 0 : -1}
+                  aria-label={bean ? `View ${formatBagTitle(bag, bean)}` : undefined}
+                  on:click={handleBagCardClick}
+                  on:keydown={handleBagCardKeydown}
+                >
                   <div class="equipment-card-main">
                     <div class="equipment-card-header">
                       <div>
@@ -667,6 +688,21 @@
     border-radius: var(--radius-md);
     background: var(--bg-surface-paper);
     border: 1px solid rgba(123, 94, 58, 0.2);
+  }
+
+  .bag-card--clickable {
+    cursor: pointer;
+    transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
+  }
+
+  .bag-card--clickable:hover {
+    box-shadow: var(--shadow-soft);
+    border-color: var(--accent-primary);
+  }
+
+  .bag-card--clickable:focus-visible {
+    outline: 2px solid rgba(176, 138, 90, 0.4);
+    outline-offset: 2px;
   }
 
   .equipment-card-main {
