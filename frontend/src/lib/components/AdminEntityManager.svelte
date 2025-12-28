@@ -62,6 +62,15 @@
     }
   };
 
+  const decimalFields = new Set(['dose_g', 'yield_g', 'weight_g', 'price']);
+  const numericFields = new Set(['rating']);
+
+  function getInputMode(field: string): 'decimal' | 'numeric' | undefined {
+    if (decimalFields.has(field)) return 'decimal';
+    if (numericFields.has(field)) return 'numeric';
+    return undefined;
+  }
+
   onMount(async () => {
     await loadEntities();
   });
@@ -378,6 +387,7 @@
                 <input
                   type="text"
                   bind:value={selectedEntity[field]}
+                  inputmode={getInputMode(field)}
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               {/if}
