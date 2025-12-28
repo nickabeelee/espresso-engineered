@@ -239,7 +239,7 @@
                 rel="noopener noreferrer"
                 class="guide-link"
               >
-                📊 Setting Guide
+                Setting Guide
               </a>
             {/if}
           </div>
