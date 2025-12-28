@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount, tick } from 'svelte';
+  import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
   import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
@@ -10,6 +10,10 @@
   export let value: string = '';
   export let disabled = false;
 
+  const dispatch = createEventDispatcher<{
+    selected: { id: string };
+  }>();
+
   let machines: Machine[] = [];
   let loading = true;
   let error: string | null = null;
@@ -18,6 +22,7 @@
   let searchTerm = '';
   let searchInput: HTMLInputElement | null = null;
   let comboboxRoot: HTMLDivElement | null = null;
+  let triggerButton: HTMLButtonElement | null = null;
 
   onMount(() => {
     loadMachines();
@@ -43,6 +48,7 @@
     machines = [newMachine, ...machines];
     value = newMachine.id;
     showCreateForm = false;
+    dispatch('selected', { id: newMachine.id });
   }
 
   function formatMachineDisplay(machine: Machine): string {
@@ -82,6 +88,7 @@
     value = machine.id;
     isOpen = false;
     searchTerm = '';
+    dispatch('selected', { id: machine.id });
   }
 
   function openCreateForm() {
@@ -117,6 +124,10 @@
   onDestroy(() => {
     document.removeEventListener('click', handleDocumentClick);
   });
+
+  export function focusTrigger() {
+    triggerButton?.focus();
+  }
 </script>
 
 <div class="machine-selector">
@@ -141,6 +152,7 @@
           on:click={toggleOpen}
           on:keydown={closeIfEscape}
           {disabled}
+          bind:this={triggerButton}
         >
           <span class:selection-placeholder={!selectedMachine}>{selectedLabel}</span>
           <span class="chevron">
