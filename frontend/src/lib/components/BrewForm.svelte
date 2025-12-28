@@ -383,6 +383,7 @@
           <input
             id="dose"
             type="number"
+            inputmode="decimal"
             bind:value={dose_g}
             step="0.1"
             min="0"
@@ -400,6 +401,7 @@
           <input
             id="grind_setting"
             type="text"
+            inputmode="decimal"
             bind:value={grind_setting}
             placeholder="e.g., 2.5"
             disabled={loading}
@@ -418,6 +420,7 @@
           <input
             id="brew_time"
             type="number"
+            inputmode="decimal"
             bind:value={brew_time_s}
             step="0.1"
             min="0.1"
@@ -434,6 +437,7 @@
           <input
             id="yield"
             type="number"
+            inputmode="decimal"
             bind:value={yield_g}
             step="0.1"
             min="0.1"
@@ -474,6 +478,7 @@
         <input
           id="rating"
           type="number"
+          inputmode="numeric"
           bind:value={rating}
           min="1"
           max="10"
