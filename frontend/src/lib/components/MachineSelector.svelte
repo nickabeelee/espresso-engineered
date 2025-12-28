@@ -239,7 +239,7 @@
                 rel="noopener noreferrer"
                 class="manual-link"
               >
-                📖 User Manual
+                User Manual
               </a>
             {/if}
           </div>

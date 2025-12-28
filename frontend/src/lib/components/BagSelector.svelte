@@ -444,15 +444,15 @@
 
           {#if isExpired(selectedBag)}
             <div class="warning expired-warning">
-              ⚠️ This coffee is over 30 days old and may be stale
+              This coffee is over 30 days old and may be stale
             </div>
           {/if}
           {#if isLowOrEmpty(selectedBag)}
             <div class="warning low-status-warning">
               {#if isEmpty(selectedBag)}
-                📭 This bag is empty
+                This bag is empty
               {:else}
-                📉 Running low on this coffee
+                Running low on this coffee
               {/if}
             </div>
           {/if}
