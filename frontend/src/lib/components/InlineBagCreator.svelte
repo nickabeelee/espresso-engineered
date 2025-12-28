@@ -191,6 +191,7 @@
             <input
               id="weight"
               type="number"
+              inputmode="numeric"
             bind:value={weight_g}
             step="1"
             min="0"
@@ -215,6 +216,7 @@
           <input
             id="price"
             type="number"
+            inputmode="decimal"
             bind:value={price}
             step="0.01"
             min="0"

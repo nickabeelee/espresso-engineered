@@ -312,6 +312,7 @@
       {#if isEditing}
         <input
           type="number"
+          inputmode="decimal"
           bind:value={formData.weight_g}
           class="detail-input"
           placeholder="e.g., 250"
@@ -331,6 +332,7 @@
       {#if isEditing}
         <input
           type="number"
+          inputmode="decimal"
           bind:value={formData.price}
           class="detail-input"
           placeholder="e.g., 18.50"

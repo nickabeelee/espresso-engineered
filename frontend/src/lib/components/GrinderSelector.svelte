@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount, tick } from 'svelte';
+  import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
   import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
@@ -10,6 +10,10 @@
   export let value: string = '';
   export let disabled = false;
 
+  const dispatch = createEventDispatcher<{
+    selected: { id: string };
+  }>();
+
   let grinders: Grinder[] = [];
   let loading = true;
   let error: string | null = null;
@@ -18,6 +22,7 @@
   let searchTerm = '';
   let searchInput: HTMLInputElement | null = null;
   let comboboxRoot: HTMLDivElement | null = null;
+  let triggerButton: HTMLButtonElement | null = null;
 
   onMount(() => {
     loadGrinders();
@@ -43,6 +48,7 @@
     grinders = [newGrinder, ...grinders];
     value = newGrinder.id;
     showCreateForm = false;
+    dispatch('selected', { id: newGrinder.id });
   }
 
   function formatGrinderDisplay(grinder: Grinder): string {
@@ -83,6 +89,7 @@
     value = grinder.id;
     isOpen = false;
     searchTerm = '';
+    dispatch('selected', { id: grinder.id });
   }
 
   function closeIfEscape(event: KeyboardEvent) {
@@ -118,6 +125,10 @@
   onDestroy(() => {
     document.removeEventListener('click', handleDocumentClick);
   });
+
+  export function focusTrigger() {
+    triggerButton?.focus();
+  }
 </script>
 
 <div class="grinder-selector">
@@ -142,6 +153,7 @@
           on:click={toggleOpen}
           on:keydown={closeIfEscape}
           {disabled}
+          bind:this={triggerButton}
         >
           <span class:selection-placeholder={!selectedGrinder}>{selectedLabel}</span>
           <span class="chevron">
