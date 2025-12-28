@@ -15,6 +15,7 @@
   const dispatch = createEventDispatcher<{
     bagSelected: { bag: Bag | null; bean: Bean | null };
     brewsLoaded: { brews: Brew[] };
+    selected: { id: string };
   }>();
 
   let bags = [];
@@ -31,6 +32,7 @@
   let searchInput: HTMLInputElement | null = null;
   let comboboxRoot: HTMLDivElement | null = null;
   let lastNotifiedBagId = '';
+  let triggerButton: HTMLButtonElement | null = null;
 
   onMount(() => {
     loadData();
@@ -99,6 +101,8 @@
     if (!bags.find(bag => bag.id === newBag.id)) {
       bags = [newBag, ...bags];
     }
+
+    dispatch('selected', { id: newBag.id });
   }
 
   function getBeanInfo(beanId: string): Bean | undefined {
@@ -255,6 +259,7 @@
     value = bag.id;
     isOpen = false;
     searchTerm = '';
+    dispatch('selected', { id: bag.id });
   }
 
   function closeIfEscape(event: KeyboardEvent) {
@@ -290,6 +295,10 @@
   onDestroy(() => {
     document.removeEventListener('click', handleDocumentClick);
   });
+
+  export function focusTrigger() {
+    triggerButton?.focus();
+  }
 </script>
 
 <div class="bag-selector">
@@ -316,6 +325,7 @@
           on:click={toggleOpen}
           on:keydown={closeIfEscape}
           {disabled}
+          bind:this={triggerButton}
         >
           <span class:selection-placeholder={!selectedBag}>{selectedLabel}</span>
           <span class="chevron">

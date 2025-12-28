@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
@@ -38,6 +38,18 @@
   let prefillAvailable = false;
   let prefillLoading = false;
   let prefillApplied = false;
+
+  let outputSection: HTMLDivElement | null = null;
+  let doseInput: HTMLInputElement | null = null;
+  let grindSettingInput: HTMLInputElement | null = null;
+  let brewTimeInput: HTMLInputElement | null = null;
+  let yieldInput: HTMLInputElement | null = null;
+  let ratingInput: HTMLInputElement | null = null;
+  let tastingNotesInput: HTMLTextAreaElement | null = null;
+  let reflectionsInput: HTMLTextAreaElement | null = null;
+  let machineSelector: MachineSelector | null = null;
+  let grinderSelector: GrinderSelector | null = null;
+  let bagSelector: BagSelector | null = null;
 
   // Auto name state
   let autoName = '';
@@ -128,12 +140,45 @@
       }
       if (prefillData) {
         applyPrefillData(prefillData);
+        await tick();
+        outputSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     } catch (err) {
       console.error('Failed to duplicate from last brew:', err);
     } finally {
       prefillLoading = false;
     }
+  }
+
+  function handleEnterAdvance(event: KeyboardEvent, next: (() => void) | null) {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (!next) return;
+    void (async () => {
+      await tick();
+      next();
+    })();
+  }
+
+  function focusNextFromMachine() {
+    void (async () => {
+      await tick();
+      grinderSelector?.focusTrigger();
+    })();
+  }
+
+  function focusNextFromGrinder() {
+    void (async () => {
+      await tick();
+      bagSelector?.focusTrigger();
+    })();
+  }
+
+  function focusNextFromBag() {
+    void (async () => {
+      await tick();
+      doseInput?.focus();
+    })();
   }
 
   function markNameTouched(_event?: Event) {
@@ -285,10 +330,10 @@
   {/if}
 
   <form on:submit|preventDefault={handleSave}>
-    {#if !brew && prefillAvailable}
+    {#if !brew && prefillAvailable && !prefillApplied}
       <div class="prefill-banner">
         <p class="voice-text">
-          {prefillApplied ? 'Last brew details are in place.' : 'Carry the last brew forward.'}
+          Carry the last brew forward.
         </p>
         <IconButton
           type="button"
@@ -323,6 +368,8 @@
           type="text"
           bind:value={name}
           on:input={markNameTouched}
+          on:keydown={(event) => handleEnterAdvance(event, () => machineSelector?.focusTrigger())}
+          enterkeyhint="next"
           placeholder={autoName || 'Auto brew name'}
           disabled={loading}
         />
@@ -345,7 +392,12 @@
       
       <div class="form-group">
         <label for="machine">Machine *</label>
-        <MachineSelector bind:value={machine_id} disabled={loading} />
+        <MachineSelector
+          bind:value={machine_id}
+          disabled={loading}
+          bind:this={machineSelector}
+          on:selected={focusNextFromMachine}
+        />
         {#if validationErrors.machine_id}
           <span class="error-text">{validationErrors.machine_id}</span>
         {/if}
@@ -353,7 +405,12 @@
 
       <div class="form-group">
         <label for="grinder">Grinder *</label>
-        <GrinderSelector bind:value={grinder_id} disabled={loading} />
+        <GrinderSelector
+          bind:value={grinder_id}
+          disabled={loading}
+          bind:this={grinderSelector}
+          on:selected={focusNextFromGrinder}
+        />
         {#if validationErrors.grinder_id}
           <span class="error-text">{validationErrors.grinder_id}</span>
         {/if}
@@ -364,8 +421,10 @@
         <BagSelector
           bind:value={bag_id}
           disabled={loading}
+          bind:this={bagSelector}
           on:bagSelected={handleBagSelected}
           on:brewsLoaded={handleBrewsLoaded}
+          on:selected={focusNextFromBag}
         />
         {#if validationErrors.bag_id}
           <span class="error-text">{validationErrors.bag_id}</span>
@@ -389,6 +448,9 @@
             placeholder="e.g., 18"
             disabled={loading}
             required
+            on:keydown={(event) => handleEnterAdvance(event, () => grindSettingInput?.focus())}
+            enterkeyhint="next"
+            bind:this={doseInput}
           />
           {#if validationErrors.dose_g}
             <span class="error-text">{validationErrors.dose_g}</span>
@@ -403,13 +465,16 @@
             bind:value={grind_setting}
             placeholder="e.g., 2.5"
             disabled={loading}
+            on:keydown={(event) => handleEnterAdvance(event, () => brewTimeInput?.focus())}
+            enterkeyhint="next"
+            bind:this={grindSettingInput}
           />
         </div>
       </div>
     </div>
 
     <!-- Output Measurements -->
-    <div class="form-section card">
+    <div class="form-section card" bind:this={outputSection}>
       <h3>Output Measurements</h3>
       
       <div class="form-row">
@@ -423,6 +488,9 @@
             min="0.1"
             placeholder="e.g., 28"
             disabled={loading}
+            on:keydown={(event) => handleEnterAdvance(event, () => yieldInput?.focus())}
+            enterkeyhint="next"
+            bind:this={brewTimeInput}
           />
           {#if validationErrors.brew_time_s}
             <span class="error-text">{validationErrors.brew_time_s}</span>
@@ -439,6 +507,9 @@
             min="0.1"
             placeholder="e.g., 36"
             disabled={loading}
+            on:keydown={(event) => handleEnterAdvance(event, () => ratingInput?.focus())}
+            enterkeyhint="next"
+            bind:this={yieldInput}
           />
           {#if validationErrors.yield_g}
             <span class="error-text">{validationErrors.yield_g}</span>
@@ -480,6 +551,9 @@
           step="1"
           placeholder="e.g., 8"
           disabled={loading}
+          on:keydown={(event) => handleEnterAdvance(event, () => tastingNotesInput?.focus())}
+          enterkeyhint="next"
+          bind:this={ratingInput}
         />
         {#if validationErrors.rating}
           <span class="error-text">{validationErrors.rating}</span>
@@ -494,6 +568,7 @@
           rows="3"
           placeholder="e.g., notes of cacao and orange"
           disabled={loading}
+          bind:this={tastingNotesInput}
         />
       </div>
 
@@ -505,6 +580,7 @@
           rows="3"
           placeholder="e.g., What worked? What would you change?"
           disabled={loading}
+          bind:this={reflectionsInput}
         />
       </div>
     </div>
