@@ -10,6 +10,7 @@ export { default as ArrowDownTray } from './outline/ArrowDownTray.svelte';
 export { default as ArrowPath } from './outline/ArrowPath.svelte';
 export { default as ChevronDown } from './outline/ChevronDown.svelte';
 export { default as MagnifyingGlass } from './outline/MagnifyingGlass.svelte';
+export { default as DocumentDuplicate } from './outline/DocumentDuplicate.svelte';
 
 // Coffee Bean icons
 export { default as CoffeeBean } from './solid/CoffeeBean.svelte';

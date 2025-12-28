@@ -107,7 +107,7 @@
     {/if}
 
     {#if brew.rating}
-      <div class="detail-row">
+      <div class="detail-row rating-row">
         <span class="label">Rating:</span>
         <span class="value rating">
           {'★'.repeat(Math.floor(brew.rating))}
@@ -247,6 +247,10 @@
     justify-content: space-between;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .detail-row.rating-row {
+    grid-column: 1 / -1;
   }
 
   .detail-row .label {

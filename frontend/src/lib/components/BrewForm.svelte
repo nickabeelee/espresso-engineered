@@ -3,9 +3,9 @@
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { debounceAsync } from '$lib/utils/debounce';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { CheckCircle, XMark } from '$lib/icons';
+  import { CheckCircle, DocumentDuplicate, XMark } from '$lib/icons';
+  import { buildBrewName } from '$lib/utils/brew-naming';
 
   import BeanSelector from './BeanSelector.svelte';
   import BagSelector from './BagSelector.svelte';
@@ -13,8 +13,6 @@
   import MachineSelector from './MachineSelector.svelte';
 
   export let brew: Brew | null = null;
-  export let prefillFromLast = false;
-
   let name = '';
   let isNameAuto = true;
   let nameTouched = false;
@@ -36,10 +34,17 @@
   let rating: number | undefined = undefined;
   let tasting_notes = '';
   let reflections = '';
+  let prefillData: PrefillData | null = null;
+  let prefillAvailable = false;
+  let prefillLoading = false;
+  let prefillApplied = false;
 
-  // Name preview state
-  let previewName = '';
-  let previewLoading = false;
+  // Auto name state
+  let autoName = '';
+  let autoNameTimestamp: Date | null = null;
+  let lastBagIdForAuto = '';
+  let selectedBeanName = '';
+  let brewHistory: Brew[] = [];
 
   // Calculated fields
   let flow_rate_g_per_s: number | undefined = undefined;
@@ -54,9 +59,8 @@
     if (brew) {
       // Editing existing brew
       loadBrewData(brew);
-    } else if (prefillFromLast) {
-      // Pre-fill from last brew
-      await loadPrefillData();
+    } else {
+      await checkPrefillAvailability();
     }
   });
 
@@ -85,24 +89,50 @@
     reflections = brewData.reflections ?? '';
   }
 
-  async function loadPrefillData() {
+  async function checkPrefillAvailability() {
     try {
-      loading = true;
+      prefillLoading = true;
       const response = await apiClient.getPrefillData();
       
       if (response.data) {
-        const prefill = response.data;
-        machine_id = prefill.machine_id;
-        grinder_id = prefill.grinder_id;
-        bag_id = prefill.bag_id;
-        grind_setting = prefill.grind_setting || '';
-        dose_g = prefill.dose_g;
+        prefillData = response.data;
+        prefillAvailable = true;
       }
     } catch (err) {
-      console.error('Failed to load prefill data:', err);
-      // Don't show error to user, just continue with empty form
+      prefillAvailable = false;
     } finally {
-      loading = false;
+      prefillLoading = false;
+    }
+  }
+
+  function applyPrefillData(prefill: PrefillData) {
+    machine_id = prefill.machine_id;
+    grinder_id = prefill.grinder_id;
+    bag_id = prefill.bag_id;
+    grind_setting = prefill.grind_setting || '';
+    dose_g = prefill.dose_g;
+    // Keep name auto-generated when duplicating from last brew.
+    isNameAuto = true;
+    nameTouched = false;
+    name = '';
+    lastGeneratedName = '';
+    prefillApplied = true;
+  }
+
+  async function handleDuplicateFromLast() {
+    try {
+      prefillLoading = true;
+      if (!prefillData) {
+        const response = await apiClient.getPrefillData();
+        prefillData = response.data ?? null;
+      }
+      if (prefillData) {
+        applyPrefillData(prefillData);
+      }
+    } catch (err) {
+      console.error('Failed to duplicate from last brew:', err);
+    } finally {
+      prefillLoading = false;
     }
   }
 
@@ -114,7 +144,10 @@
   function resetAutoName() {
     nameTouched = false;
     isNameAuto = true;
-    name = previewName || lastGeneratedName || '';
+    if (!autoNameTimestamp) {
+      autoNameTimestamp = new Date();
+    }
+    name = autoName || lastGeneratedName || '';
   }
 
   function calculateFields() {
@@ -195,52 +228,54 @@
     calculateFields();
   }
 
-  // Preview name generation with debouncing for performance optimization
-  const debouncedPreviewUpdate = debounceAsync(async (bagId: string) => {
-    if (!bagId) {
-      return '';
-    }
+  function handleBagSelected(event: CustomEvent<{ bag: Bag | null; bean: Bean | null }>) {
+    selectedBeanName = event.detail.bean?.name?.trim() || '';
+  }
 
-    try {
-      const response = await apiClient.previewBrewName(bagId);
-      return response.data?.name || '';
-    } catch (err) {
-      console.error('Failed to preview brew name:', err);
-      return '';
-    }
-  }, 300); // 300ms debounce delay
+  function handleBrewsLoaded(event: CustomEvent<{ brews: Brew[] }>) {
+    brewHistory = event.detail.brews || [];
+  }
 
-  async function updateNamePreview() {
-    if (!bag_id) {
-      previewName = '';
+  // Reactive statement to update auto name when bag changes
+  $: if (bag_id && bag_id !== lastBagIdForAuto) {
+    lastBagIdForAuto = bag_id;
+    autoNameTimestamp = new Date();
+    selectedBeanName = '';
+  }
+
+  $: {
+    const displayName = $barista?.display_name?.trim();
+    const fallbackName = $barista?.first_name?.trim();
+    const baristaName = displayName || fallbackName || 'Anonymous';
+
+    if (bag_id && selectedBeanName && autoNameTimestamp) {
+      autoName = buildBrewName({
+        baristaDisplayName: baristaName,
+        beanName: selectedBeanName,
+        brewedAt: autoNameTimestamp,
+        bagId: bag_id,
+        existingBrews: brewHistory,
+        excludeBrewId: brew?.id
+      });
+
+      lastGeneratedName = autoName;
+      if (isNameAuto || (!nameTouched && !name)) {
+        name = autoName;
+        isNameAuto = true;
+      }
+    } else {
+      autoName = '';
       if (isNameAuto) {
         name = '';
         lastGeneratedName = '';
       }
-      return;
-    }
-
-    try {
-      previewLoading = true;
-      previewName = await debouncedPreviewUpdate(bag_id);
-      lastGeneratedName = previewName;
-      if (isNameAuto || (!nameTouched && !name)) {
-        name = previewName;
-        isNameAuto = true;
-      }
-    } catch (err) {
-      // Error already logged in debounced function
-      previewName = '';
-    } finally {
-      previewLoading = false;
     }
   }
 
-  // Reactive statement to update preview when bag changes
-  $: if (bag_id) {
-    updateNamePreview();
-  } else {
-    previewName = '';
+  $: if (!bag_id) {
+    lastBagIdForAuto = '';
+    autoNameTimestamp = null;
+    selectedBeanName = '';
   }
 </script>
 
@@ -250,6 +285,24 @@
   {/if}
 
   <form on:submit|preventDefault={handleSave}>
+    {#if !brew && prefillAvailable}
+      <div class="prefill-banner">
+        <p class="voice-text">
+          {prefillApplied ? 'Last brew details are in place.' : 'Carry the last brew forward.'}
+        </p>
+        <IconButton
+          type="button"
+          on:click={handleDuplicateFromLast}
+          ariaLabel="Duplicate last brew"
+          title="Duplicate last brew"
+          variant="accent"
+          disabled={prefillLoading}
+        >
+          <DocumentDuplicate />
+        </IconButton>
+      </div>
+    {/if}
+
     <div class="form-section card">
       <div class="form-group name-group">
         <div class="label-row">
@@ -259,7 +312,7 @@
               {isNameAuto ? 'Auto-generated' : 'Custom'}
             </span>
             {#if !isNameAuto}
-              <button class="reset-auto" type="button" on:click={resetAutoName} disabled={loading || previewLoading}>
+              <button class="reset-auto" type="button" on:click={resetAutoName} disabled={loading}>
                 Use auto name
               </button>
             {/if}
@@ -270,7 +323,7 @@
           type="text"
           bind:value={name}
           on:input={markNameTouched}
-          placeholder={previewName || 'Auto brew name'}
+          placeholder={autoName || 'Auto brew name'}
           disabled={loading}
         />
         <small>
@@ -308,7 +361,12 @@
 
       <div class="form-group">
         <label for="bag">Coffee Bag *</label>
-        <BagSelector bind:value={bag_id} disabled={loading} />
+        <BagSelector
+          bind:value={bag_id}
+          disabled={loading}
+          on:bagSelected={handleBagSelected}
+          on:brewsLoaded={handleBrewsLoaded}
+        />
         {#if validationErrors.bag_id}
           <span class="error-text">{validationErrors.bag_id}</span>
         {/if}
@@ -546,6 +604,25 @@
   .form-group small {
     color: var(--text-ink-muted);
     font-size: 0.85rem;
+  }
+
+  .voice-text {
+    font-family: "Libre Baskerville", serif;
+    color: var(--text-ink-muted);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  .prefill-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-paper-secondary);
   }
 
   .label-row {
