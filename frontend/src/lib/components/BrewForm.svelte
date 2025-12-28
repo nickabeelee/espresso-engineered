@@ -2,9 +2,10 @@
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import { debounceAsync } from '$lib/utils/debounce';
+  import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
   import { CheckCircle, DocumentDuplicate, XMark } from '$lib/icons';
+  import { buildBrewName } from '$lib/utils/brew-naming';
 
   import BeanSelector from './BeanSelector.svelte';
   import BagSelector from './BagSelector.svelte';
@@ -38,9 +39,12 @@
   let prefillLoading = false;
   let prefillApplied = false;
 
-  // Name preview state
-  let previewName = '';
-  let previewLoading = false;
+  // Auto name state
+  let autoName = '';
+  let autoNameTimestamp: Date | null = null;
+  let lastBagIdForAuto = '';
+  let selectedBeanName = '';
+  let brewHistory: Brew[] = [];
 
   // Calculated fields
   let flow_rate_g_per_s: number | undefined = undefined;
@@ -140,7 +144,10 @@
   function resetAutoName() {
     nameTouched = false;
     isNameAuto = true;
-    name = previewName || lastGeneratedName || '';
+    if (!autoNameTimestamp) {
+      autoNameTimestamp = new Date();
+    }
+    name = autoName || lastGeneratedName || '';
   }
 
   function calculateFields() {
@@ -221,52 +228,54 @@
     calculateFields();
   }
 
-  // Preview name generation with debouncing for performance optimization
-  const debouncedPreviewUpdate = debounceAsync(async (bagId: string) => {
-    if (!bagId) {
-      return '';
-    }
+  function handleBagSelected(event: CustomEvent<{ bag: Bag | null; bean: Bean | null }>) {
+    selectedBeanName = event.detail.bean?.name?.trim() || '';
+  }
 
-    try {
-      const response = await apiClient.previewBrewName(bagId);
-      return response.data?.name || '';
-    } catch (err) {
-      console.error('Failed to preview brew name:', err);
-      return '';
-    }
-  }, 300); // 300ms debounce delay
+  function handleBrewsLoaded(event: CustomEvent<{ brews: Brew[] }>) {
+    brewHistory = event.detail.brews || [];
+  }
 
-  async function updateNamePreview() {
-    if (!bag_id) {
-      previewName = '';
+  // Reactive statement to update auto name when bag changes
+  $: if (bag_id && bag_id !== lastBagIdForAuto) {
+    lastBagIdForAuto = bag_id;
+    autoNameTimestamp = new Date();
+    selectedBeanName = '';
+  }
+
+  $: {
+    const displayName = $barista?.display_name?.trim();
+    const fallbackName = $barista?.first_name?.trim();
+    const baristaName = displayName || fallbackName || 'Anonymous';
+
+    if (bag_id && selectedBeanName && autoNameTimestamp) {
+      autoName = buildBrewName({
+        baristaDisplayName: baristaName,
+        beanName: selectedBeanName,
+        brewedAt: autoNameTimestamp,
+        bagId: bag_id,
+        existingBrews: brewHistory,
+        excludeBrewId: brew?.id
+      });
+
+      lastGeneratedName = autoName;
+      if (isNameAuto || (!nameTouched && !name)) {
+        name = autoName;
+        isNameAuto = true;
+      }
+    } else {
+      autoName = '';
       if (isNameAuto) {
         name = '';
         lastGeneratedName = '';
       }
-      return;
-    }
-
-    try {
-      previewLoading = true;
-      previewName = await debouncedPreviewUpdate(bag_id);
-      lastGeneratedName = previewName;
-      if (isNameAuto || (!nameTouched && !name)) {
-        name = previewName;
-        isNameAuto = true;
-      }
-    } catch (err) {
-      // Error already logged in debounced function
-      previewName = '';
-    } finally {
-      previewLoading = false;
     }
   }
 
-  // Reactive statement to update preview when bag changes
-  $: if (bag_id) {
-    updateNamePreview();
-  } else {
-    previewName = '';
+  $: if (!bag_id) {
+    lastBagIdForAuto = '';
+    autoNameTimestamp = null;
+    selectedBeanName = '';
   }
 </script>
 
@@ -303,7 +312,7 @@
               {isNameAuto ? 'Auto-generated' : 'Custom'}
             </span>
             {#if !isNameAuto}
-              <button class="reset-auto" type="button" on:click={resetAutoName} disabled={loading || previewLoading}>
+              <button class="reset-auto" type="button" on:click={resetAutoName} disabled={loading}>
                 Use auto name
               </button>
             {/if}
@@ -314,7 +323,7 @@
           type="text"
           bind:value={name}
           on:input={markNameTouched}
-          placeholder={previewName || 'Auto brew name'}
+          placeholder={autoName || 'Auto brew name'}
           disabled={loading}
         />
         <small>
@@ -352,7 +361,12 @@
 
       <div class="form-group">
         <label for="bag">Coffee Bag *</label>
-        <BagSelector bind:value={bag_id} disabled={loading} />
+        <BagSelector
+          bind:value={bag_id}
+          disabled={loading}
+          on:bagSelected={handleBagSelected}
+          on:brewsLoaded={handleBrewsLoaded}
+        />
         {#if validationErrors.bag_id}
           <span class="error-text">{validationErrors.bag_id}</span>
         {/if}

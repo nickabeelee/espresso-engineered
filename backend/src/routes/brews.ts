@@ -6,131 +6,27 @@ import {
   createBrewSchema, 
   updateBrewSchema, 
   completeDraftSchema,
-  brewFiltersSchema,
   batchSyncSchema 
 } from '../validation/schemas.js';
 import { 
   CreateBrewRequest, 
-  UpdateBrewRequest, 
   BrewFilters,
   Brew 
 } from '../types/index.js';
-import { handleRouteError, isNotFoundError, isConflictError } from '../utils/error-helpers.js';
-import { namingService, NamingError } from '../services/naming.js';
+import { handleRouteError, isNotFoundError } from '../utils/error-helpers.js';
 
 const brewRepository = new BrewRepository();
 
 export async function brewRoutes(fastify: FastifyInstance) {
-  // POST /api/brews/preview-name - Preview brew name (authenticated)
-  fastify.post('/api/brews/preview-name', {
-    preHandler: authenticateRequest
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      const authRequest = request as AuthenticatedRequest;
-      const { bag_id, _timezone } = request.body as { 
-        bag_id: string;
-        _timezone?: {
-          browserTimezone: string;
-          userTimezone?: string;
-          confidence: string;
-        };
-      };
-
-      if (!bag_id) {
-        return reply.status(400).send({
-          error: 'Validation Error',
-          message: 'bag_id is required for name preview'
-        });
-      }
-
-      // Generate preview name with timezone information
-      try {
-        const previewName = await namingService.generateBrewName(
-          authRequest.barista!.id,
-          bag_id,
-          new Date(),
-          _timezone ? {
-            browserTimezone: _timezone.browserTimezone,
-            userTimezone: _timezone.userTimezone
-          } : undefined
-        );
-        
-        return { data: { name: previewName } };
-      } catch (error) {
-        request.log.warn({ error }, 'Failed to generate brew name preview');
-        
-        if (error instanceof NamingError) {
-          request.log.warn({
-            entityType: error.entityType,
-            entityId: error.entityId,
-            cause: error.cause?.message
-          }, `Naming error for brew preview: ${error.message}`);
-        }
-        
-        return reply.status(500).send({
-          error: 'Naming Error',
-          message: 'Failed to generate name preview'
-        });
-      }
-    } catch (error) {
-      request.log.error(error);
-      return handleRouteError(error, reply, 'preview brew name');
-    }
-  });
-
   // POST /api/brews - Create new brew
   fastify.post('/api/brews', {
     preHandler: authenticateRequest
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const authRequest = request as AuthenticatedRequest;
-      const { _timezone, ...brewData } = request.body as CreateBrewRequest & {
-        _timezone?: {
-          browserTimezone: string;
-          userTimezone?: string;
-          confidence: string;
-        };
-      };
+      const validatedBrewData = validateSchema(createBrewSchema, request.body) as CreateBrewRequest;
       
-      const validatedBrewData = validateSchema(createBrewSchema, brewData) as CreateBrewRequest;
-
-      // Generate automatic name before database insertion with timezone information (unless provided)
-      let generatedName: string | undefined = undefined;
-      if (!validatedBrewData.name) {
-        try {
-          generatedName = await namingService.generateBrewName(
-            authRequest.barista!.id,
-            validatedBrewData.bag_id,
-            new Date(),
-            _timezone ? {
-              browserTimezone: _timezone.browserTimezone,
-              userTimezone: _timezone.userTimezone
-            } : undefined
-          );
-        } catch (error) {
-          // Log naming failure but continue with creation
-          request.log.warn({ error }, 'Failed to generate brew name');
-
-          if (error instanceof NamingError) {
-            request.log.warn({
-              entityType: error.entityType,
-              entityId: error.entityId,
-              cause: error.cause?.message
-            }, `Naming error for brew creation: ${error.message}`);
-          }
-
-          // Set name to undefined if naming fails completely
-          generatedName = undefined;
-        }
-      }
-
-      // Create brew with generated name and calculated fields
-      const brewDataWithName = {
-        ...validatedBrewData,
-        name: validatedBrewData.name ?? generatedName
-      };
-      
-      const brew = await brewRepository.create(brewDataWithName, authRequest.barista!.id);
+      const brew = await brewRepository.create(validatedBrewData, authRequest.barista!.id);
       
       return reply.status(201).send({ data: brew });
     } catch (error) {
@@ -257,37 +153,8 @@ export async function brewRoutes(fastify: FastifyInstance) {
       const brewData = validateSchema(updateBrewSchema, request.body);
       const ownerId = authRequest.barista?.is_admin ? undefined : authRequest.barista!.id;
 
-      const existingBrew = await brewRepository.findById(id, ownerId);
-
-      let updatedName: string | undefined;
-      const bagIdForNaming = brewData.bag_id ?? existingBrew.bag_id;
-      const shouldRegenerateName =
-        brewData.name === undefined &&
-        bagIdForNaming !== undefined &&
-        ((brewData.bag_id !== undefined && brewData.bag_id !== existingBrew.bag_id) || !existingBrew.name);
-
-      if (brewData.name !== undefined) {
-        updatedName = brewData.name;
-      } else if (shouldRegenerateName) {
-        try {
-          updatedName = await namingService.generateBrewName(
-            existingBrew.barista_id,
-            bagIdForNaming,
-            new Date(existingBrew.created_at)
-          );
-        } catch (error) {
-          request.log.warn({ error }, 'Failed to regenerate brew name during update');
-          updatedName = existingBrew.name;
-        }
-      }
-
-      const brewUpdatePayload = {
-        ...brewData,
-        ...(updatedName !== undefined ? { name: updatedName } : {})
-      };
-
       // Update brew with calculated fields
-      const brew = await brewRepository.update(id, brewUpdatePayload, ownerId);
+      const brew = await brewRepository.update(id, brewData, ownerId);
       
       return { data: brew };
     } catch (error) {
@@ -368,14 +235,7 @@ export async function brewRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const authRequest = request as AuthenticatedRequest;
-      const { brews, _timezone } = request.body as {
-        brews: any[];
-        _timezone?: {
-          browserTimezone: string;
-          userTimezone?: string;
-          confidence: string;
-        };
-      };
+      const { brews } = request.body as { brews: any[] };
       
       const validatedData = validateSchema(batchSyncSchema, { brews });
 
@@ -387,30 +247,7 @@ export async function brewRoutes(fastify: FastifyInstance) {
       // Process each brew in the batch
       for (let i = 0; i < validatedData.brews.length; i++) {
         try {
-          // Generate automatic name for each brew before creation with timezone information
-          let generatedName: string | undefined = undefined;
-          try {
-            generatedName = await namingService.generateBrewName(
-              authRequest.barista!.id,
-              validatedData.brews[i].bag_id,
-              new Date(),
-              _timezone ? {
-                browserTimezone: _timezone.browserTimezone,
-                userTimezone: _timezone.userTimezone
-              } : undefined
-            );
-          } catch (error) {
-            // Log naming failure but continue with creation
-            request.log.warn({ error }, `Failed to generate name for batch brew ${i}`);
-            generatedName = undefined;
-          }
-
-          const brewDataWithName = {
-            ...validatedData.brews[i],
-            name: generatedName
-          };
-
-          const brew = await brewRepository.create(brewDataWithName, authRequest.barista!.id);
+          const brew = await brewRepository.create(validatedData.brews[i], authRequest.barista!.id);
           results.success.push(brew);
         } catch (error) {
           results.errors.push({

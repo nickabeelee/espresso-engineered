@@ -1,5 +1,4 @@
 import { getAuthToken } from './supabase';
-import { getTimezoneForAPI } from './utils/timezone';
 import type { 
   ApiResponse, 
   ListResponse, 
@@ -138,30 +137,9 @@ class ApiClient {
   }
 
   async createBrew(brew: CreateBrewRequest): Promise<ApiResponse<Brew>> {
-    // Include timezone information for accurate time formatting
-    const timezoneInfo = getTimezoneForAPI();
-    
-    const brewWithTimezone = {
-      ...brew,
-      _timezone: timezoneInfo
-    };
-    
     return this.makeRequest<ApiResponse<Brew>>('/brews', {
       method: 'POST',
-      body: JSON.stringify(brewWithTimezone),
-    });
-  }
-
-  async previewBrewName(bag_id: string): Promise<ApiResponse<{ name: string }>> {
-    // Include timezone information for accurate time formatting in preview
-    const timezoneInfo = getTimezoneForAPI();
-    
-    return this.makeRequest<ApiResponse<{ name: string }>>('/brews/preview-name', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        bag_id,
-        _timezone: timezoneInfo
-      }),
+      body: JSON.stringify(brew),
     });
   }
 
@@ -297,12 +275,6 @@ class ApiClient {
     });
   }
 
-  async previewBagName(bean_id: string, roast_date?: string): Promise<ApiResponse<{ name: string }>> {
-    return this.makeRequest<ApiResponse<{ name: string }>>('/bags/preview-name', {
-      method: 'POST',
-      body: JSON.stringify({ bean_id, roast_date }),
-    });
-  }
 
   async getGrinders(): Promise<ListResponse<Grinder>> {
     return this.makeRequest<ListResponse<Grinder>>('/grinders');
@@ -378,7 +350,6 @@ export const {
   getBrews,
   getBrew,
   createBrew,
-  previewBrewName,
   updateBrew,
   deleteBrew,
   completeBrew,
@@ -396,7 +367,6 @@ export const {
   getBag,
   createBag,
   updateBag,
-  previewBagName,
   getGrinders,
   createGrinder,
   updateGrinder,
