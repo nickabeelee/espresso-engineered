@@ -2,10 +2,9 @@
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
-  import { barista } from '$lib/auth';
   import { debounceAsync } from '$lib/utils/debounce';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { CheckCircle, XMark } from '$lib/icons';
+  import { CheckCircle, DocumentDuplicate, XMark } from '$lib/icons';
 
   import BeanSelector from './BeanSelector.svelte';
   import BagSelector from './BagSelector.svelte';
@@ -13,8 +12,6 @@
   import MachineSelector from './MachineSelector.svelte';
 
   export let brew: Brew | null = null;
-  export let prefillFromLast = false;
-
   let name = '';
   let isNameAuto = true;
   let nameTouched = false;
@@ -36,6 +33,10 @@
   let rating: number | undefined = undefined;
   let tasting_notes = '';
   let reflections = '';
+  let prefillData: PrefillData | null = null;
+  let prefillAvailable = false;
+  let prefillLoading = false;
+  let prefillApplied = false;
 
   // Name preview state
   let previewName = '';
@@ -54,9 +55,8 @@
     if (brew) {
       // Editing existing brew
       loadBrewData(brew);
-    } else if (prefillFromLast) {
-      // Pre-fill from last brew
-      await loadPrefillData();
+    } else {
+      await checkPrefillAvailability();
     }
   });
 
@@ -85,24 +85,50 @@
     reflections = brewData.reflections ?? '';
   }
 
-  async function loadPrefillData() {
+  async function checkPrefillAvailability() {
     try {
-      loading = true;
+      prefillLoading = true;
       const response = await apiClient.getPrefillData();
       
       if (response.data) {
-        const prefill = response.data;
-        machine_id = prefill.machine_id;
-        grinder_id = prefill.grinder_id;
-        bag_id = prefill.bag_id;
-        grind_setting = prefill.grind_setting || '';
-        dose_g = prefill.dose_g;
+        prefillData = response.data;
+        prefillAvailable = true;
       }
     } catch (err) {
-      console.error('Failed to load prefill data:', err);
-      // Don't show error to user, just continue with empty form
+      prefillAvailable = false;
     } finally {
-      loading = false;
+      prefillLoading = false;
+    }
+  }
+
+  function applyPrefillData(prefill: PrefillData) {
+    machine_id = prefill.machine_id;
+    grinder_id = prefill.grinder_id;
+    bag_id = prefill.bag_id;
+    grind_setting = prefill.grind_setting || '';
+    dose_g = prefill.dose_g;
+    // Keep name auto-generated when duplicating from last brew.
+    isNameAuto = true;
+    nameTouched = false;
+    name = '';
+    lastGeneratedName = '';
+    prefillApplied = true;
+  }
+
+  async function handleDuplicateFromLast() {
+    try {
+      prefillLoading = true;
+      if (!prefillData) {
+        const response = await apiClient.getPrefillData();
+        prefillData = response.data ?? null;
+      }
+      if (prefillData) {
+        applyPrefillData(prefillData);
+      }
+    } catch (err) {
+      console.error('Failed to duplicate from last brew:', err);
+    } finally {
+      prefillLoading = false;
     }
   }
 
@@ -250,6 +276,24 @@
   {/if}
 
   <form on:submit|preventDefault={handleSave}>
+    {#if !brew && prefillAvailable}
+      <div class="prefill-banner">
+        <p class="voice-text">
+          {prefillApplied ? 'Last brew details are in place.' : 'Carry the last brew forward.'}
+        </p>
+        <IconButton
+          type="button"
+          on:click={handleDuplicateFromLast}
+          ariaLabel="Duplicate last brew"
+          title="Duplicate last brew"
+          variant="accent"
+          disabled={prefillLoading}
+        >
+          <DocumentDuplicate />
+        </IconButton>
+      </div>
+    {/if}
+
     <div class="form-section card">
       <div class="form-group name-group">
         <div class="label-row">
@@ -546,6 +590,25 @@
   .form-group small {
     color: var(--text-ink-muted);
     font-size: 0.85rem;
+  }
+
+  .voice-text {
+    font-family: "Libre Baskerville", serif;
+    color: var(--text-ink-muted);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  .prefill-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-paper-secondary);
   }
 
   .label-row {

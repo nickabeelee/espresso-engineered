@@ -11,16 +11,11 @@
   import { barista } from '$lib/auth';
 
   
-  let prefillFromLast = false;
   let loading = false;
   let error = null;
   let isOnline = true;
 
   onMount(() => {
-    // Check if user wants to prefill from last brew
-    const params = new URLSearchParams(window.location.search);
-    prefillFromLast = params.get('prefill') === 'true';
-
     // Set up connectivity monitoring
     isOnline = ConnectivityManager.isOnline();
     const cleanup = ConnectivityManager.addListener((online) => {
@@ -111,17 +106,13 @@
       </IconButton>
     </div>
 
-    {#if prefillFromLast}
-      <div class="notice">Starting from your last brew.</div>
-    {/if}
-
     {#if !isOnline}
       <div class="notice warning">
         <strong>Offline Mode:</strong> Your brew will be saved locally and synced when you're back online.
       </div>
     {/if}
 
-    <BrewForm {prefillFromLast} on:save={handleSave} on:cancel={handleCancel} />
+    <BrewForm on:save={handleSave} on:cancel={handleCancel} />
 
     {#if error}
       <div class="notice error">{error}</div>
