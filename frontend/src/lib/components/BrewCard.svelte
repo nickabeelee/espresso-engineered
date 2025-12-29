@@ -125,13 +125,6 @@
       </div>
     {/if}
 
-    {#if brew.yield_g}
-      <div class="detail-row">
-        <span class="label">Yield:</span>
-        <span class="value">{brew.yield_g.toFixed(1)}g</span>
-      </div>
-    {/if}
-
     {#if brew.ratio}
       <div class="detail-row">
         <span class="label">Ratio:</span>

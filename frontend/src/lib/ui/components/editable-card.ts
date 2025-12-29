@@ -90,12 +90,12 @@ const editableCard = {
   detail: {
     label: {
       fontFamily: fontFamilies.ui,
-      fontSize: "0.8rem",
+      fontSize: "0.9rem",
       fontWeight: 500,
       textColor: colorCss.text.ink.secondary,
     },
     value: {
-      fontFamily: fontFamilies.content,
+      fontFamily: fontFamilies.ui,
       fontSize: "0.9rem",
       textColor: colorCss.text.ink.primary,
     },

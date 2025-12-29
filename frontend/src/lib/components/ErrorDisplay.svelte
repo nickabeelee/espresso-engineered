@@ -3,6 +3,8 @@
   import { ArrowPath, XMark, ExclamationTriangle, InformationCircle } from '$lib/icons';
   import IconButton from './IconButton.svelte';
   import { AppError, ErrorType, categorizeError, isRetryableError } from '$lib/utils/error-handling';
+  import { alertBase, alertSizes, alertVariants } from '$lib/ui/components/alert';
+  import { toStyleString } from '$lib/ui/style';
   
   export let error: Error | AppError | string | null = null;
   export let variant: 'inline' | 'banner' | 'modal' | 'toast' = 'inline';
@@ -18,6 +20,27 @@
     retry: void;
     dismiss: void;
   }>();
+
+  const style = toStyleString({
+    '--alert-radius': alertBase.borderRadius,
+    '--alert-border-width': alertBase.borderWidth,
+    '--alert-font-family': alertBase.fontFamily,
+    '--alert-error-bg': alertVariants.error.background,
+    '--alert-error-border': alertVariants.error.borderColor,
+    '--alert-error-color': alertVariants.error.textColor,
+    '--alert-warning-bg': alertVariants.warning.background,
+    '--alert-warning-border': alertVariants.warning.borderColor,
+    '--alert-warning-color': alertVariants.warning.textColor,
+    '--alert-neutral-bg': alertVariants.neutral.background,
+    '--alert-neutral-border': alertVariants.neutral.borderColor,
+    '--alert-neutral-color': alertVariants.neutral.textColor,
+    '--alert-pad-sm': alertSizes.sm.padding,
+    '--alert-pad-md': alertSizes.md.padding,
+    '--alert-pad-lg': alertSizes.lg.padding,
+    '--alert-font-sm': alertSizes.sm.fontSize,
+    '--alert-font-md': alertSizes.md.fontSize,
+    '--alert-font-lg': alertSizes.lg.fontSize
+  });
   
   $: errorObj = typeof error === 'string' 
     ? new Error(error) 
@@ -88,11 +111,12 @@
 </script>
 
 {#if errorObj}
-  <div 
+    <div 
     class="error-display {variant} {size}"
     class:retryable={canRetry}
     role="alert"
     aria-live="polite"
+    style={style}
   >
     <div class="error-content">
       <div class="error-icon">
@@ -144,47 +168,48 @@
 
 <style>
   .error-display {
-    border-radius: var(--radius-md);
-    border: 1px solid;
-    background: var(--semantic-error-bg);
-    border-color: var(--semantic-error);
-    color: var(--semantic-error);
+    border-radius: var(--alert-radius, var(--radius-md));
+    border: var(--alert-border-width, 1px) solid;
+    background: var(--alert-error-bg, rgba(122, 62, 47, 0.12));
+    border-color: var(--alert-error-border, var(--semantic-error));
+    color: var(--alert-error-color, var(--semantic-error));
+    font-family: var(--alert-font-family, inherit);
   }
   
   .error-display.inline {
-    padding: 0.75rem;
+    padding: var(--alert-pad-md, 0.75rem);
     margin: 0.5rem 0;
   }
   
   .error-display.banner {
-    padding: 1rem 1.5rem;
+    padding: var(--alert-pad-lg, 1rem 1.5rem);
     margin: 1rem 0;
     border-radius: var(--radius-lg);
   }
   
   .error-display.modal {
-    padding: 1.5rem;
+    padding: var(--alert-pad-lg, 1.5rem);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-soft);
   }
   
   .error-display.toast {
-    padding: 0.75rem 1rem;
+    padding: var(--alert-pad-md, 0.75rem 1rem);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-soft);
     max-width: 400px;
   }
   
   .error-display.sm {
-    font-size: 0.85rem;
+    font-size: var(--alert-font-sm, 0.85rem);
   }
   
   .error-display.md {
-    font-size: 0.9rem;
+    font-size: var(--alert-font-md, 0.9rem);
   }
   
   .error-display.lg {
-    font-size: 1rem;
+    font-size: var(--alert-font-lg, 1rem);
   }
   
   .error-content {

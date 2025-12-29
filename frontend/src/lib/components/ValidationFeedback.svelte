@@ -1,6 +1,8 @@
 <script lang="ts">
   import { ExclamationTriangle, CheckCircle, InformationCircle } from '$lib/icons';
   import type { ValidationError } from '$lib/utils/error-handling';
+  import { validationFeedback } from '$lib/ui/components/alert';
+  import { toStyleString } from '$lib/ui/style';
   
   export let errors: ValidationError[] = [];
   export let field: string | null = null;
@@ -15,6 +17,21 @@
   
   $: hasErrors = fieldErrors.length > 0;
   $: isValid = !hasErrors && showSuccess;
+
+  const style = toStyleString({
+    '--validation-tooltip-bg': validationFeedback.tooltip.background,
+    '--validation-tooltip-border': validationFeedback.tooltip.borderColor,
+    '--validation-tooltip-shadow': validationFeedback.tooltip.shadow,
+    '--validation-tooltip-padding': validationFeedback.tooltip.padding,
+    '--validation-tooltip-radius': validationFeedback.tooltip.radius,
+    '--validation-list-bg': validationFeedback.list.background,
+    '--validation-list-border': validationFeedback.list.borderColor,
+    '--validation-list-padding': validationFeedback.list.padding,
+    '--validation-list-radius': validationFeedback.list.radius,
+    '--validation-text-error': validationFeedback.text.error,
+    '--validation-text-success': validationFeedback.text.success,
+    '--validation-text-muted': validationFeedback.text.muted
+  });
 </script>
 
 {#if hasErrors || isValid}
@@ -24,6 +41,7 @@
     class:is-valid={isValid}
     role="alert"
     aria-live="polite"
+    style={style}
   >
     {#if variant === 'list' && fieldErrors.length > 1}
       <ul class="error-list">
@@ -73,19 +91,19 @@
   .validation-feedback.tooltip {
     position: absolute;
     z-index: 10;
-    background: var(--bg-surface-paper);
+    background: var(--validation-tooltip-bg, var(--bg-surface-paper));
     border: 1px solid;
-    border-radius: var(--radius-sm);
-    padding: 0.5rem;
-    box-shadow: var(--shadow-soft);
+    border-radius: var(--validation-tooltip-radius, var(--radius-sm));
+    padding: var(--validation-tooltip-padding, 0.5rem);
+    box-shadow: var(--validation-tooltip-shadow, var(--shadow-soft));
     max-width: 250px;
   }
   
   .validation-feedback.list {
-    background: rgba(239, 68, 68, 0.05);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: var(--radius-sm);
-    padding: 0.75rem;
+    background: var(--validation-list-bg, rgba(122, 62, 47, 0.05));
+    border: 1px solid var(--validation-list-border, rgba(122, 62, 47, 0.2));
+    border-radius: var(--validation-list-radius, var(--radius-sm));
+    padding: var(--validation-list-padding, 0.75rem);
   }
   
   .validation-feedback.sm {
@@ -103,11 +121,11 @@
   }
   
   .feedback-item.error {
-    color: var(--semantic-error);
+    color: var(--validation-text-error, var(--semantic-error));
   }
   
   .feedback-item.success {
-    color: var(--semantic-success, #059669);
+    color: var(--validation-text-success, var(--semantic-success));
   }
   
   .feedback-icon {
@@ -138,7 +156,7 @@
     display: flex;
     align-items: flex-start;
     gap: 0.4rem;
-    color: var(--semantic-error);
+    color: var(--validation-text-error, var(--semantic-error));
   }
   
   .error-icon {
@@ -153,12 +171,12 @@
   
   /* Tooltip positioning */
   .validation-feedback.tooltip.has-errors {
-    border-color: var(--semantic-error);
-    background: rgba(239, 68, 68, 0.05);
+    border-color: var(--validation-tooltip-border, var(--semantic-error));
+    background: var(--validation-list-bg, rgba(122, 62, 47, 0.05));
   }
   
   .validation-feedback.tooltip.is-valid {
-    border-color: var(--semantic-success, #059669);
+    border-color: var(--validation-text-success, var(--semantic-success));
     background: rgba(5, 150, 105, 0.05);
   }
   

@@ -604,14 +604,13 @@
                       aria-label="View brew details"
                     >
                       <span class="activity-text">
-                        {activity.barista_display_name} {activity.brew_name || `brew from ${formatDate(activity.created_at)}`}
+                        {activity.brew_name || `brew from ${formatDate(activity.created_at)}`}
                       </span>
                       <span class="activity-date">{formatDate(activity.created_at)}</span>
                     </button>
                   {:else}
                     <div class="activity-content">
                       <span class="activity-text">
-                        {activity.barista_display_name} 
                         {#if activity.activity_type === 'rating'}
                           rated this bean
                         {:else if activity.activity_type === 'bag_created'}

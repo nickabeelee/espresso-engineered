@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { syncService } from '$lib/sync-service';
   import { ConnectivityManager } from '$lib/offline-storage';
+  import { syncStatus } from '$lib/ui/components/status';
+  import { toStyleString } from '$lib/ui/style';
 
 
   let isOnline = true;
@@ -13,6 +15,20 @@
 
   let connectivityCleanup: (() => void) | null = null;
   let syncCleanup: (() => void) | null = null;
+
+  const style = toStyleString({
+    '--sync-indicator-bg': syncStatus.indicator.background,
+    '--sync-indicator-border': syncStatus.indicator.borderColor,
+    '--sync-indicator-radius': syncStatus.indicator.radius,
+    '--sync-indicator-padding': syncStatus.indicator.padding,
+    '--sync-detail-bg': syncStatus.detailCard.background,
+    '--sync-detail-border': syncStatus.detailCard.borderColor,
+    '--sync-detail-radius': syncStatus.detailCard.radius,
+    '--sync-detail-padding': syncStatus.detailCard.padding,
+    '--sync-detail-shadow': syncStatus.detailCard.shadow,
+    '--sync-label-color': syncStatus.label.color,
+    '--sync-value-color': syncStatus.value.color
+  });
 
   onMount(() => {
     // Initialize state
@@ -119,7 +135,7 @@
   }
 </script>
 
-<div class="sync-status" class:expanded={showDetails}>
+<div class="sync-status" class:expanded={showDetails} style={style}>
   <button 
     class="sync-indicator" 
     on:click={() => showDetails = !showDetails}
@@ -179,10 +195,10 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
+    padding: var(--sync-indicator-padding, 0.5rem 0.75rem);
+    background: var(--sync-indicator-bg, var(--bg-surface-paper-secondary));
+    border: 1px solid var(--sync-indicator-border, var(--border-subtle));
+    border-radius: var(--sync-indicator-radius, var(--radius-lg));
     cursor: pointer;
     font-size: 0.875rem;
     transition: all 0.2s ease;
@@ -221,11 +237,11 @@
     top: 100%;
     right: 0;
     margin-top: 0.5rem;
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    box-shadow: 0 4px 12px rgba(43, 33, 24, 0.2);
-    padding: 1rem;
+    background: var(--sync-detail-bg, var(--bg-surface-paper-secondary));
+    border: 1px solid var(--sync-detail-border, var(--border-subtle));
+    border-radius: var(--sync-detail-radius, var(--radius-md));
+    box-shadow: var(--sync-detail-shadow, 0 4px 12px rgba(43, 33, 24, 0.2));
+    padding: var(--sync-detail-padding, 1rem);
     min-width: 200px;
     z-index: 1000;
   }
@@ -243,13 +259,13 @@
 
   .label {
     font-size: 0.8rem;
-    color: var(--text-ink-muted);
+    color: var(--sync-label-color, var(--text-ink-muted));
     font-weight: 500;
   }
 
   .value {
     font-size: 0.8rem;
-    color: var(--text-ink-primary);
+    color: var(--sync-value-color, var(--text-ink-primary));
     font-weight: 600;
   }
 

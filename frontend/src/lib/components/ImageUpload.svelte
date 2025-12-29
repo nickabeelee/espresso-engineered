@@ -3,6 +3,8 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import { Trash } from '$lib/icons';
   import { getAuthToken } from '$lib/supabase';
+  import { upload } from '$lib/ui/components/upload';
+  import { toStyleString } from '$lib/ui/style';
   
   export let currentImageUrl: string = '';
   export let entityType: 'grinder' | 'machine';
@@ -19,6 +21,23 @@
   let fileInput: HTMLInputElement;
   let uploading = false;
   let dragOver = false;
+
+  const style = toStyleString({
+    '--upload-surface': upload.surface.background,
+    '--upload-border': upload.surface.borderColor,
+    '--upload-radius': upload.surface.radius,
+    '--upload-text': upload.prompt.textColor,
+    '--upload-text-muted': upload.prompt.mutedColor,
+    '--upload-area-padding': upload.area.padding,
+    '--upload-area-min-height': upload.area.minHeight,
+    '--upload-area-hover-bg': upload.area.hoverBackground,
+    '--upload-area-hover-border': upload.area.hoverBorder,
+    '--upload-spinner-border': upload.spinner.borderColor,
+    '--upload-spinner-accent': upload.spinner.accentColor,
+    '--upload-spinner-size': upload.spinner.size,
+    '--upload-image-max-width': upload.image.maxWidth,
+    '--upload-image-max-height': upload.image.maxHeight
+  });
   
   // Supported file types
   const SUPPORTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -151,7 +170,7 @@
   }
 </script>
 
-<div class="image-upload">
+<div class="image-upload" style={style}>
   <input
     bind:this={fileInput}
     type="file"
@@ -220,12 +239,12 @@
 <style>
   .image-upload {
     width: 100%;
-    --color-surface: var(--bg-surface-paper-secondary);
-    --color-border: var(--border-subtle);
-    --color-primary: var(--accent-primary);
-    --color-primary-light: rgba(176, 138, 90, 0.12);
-    --color-text: var(--text-ink-primary);
-    --color-text-secondary: var(--text-ink-muted);
+    --color-surface: var(--upload-surface, var(--bg-surface-paper-secondary));
+    --color-border: var(--upload-border, var(--border-subtle));
+    --color-primary: var(--upload-area-hover-border, var(--accent-primary));
+    --color-primary-light: var(--upload-area-hover-bg, rgba(176, 138, 90, 0.12));
+    --color-text: var(--upload-text, var(--text-ink-primary));
+    --color-text-secondary: var(--upload-text-muted, var(--text-ink-muted));
     --color-error: var(--semantic-error);
     --color-error-dark: rgba(122, 62, 47, 0.35);
   }
@@ -241,8 +260,8 @@
   
   .current-image img {
     display: block;
-    max-width: 200px;
-    max-height: 150px;
+    max-width: var(--upload-image-max-width, 200px);
+    max-height: var(--upload-image-max-height, 150px);
     width: auto;
     height: auto;
     object-fit: cover;
@@ -268,13 +287,13 @@
   
   .upload-area {
     border: 2px dashed var(--color-border);
-    border-radius: var(--radius-md);
-    padding: 2rem;
+    border-radius: var(--upload-radius, var(--radius-md));
+    padding: var(--upload-area-padding, 2rem);
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
     background: var(--color-surface);
-    min-height: 120px;
+    min-height: var(--upload-area-min-height, 120px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -325,10 +344,10 @@
   }
   
   .spinner {
-    width: 24px;
-    height: 24px;
-    border: 2px solid var(--color-border);
-    border-top: 2px solid var(--color-primary);
+    width: var(--upload-spinner-size, 24px);
+    height: var(--upload-spinner-size, 24px);
+    border: 2px solid var(--upload-spinner-border, var(--color-border));
+    border-top: 2px solid var(--upload-spinner-accent, var(--color-primary));
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }

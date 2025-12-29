@@ -3,6 +3,8 @@
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
   import { ChevronDown, MagnifyingGlass, Plus, Link } from '$lib/icons';
+  import { selector } from '$lib/ui/components/selector';
+  import { toStyleString } from '$lib/ui/style';
 
   import InlineRoasterCreator from './InlineRoasterCreator.svelte';
 
@@ -22,6 +24,37 @@
   let searchTerm = '';
   let searchInput: HTMLInputElement | null = null;
   let comboboxRoot: HTMLDivElement | null = null;
+
+  const style = toStyleString({
+    '--selector-trigger-padding': selector.trigger.padding,
+    '--selector-trigger-border': selector.trigger.borderColor,
+    '--selector-trigger-bg': selector.trigger.background,
+    '--selector-trigger-color': selector.trigger.textColor,
+    '--selector-trigger-radius': selector.trigger.radius,
+    '--selector-trigger-font-size': selector.trigger.fontSize,
+    '--selector-trigger-focus': selector.trigger.focusRing,
+    '--selector-trigger-focus-offset': selector.trigger.focusOffset,
+    '--selector-trigger-disabled-bg': selector.trigger.disabledBackground,
+    '--selector-panel-bg': selector.panel.background,
+    '--selector-panel-border': selector.panel.borderColor,
+    '--selector-panel-radius': selector.panel.radius,
+    '--selector-panel-shadow': selector.panel.shadow,
+    '--selector-panel-padding': selector.panel.padding,
+    '--selector-option-padding': selector.option.padding,
+    '--selector-option-radius': selector.option.radius,
+    '--selector-option-color': selector.option.textColor,
+    '--selector-option-hover-bg': selector.option.hoverBackground,
+    '--selector-option-hover-border': selector.option.hoverBorder,
+    '--selector-meta-color': selector.meta.textColor,
+    '--selector-meta-size': selector.meta.fontSize,
+    '--selector-empty-color': selector.empty.textColor,
+    '--selector-detail-bg': selector.detailCard.background,
+    '--selector-detail-border': selector.detailCard.borderColor,
+    '--selector-detail-radius': selector.detailCard.radius,
+    '--selector-detail-padding': selector.detailCard.padding,
+    '--selector-detail-title-size': selector.detailTitle.fontSize,
+    '--selector-detail-title-color': selector.detailTitle.textColor
+  });
 
   onMount(() => {
     loadRoasters();
@@ -121,7 +154,7 @@
   });
 </script>
 
-<div class="roaster-selector">
+<div class="roaster-selector" style={style}>
   {#if loading}
     <div class="loading">Loading roasters...</div>
   {:else if error}
@@ -290,22 +323,22 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.6rem 0.75rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 1rem;
-    background: var(--bg-surface-paper);
-    color: var(--text-ink-primary);
+    padding: var(--selector-trigger-padding, 0.6rem 0.75rem);
+    border: 1px solid var(--selector-trigger-border, var(--border-subtle));
+    border-radius: var(--selector-trigger-radius, var(--radius-sm));
+    font-size: var(--selector-trigger-font-size, 1rem);
+    background: var(--selector-trigger-bg, var(--bg-surface-paper));
+    color: var(--selector-trigger-color, var(--text-ink-primary));
     cursor: pointer;
   }
 
   .roaster-combobox-trigger:focus-visible {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
+    outline: var(--selector-trigger-focus, 2px solid var(--accent-primary));
+    outline-offset: var(--selector-trigger-focus-offset, 2px);
   }
 
   .roaster-combobox-trigger:disabled {
-    background: var(--bg-surface-paper-secondary);
+    background: var(--selector-trigger-disabled-bg, var(--bg-surface-paper-secondary));
     cursor: not-allowed;
   }
 
@@ -320,11 +353,11 @@
     top: calc(100% + 0.4rem);
     left: 0;
     right: 0;
-    background: var(--bg-surface-paper);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-soft);
-    padding: 0.75rem;
+    background: var(--selector-panel-bg, var(--bg-surface-paper));
+    border: 1px solid var(--selector-panel-border, var(--border-subtle));
+    border-radius: var(--selector-panel-radius, var(--radius-md));
+    box-shadow: var(--selector-panel-shadow, var(--shadow-soft));
+    padding: var(--selector-panel-padding, 0.75rem);
     z-index: 5;
   }
 
@@ -370,10 +403,10 @@
     width: 100%;
     text-align: left;
     border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    padding: 0.5rem 0.6rem;
+    border-radius: var(--selector-option-radius, var(--radius-sm));
+    padding: var(--selector-option-padding, 0.5rem 0.6rem);
     background: transparent;
-    color: var(--text-ink-primary);
+    color: var(--selector-option-color, var(--text-ink-primary));
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -381,8 +414,8 @@
   }
 
   .roaster-option:hover {
-    background: rgba(214, 199, 174, 0.24);
-    border-color: rgba(123, 94, 58, 0.25);
+    background: var(--selector-option-hover-bg, rgba(214, 199, 174, 0.24));
+    border-color: var(--selector-option-hover-border, rgba(123, 94, 58, 0.25));
   }
 
   .option-title {
@@ -390,8 +423,8 @@
   }
 
   .option-meta {
-    font-size: 0.85rem;
-    color: var(--text-ink-muted);
+    font-size: var(--selector-meta-size, 0.85rem);
+    color: var(--selector-meta-color, var(--text-ink-muted));
     display: flex;
     align-items: center;
     gap: 0.25rem;
@@ -399,7 +432,7 @@
 
   .combobox-empty {
     text-align: center;
-    color: var(--text-ink-muted);
+    color: var(--selector-empty-color, var(--text-ink-muted));
     padding: 0.5rem 0 0.25rem;
     display: flex;
     flex-direction: column;
@@ -408,16 +441,16 @@
 
   .selected-roaster-details {
     margin-top: 0.75rem;
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
+    background: var(--selector-detail-bg, var(--bg-surface-paper-secondary));
+    border: 1px solid var(--selector-detail-border, var(--border-subtle));
+    border-radius: var(--selector-detail-radius, var(--radius-md));
     padding: 1rem;
   }
 
   .roaster-info h4 {
     margin: 0 0 0.5rem 0;
-    color: var(--text-ink-primary);
-    font-size: 1.1rem;
+    color: var(--selector-detail-title-color, var(--text-ink-primary));
+    font-size: var(--selector-detail-title-size, 1.1rem);
   }
 
   .roaster-links {

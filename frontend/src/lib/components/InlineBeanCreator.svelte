@@ -4,6 +4,8 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
+  import { inlineCreator } from '$lib/ui/components/inline-creator';
+  import { toStyleString } from '$lib/ui/style';
   import { XMark, CheckCircle } from '$lib/icons';
   import type { Bean, Roaster, RoastLevel as RoastLevelType, CreateBeanRequest } from '@shared/types';
 
@@ -23,6 +25,38 @@
   let loading = false;
   let error: string | null = null;
   let validationErrors: Record<string, string> = {};
+
+  const style = toStyleString({
+    '--inline-bg': inlineCreator.container.background,
+    '--inline-border': inlineCreator.container.borderColor,
+    '--inline-border-width': inlineCreator.container.borderWidth,
+    '--inline-radius': inlineCreator.container.radius,
+    '--inline-padding': inlineCreator.container.padding,
+    '--inline-margin': inlineCreator.container.margin,
+    '--inline-title-color': inlineCreator.header.titleColor,
+    '--inline-title-size': inlineCreator.header.titleSize,
+    '--inline-title-margin': inlineCreator.header.marginBottom,
+    '--inline-close-color': inlineCreator.closeButton.color,
+    '--inline-close-hover': inlineCreator.closeButton.hoverColor,
+    '--inline-error-bg': inlineCreator.errorBanner.background,
+    '--inline-error-border': inlineCreator.errorBanner.borderColor,
+    '--inline-error-color': inlineCreator.errorBanner.textColor,
+    '--inline-error-radius': inlineCreator.errorBanner.radius,
+    '--inline-error-padding': inlineCreator.errorBanner.padding,
+    '--inline-error-size': inlineCreator.errorBanner.fontSize,
+    '--inline-form-gap': inlineCreator.form.gap,
+    '--inline-row-gap': inlineCreator.form.rowGap,
+    '--inline-label-color': inlineCreator.label.color,
+    '--inline-label-size': inlineCreator.label.fontSize,
+    '--inline-label-weight': inlineCreator.label.fontWeight,
+    '--inline-input-padding': inlineCreator.input.padding,
+    '--inline-input-border': inlineCreator.input.borderColor,
+    '--inline-input-radius': inlineCreator.input.radius,
+    '--inline-input-size': inlineCreator.input.fontSize,
+    '--inline-input-focus': inlineCreator.input.focusRing,
+    '--inline-input-disabled-bg': inlineCreator.input.disabledBackground,
+    '--inline-actions-gap': inlineCreator.actions.gap
+  });
 
   function validateForm(): boolean {
     validationErrors = {};
@@ -83,7 +117,7 @@
   }
 </script>
 
-<div class="inline-bean-creator">
+<div class="inline-bean-creator" style={style}>
   <div class="creator-header">
     <h4>Create New Bean</h4>
     <div class="edit-actions">
@@ -186,25 +220,25 @@
 
 <style>
   .inline-bean-creator {
-    background: var(--bg-surface-paper-secondary);
-    border: 2px solid var(--accent-primary);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
-    margin: 0.5rem 0;
+    background: var(--inline-bg, var(--bg-surface-paper-secondary));
+    border: var(--inline-border-width, 2px) solid var(--inline-border, var(--accent-primary));
+    border-radius: var(--inline-radius, var(--radius-md));
+    padding: var(--inline-padding, 1.5rem);
+    margin: var(--inline-margin, 0.5rem 0);
   }
 
   .creator-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: var(--inline-title-margin, 1rem);
   }
 
   .creator-header h4 {
     margin: 0;
-    color: var(--accent-primary);
+    color: var(--inline-title-color, var(--accent-primary));
     font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 1.1rem;
+    font-size: var(--inline-title-size, 1.1rem);
     font-weight: 600;
   }
 
@@ -214,13 +248,13 @@
   }
 
   .error-banner {
-    background: rgba(122, 62, 47, 0.12);
-    border: 1px solid rgba(122, 62, 47, 0.25);
-    color: var(--semantic-error);
-    padding: 0.75rem;
-    border-radius: var(--radius-md);
+    background: var(--inline-error-bg, rgba(122, 62, 47, 0.12));
+    border: 1px solid var(--inline-error-border, rgba(122, 62, 47, 0.25));
+    color: var(--inline-error-color, var(--semantic-error));
+    padding: var(--inline-error-padding, 0.75rem);
+    border-radius: var(--inline-error-radius, var(--radius-md));
     margin-bottom: 1rem;
-    font-size: 0.9rem;
+    font-size: var(--inline-error-size, 0.9rem);
     font-family: 'IBM Plex Sans', sans-serif;
   }
 
@@ -234,13 +268,13 @@
   .creator-form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--inline-form-gap, 1rem);
   }
 
   .form-row {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: 1rem;
+    gap: var(--inline-row-gap, 1rem);
   }
 
   .form-group {
@@ -252,9 +286,9 @@
 
   .form-group label {
     font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 600;
-    color: var(--text-ink-secondary);
-    font-size: 14px;
+    font-weight: var(--inline-label-weight, 600);
+    color: var(--inline-label-color, var(--text-ink-secondary));
+    font-size: var(--inline-label-size, 14px);
     display: block;
     margin-bottom: 0.25rem;
   }
@@ -263,10 +297,10 @@
   .form-group select,
   .form-group textarea {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 16px;
+    padding: var(--inline-input-padding, 0.5rem 0.75rem);
+    border: 1px solid var(--inline-input-border, var(--border-subtle));
+    border-radius: var(--inline-input-radius, var(--radius-sm));
+    font-size: var(--inline-input-size, 16px);
     font-family: 'IBM Plex Sans', sans-serif;
     color: var(--text-ink-primary);
     background: var(--bg-surface-paper);
@@ -285,7 +319,7 @@
 
   .roast-level-picker:focus-within {
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+    box-shadow: var(--inline-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.2));
   }
 
   .roast-level-picker[aria-disabled='true'] {
@@ -299,13 +333,13 @@
   .form-group textarea:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+    box-shadow: var(--inline-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.2));
   }
 
   .form-group input:disabled,
   .form-group select:disabled,
   .form-group textarea:disabled {
-    background: var(--bg-surface-paper-secondary);
+    background: var(--inline-input-disabled-bg, var(--bg-surface-paper-secondary));
     cursor: not-allowed;
     opacity: 0.6;
   }
@@ -323,8 +357,8 @@
   }
 
   .error-text {
-    color: var(--semantic-error);
-    font-size: 14px;
+    color: var(--inline-error-color, var(--semantic-error));
+    font-size: var(--inline-label-size, 14px);
     font-family: 'IBM Plex Sans', sans-serif;
     margin-top: 0.125rem;
     display: block;

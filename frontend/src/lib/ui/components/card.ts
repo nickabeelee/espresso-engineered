@@ -67,7 +67,7 @@ const recordCard = {
   },
   detailValue: {
     fontFamily: fontFamilies.ui,
-    fontWeight: 600,
+    fontWeight: 400,
     textColor: colorCss.text.ink.primary,
   },
   notes: {

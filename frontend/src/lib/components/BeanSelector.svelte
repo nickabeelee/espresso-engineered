@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import { selector } from '$lib/ui/components/selector';
+  import { toStyleString } from '$lib/ui/style';
 
   import InlineBeanCreator from './InlineBeanCreator.svelte';
 
@@ -16,6 +18,24 @@
   // Search and filter
   let searchTerm = '';
   let selectedRoaster = '';
+
+  const style = toStyleString({
+    '--selector-trigger-padding': selector.trigger.padding,
+    '--selector-trigger-border': selector.trigger.borderColor,
+    '--selector-trigger-bg': selector.trigger.background,
+    '--selector-trigger-color': selector.trigger.textColor,
+    '--selector-trigger-radius': selector.trigger.radius,
+    '--selector-trigger-font-size': selector.trigger.fontSize,
+    '--selector-detail-bg': selector.detailCard.background,
+    '--selector-detail-border': selector.detailCard.borderColor,
+    '--selector-detail-radius': selector.detailCard.radius,
+    '--selector-detail-padding': selector.detailCard.padding,
+    '--selector-detail-title-size': selector.detailTitle.fontSize,
+    '--selector-detail-title-color': selector.detailTitle.textColor,
+    '--selector-pill-radius': selector.pill.radius,
+    '--selector-pill-size': selector.pill.fontSize,
+    '--selector-pill-weight': selector.pill.fontWeight
+  });
 
   onMount(() => {
     loadData();
@@ -72,7 +92,7 @@
   });
 </script>
 
-<div class="bean-selector">
+<div class="bean-selector" style={style}>
   {#if loading}
     <div class="loading">Loading beans...</div>
   {:else if error}
@@ -323,11 +343,11 @@
 
   .bean-select {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 1rem;
-    background: var(--bg-surface-paper);
+    padding: var(--selector-trigger-padding, 0.75rem);
+    border: 1px solid var(--selector-trigger-border, var(--border-subtle));
+    border-radius: var(--selector-trigger-radius, var(--radius-sm));
+    font-size: var(--selector-trigger-font-size, 1rem);
+    background: var(--selector-trigger-bg, var(--bg-surface-paper));
     margin-bottom: 1rem;
   }
 
@@ -343,16 +363,16 @@
   }
 
   .selected-bean-details {
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 1rem;
+    background: var(--selector-detail-bg, var(--bg-surface-paper-secondary));
+    border: 1px solid var(--selector-detail-border, var(--border-subtle));
+    border-radius: var(--selector-detail-radius, var(--radius-md));
+    padding: var(--selector-detail-padding, 1rem);
   }
 
   .bean-info h4 {
     margin: 0 0 0.5rem 0;
-    color: var(--text-ink-primary);
-    font-size: 1.1rem;
+    color: var(--selector-detail-title-color, var(--text-ink-primary));
+    font-size: var(--selector-detail-title-size, 1.1rem);
   }
 
   .bean-meta {
@@ -364,9 +384,9 @@
 
   .bean-meta span {
     padding: 0.25rem 0.5rem;
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 500;
+    border-radius: var(--selector-pill-radius, 999px);
+    font-size: var(--selector-pill-size, 0.8rem);
+    font-weight: var(--selector-pill-weight, 500);
   }
 
   .roaster {
