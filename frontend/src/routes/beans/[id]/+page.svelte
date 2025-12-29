@@ -18,12 +18,13 @@
   import { barista } from '$lib/auth';
   import { getBeanPermissions, getBagPermissions } from '$lib/permissions';
   import { XMark, PencilSquare, Trash, CheckCircle, Plus } from '$lib/icons';
-  import type { BeanWithContext, Roaster, Bag, BagWithBarista, RoastLevel, CreateBeanRequest } from '@shared/types';
+  import type { BeanWithContext, Roaster, Bag, BagWithBarista, Barista as BaristaType, RoastLevel, CreateBeanRequest } from '@shared/types';
 
   let bean: BeanWithContext | null = null;
   let roaster: Roaster | null = null;
   let roasters: Roaster[] = [];
   let bags: BagWithBarista[] = [];
+  let baristasById: Record<string, BaristaType> = {};
   let error: AppError | null = null;
   let personalRating: number | null = null;
   let isDeleting = false;
@@ -50,10 +51,11 @@
     error = null;
     
     try {
-      const [beanResponse, roastersResponse, bagsResponse] = await Promise.all([
+      const [beanResponse, roastersResponse, bagsResponse, baristasResponse] = await Promise.all([
         enhancedApiClient.getBean(id),
         enhancedApiClient.getRoasters(),
-        enhancedApiClient.getBags({ bean_id: id }) // Filter bags by bean_id on the server
+        enhancedApiClient.getBags({ bean_id: id }), // Filter bags by bean_id on the server
+        apiClient.getBaristas()
       ]);
 
       if (beanResponse.data) {
@@ -69,6 +71,11 @@
         // Bags are already filtered by bean_id from the API
         bags = bagsResponse.data;
         
+        // Create baristas lookup
+        baristasById = baristasResponse.data.reduce<Record<string, BaristaType>>((acc, barista) => {
+          acc[barista.id] = barista;
+          return acc;
+        }, {});
       } else {
         throw new Error('Bean not found');
       }
@@ -118,6 +125,24 @@
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     return '★'.repeat(fullStars) + (hasHalfStar ? '½' : '');
+  }
+
+  function getBagOwnershipStatus(bag: BagWithBarista): 'owned' | 'other' {
+    return bag.owner_id === $barista?.id ? 'owned' : 'other';
+  }
+
+  function getBagOwnerName(bag: BagWithBarista): string {
+    // Use embedded barista information if available, otherwise fall back to lookup
+    if (bag.barista?.display_name) {
+      return bag.barista.display_name;
+    }
+    const owner = baristasById[bag.owner_id];
+    return owner ? owner.display_name : 'Unknown';
+  }
+
+  function formatInventoryStatus(status?: string): string {
+    if (!status) return 'Unknown';
+    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
   function handleEditBean() {
@@ -633,6 +658,7 @@
                 <EditableBagCard
                   {bag}
                   beanName={bean.name}
+                  {baristasById}
                   on:updated={handleBagUpdated}
                 />
               {/each}

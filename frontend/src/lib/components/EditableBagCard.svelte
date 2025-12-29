@@ -7,11 +7,12 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import { PencilSquare, CheckCircle, XMark, Plus } from '$lib/icons';
-  import type { BagWithBarista, InventoryStatus, UpdateBagRequest, CreateBagRequest } from '@shared/types';
+  import type { BagWithBarista, Barista as BaristaType, InventoryStatus, UpdateBagRequest, CreateBagRequest } from '@shared/types';
 
   // Props for existing bag mode
   export let bag: BagWithBarista | null = null;
   export let beanName: string;
+  export let baristasById: Record<string, BaristaType> = {};
   
   // Props for new bag mode
   export let beanId: string | null = null;
@@ -36,6 +37,20 @@
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString();
+  }
+
+  function getBagOwnershipStatus(): 'owned' | 'other' {
+    if (!bag) return 'owned'; // New bags are always owned by current user
+    return bag.owner_id === $barista?.id ? 'owned' : 'other';
+  }
+
+  function getBagOwnerName(): string {
+    if (!bag) return 'Your bag'; // New bags
+    if (bag.barista?.display_name) {
+      return bag.barista.display_name;
+    }
+    const owner = baristasById[bag.owner_id];
+    return owner ? owner.display_name : 'Unknown';
   }
 
   function formatInventoryStatus(status?: string): string {
@@ -193,6 +208,8 @@
     initializeFormData();
   }
 
+  $: ownershipStatus = getBagOwnershipStatus();
+  $: ownerName = getBagOwnerName();
 </script>
 
 <div class="bag-card" class:editing={isEditing} class:new-bag={isNewBag} on:keydown={handleKeydown}>
@@ -212,7 +229,11 @@
         <h4>{bag?.name || beanName}</h4>
       {/if}
       
-      {#if isNewBag && isEditing}
+      {#if !isNewBag}
+        <span class="bag-owner" class:own={ownershipStatus === 'owned'}>
+          {ownershipStatus === 'owned' ? 'Your bag' : `${ownerName}'s bag`}
+        </span>
+      {:else if isEditing}
         <span class="bag-info">Creating bag for: <strong>{beanName}</strong></span>
       {/if}
     </div>
@@ -441,6 +462,18 @@
   .bag-name-input:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  .bag-owner {
+    color: var(--text-ink-muted);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
+  }
+
+  .bag-owner.own {
+    color: var(--semantic-success);
+    font-weight: 600;
   }
 
   .bag-info {
