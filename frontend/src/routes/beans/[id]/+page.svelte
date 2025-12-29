@@ -8,6 +8,7 @@
   import BeanRating from '$lib/components/BeanRating.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import EditableBagCard from '$lib/components/EditableBagCard.svelte';
+  import BagSummaryCard from '$lib/components/BagSummaryCard.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
   import RoastLevelComponent from '$lib/components/RoastLevel.svelte';
@@ -34,6 +35,7 @@
   let editFormData: Partial<CreateBeanRequest> = {};
   let editRoastLevel: RoastLevel | null = null;
   let showBagCreator = false;
+  let editingBagId: string | null = null;
 
   const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
 
@@ -299,6 +301,7 @@
     bags = bags.map(bag => 
       bag.id === updatedBag.id ? updatedBag : bag
     );
+    editingBagId = null;
   }
 
   async function handleBagCreated(event: CustomEvent<BagWithBarista>) {
@@ -313,6 +316,14 @@
 
   function handleNewBagCancel() {
     showBagCreator = false;
+  }
+
+  function handleBagEditRequested(bagId: string) {
+    editingBagId = bagId;
+  }
+
+  function handleBagEditCanceled() {
+    editingBagId = null;
   }
 
   async function handleRoasterCreated(event: CustomEvent<Roaster>) {
@@ -655,12 +666,22 @@
           {:else}
             <div class="bags-grid">
               {#each bags as bag}
-                <EditableBagCard
-                  {bag}
-                  beanName={bean.name}
-                  {baristasById}
-                  on:updated={handleBagUpdated}
-                />
+                {#if editingBagId === bag.id}
+                  <EditableBagCard
+                    {bag}
+                    beanName={bean.name}
+                    {baristasById}
+                    on:updated={handleBagUpdated}
+                    on:cancel={handleBagEditCanceled}
+                  />
+                {:else}
+                  <BagSummaryCard
+                    {bag}
+                    beanName={bean.name}
+                    {baristasById}
+                    on:edit={() => handleBagEditRequested(bag.id)}
+                  />
+                {/if}
               {/each}
             </div>
           {/if}

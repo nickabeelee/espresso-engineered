@@ -5,6 +5,8 @@
   import BrewCard from '$lib/components/BrewCard.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
   import { ArrowPath, MagnifyingGlass } from '$lib/icons';
+  import { recordListShell } from '$lib/ui/components/card';
+  import { toStyleString } from '$lib/ui/style';
 
 
   export let barista_id: string | undefined = undefined;
@@ -21,6 +23,15 @@
 
   // Filter state
   let searchTerm = '';
+
+  const gridShellStyle = toStyleString({
+    '--record-list-bg': recordListShell.background,
+    '--record-list-border': recordListShell.borderColor,
+    '--record-list-border-width': recordListShell.borderWidth,
+    '--record-list-border-style': recordListShell.borderStyle,
+    '--record-list-radius': recordListShell.borderRadius,
+    '--record-list-padding': recordListShell.padding
+  });
 
   onMount(() => {
     loadBrews();
@@ -201,7 +212,7 @@
 
   <!-- Brew Cards -->
   {#if filteredBrews.length > 0}
-    <div class="brew-grid-shell">
+    <div class="brew-grid-shell" style={gridShellStyle}>
     <div class="brew-grid">
       {#each filteredBrews as brew (brew.id)}
         {@const baristaRecord = baristasById[brew.barista_id]}
@@ -403,10 +414,10 @@
   }
 
   .brew-grid-shell {
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid rgba(123, 94, 58, 0.2);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
+    background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
+    border-radius: var(--record-list-radius, var(--radius-md));
+    padding: var(--record-list-padding, 1.5rem);
   }
 
   .load-more,

@@ -8,6 +8,8 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { ArrowPath, MagnifyingGlass } from '$lib/icons';
+  import { recordListShell } from '$lib/ui/components/card';
+  import { toStyleString } from '$lib/ui/style';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
   import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
   import { AppError, debounce } from '$lib/utils/error-handling';
@@ -29,6 +31,15 @@
   let selectedRoaster = '';
   let selectedRoastLevel: RoastLevel | null = null;
   let myBeansOnly = false;
+
+  const gridShellStyle = toStyleString({
+    '--record-list-bg': recordListShell.background,
+    '--record-list-border': recordListShell.borderColor,
+    '--record-list-border-width': recordListShell.borderWidth,
+    '--record-list-border-style': recordListShell.borderStyle,
+    '--record-list-radius': recordListShell.borderRadius,
+    '--record-list-padding': recordListShell.padding
+  });
 
   // Loading states
   $: isLoading = globalLoadingManager.isLoading(LoadingKeys.BEANS_LIST);
@@ -344,7 +355,7 @@
 
   <!-- Bean Cards -->
   {#if beans.length > 0}
-    <div class="bean-grid-shell">
+    <div class="bean-grid-shell" style={gridShellStyle}>
       <div class="bean-grid">
         {#each beans as bean (bean.id)}
           {@const roasterRecord = roastersById[bean.roaster_id]}
@@ -622,10 +633,10 @@
   }
 
   .bean-grid-shell {
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid rgba(123, 94, 58, 0.2);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
+    background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
+    border-radius: var(--record-list-radius, var(--radius-md));
+    padding: var(--record-list-padding, 1.5rem);
   }
 
   .load-more,
