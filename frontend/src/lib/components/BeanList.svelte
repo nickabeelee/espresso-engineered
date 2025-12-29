@@ -183,11 +183,13 @@
   <div class="filters">
     <div class="filter-row">
       <div class="search-group">
+        <label for="bean-search" class="filter-label">Search</label>
         <div class="search-field">
           <span class="search-icon" aria-hidden="true">
             <MagnifyingGlass size={18} />
           </span>
           <input
+            id="bean-search"
             type="text"
             bind:value={searchTerm}
             on:input={handleSearchInput}
@@ -199,7 +201,7 @@
       </div>
 
       <div class="filter-group">
-        <label for="roaster-filter">Roaster</label>
+        <label for="roaster-filter" class="filter-label">Roaster</label>
         <select id="roaster-filter" bind:value={selectedRoaster} on:change={applyFilters} class="filter-select" disabled={!isOnline}>
           <option value="">All roasters</option>
           {#each roasters as roaster}
@@ -209,7 +211,7 @@
       </div>
 
       <div class="filter-group">
-        <label for="roast-level-filter">Roast Level</label>
+        <label for="roast-level-filter" class="filter-label">Roast Level</label>
         <div class="roast-level-filter">
           <RoastLevel
             value={selectedRoastLevel}
@@ -384,6 +386,7 @@
     background: var(--bg-surface-paper-secondary);
     border: 1px solid rgba(123, 94, 58, 0.2);
     border-radius: var(--radius-md);
+    --filter-control-height: 2.75rem;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
   }
@@ -391,13 +394,16 @@
   .filter-row {
     display: flex;
     gap: 1rem;
-    align-items: end;
+    align-items: flex-end;
     flex-wrap: wrap;
   }
 
   .search-group {
     flex: 1;
     min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
   }
 
   .search-field {
@@ -421,6 +427,7 @@
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
     font-size: 1rem;
+    min-height: var(--filter-control-height);
   }
 
   .search-input:focus {
@@ -435,10 +442,11 @@
     gap: 0.25rem;
   }
 
-  .filter-group label {
+  .filter-label {
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-ink-secondary);
+    min-height: 1rem;
   }
 
   .filter-select {
@@ -447,6 +455,7 @@
     border-radius: var(--radius-sm);
     font-size: 0.9rem;
     min-width: 120px;
+    min-height: var(--filter-control-height);
   }
 
   .filter-select:focus {
@@ -455,9 +464,13 @@
     box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
   }
 
+  .filters .btn-secondary {
+    min-height: var(--filter-control-height);
+  }
+
   .roast-level-filter {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem;
@@ -466,6 +479,7 @@
     background: var(--bg-surface-paper);
     min-width: 120px;
     position: relative;
+    min-height: var(--filter-control-height);
   }
 
   .roast-level-filter:focus-within {
@@ -508,6 +522,7 @@
     color: var(--text-ink-muted);
     text-align: center;
     font-weight: 500;
+    white-space: nowrap;
   }
 
   .quick-toggle {
@@ -519,7 +534,7 @@
     color: var(--text-ink-secondary);
     cursor: pointer;
     user-select: none;
-    margin-top: 1.2rem;
+    min-height: var(--filter-control-height);
   }
 
   .quick-toggle input {
