@@ -6,9 +6,7 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import Chip from '$lib/components/Chip.svelte';
   import BeanRating from '$lib/components/BeanRating.svelte';
-  import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import EditableBagCard from '$lib/components/EditableBagCard.svelte';
-  import BagSummaryCard from '$lib/components/BagSummaryCard.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
   import RoastLevelComponent from '$lib/components/RoastLevel.svelte';
@@ -19,7 +17,7 @@
   import { barista } from '$lib/auth';
   import { getBeanPermissions, getBagPermissions } from '$lib/permissions';
   import { XMark, PencilSquare, Trash, CheckCircle, Plus } from '$lib/icons';
-  import type { BeanWithContext, Roaster, Bag, BagWithBarista, Barista as BaristaType, RoastLevel, CreateBeanRequest } from '@shared/types';
+  import type { BeanWithContext, Roaster, BagWithBarista, Barista as BaristaType, RoastLevel, CreateBeanRequest } from '@shared/types';
 
   let bean: BeanWithContext | null = null;
   let roaster: Roaster | null = null;
@@ -35,7 +33,6 @@
   let editFormData: Partial<CreateBeanRequest> = {};
   let editRoastLevel: RoastLevel | null = null;
   let showBagCreator = false;
-  let editingBagId: string | null = null;
 
   const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
 
@@ -285,15 +282,6 @@
     }
   }
 
-  async function handleBagStatusUpdated(event: CustomEvent<Bag>) {
-    const updatedBag = event.detail;
-    
-    // Update the bag in the local bags array, preserving barista information
-    bags = bags.map(bag => 
-      bag.id === updatedBag.id ? { ...updatedBag, barista: bag.barista } : bag
-    );
-  }
-
   async function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
     const updatedBag = event.detail;
     
@@ -301,7 +289,6 @@
     bags = bags.map(bag => 
       bag.id === updatedBag.id ? updatedBag : bag
     );
-    editingBagId = null;
   }
 
   async function handleBagCreated(event: CustomEvent<BagWithBarista>) {
@@ -316,14 +303,6 @@
 
   function handleNewBagCancel() {
     showBagCreator = false;
-  }
-
-  function handleBagEditRequested(bagId: string) {
-    editingBagId = bagId;
-  }
-
-  function handleBagEditCanceled() {
-    editingBagId = null;
   }
 
   async function handleRoasterCreated(event: CustomEvent<Roaster>) {
@@ -665,22 +644,12 @@
           {:else}
             <div class="bags-grid">
               {#each bags as bag}
-                {#if editingBagId === bag.id}
-                  <EditableBagCard
-                    {bag}
-                    beanName={bean.name}
-                    {baristasById}
-                    on:updated={handleBagUpdated}
-                    on:cancel={handleBagEditCanceled}
-                  />
-                {:else}
-                  <BagSummaryCard
-                    {bag}
-                    beanName={bean.name}
-                    {baristasById}
-                    on:edit={() => handleBagEditRequested(bag.id)}
-                  />
-                {/if}
+                <EditableBagCard
+                  {bag}
+                  beanName={bean.name}
+                  {baristasById}
+                  on:updated={handleBagUpdated}
+                />
               {/each}
             </div>
           {/if}

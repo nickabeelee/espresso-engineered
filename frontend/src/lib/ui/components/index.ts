@@ -10,6 +10,5 @@ export * from "./icon-button";
 export * from "./input";
 export * from "./inline-creator";
 export * from "./selector";
-export * from "./summary-card";
 export * from "./upload";
 export * from "./status";
