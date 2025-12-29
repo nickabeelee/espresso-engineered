@@ -232,9 +232,6 @@
               ×
             </button>
           {/if}
-          <span class="roast-level-hint">
-            {selectedRoastLevel || 'All levels'}
-          </span>
         </div>
       </div>
 
@@ -515,14 +512,6 @@
   .clear-roast-level:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-
-  .roast-level-hint {
-    font-size: 0.75rem;
-    color: var(--text-ink-muted);
-    text-align: center;
-    font-weight: 500;
-    white-space: nowrap;
   }
 
   .quick-toggle {
