@@ -51,6 +51,7 @@
     '--inline-label-weight': inlineCreator.label.fontWeight,
     '--inline-input-padding': inlineCreator.input.padding,
     '--inline-input-border': inlineCreator.input.borderColor,
+    '--inline-input-bg': inlineCreator.input.background,
     '--inline-input-radius': inlineCreator.input.radius,
     '--inline-input-size': inlineCreator.input.fontSize,
     '--inline-input-focus': inlineCreator.input.focusRing,
@@ -303,7 +304,7 @@
     font-size: var(--inline-input-size, 16px);
     font-family: 'IBM Plex Sans', sans-serif;
     color: var(--text-ink-primary);
-    background: var(--bg-surface-paper);
+    background: var(--inline-input-bg, var(--bg-surface-paper));
     transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
   }
 
@@ -314,7 +315,7 @@
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
-    background: var(--bg-surface-paper);
+    background: var(--inline-input-bg, var(--bg-surface-paper));
   }
 
   .roast-level-picker:focus-within {

@@ -1,6 +1,9 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import RoastLevel from '$lib/components/RoastLevel.svelte';
+  import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
   import { selector } from '$lib/ui/components/selector';
   import { toStyleString } from '$lib/ui/style';
 
@@ -14,10 +17,10 @@
   let loading = true;
   let error: string | null = null;
   let showCreateForm = false;
-
-  // Search and filter
+  let isOpen = false;
   let searchTerm = '';
-  let selectedRoaster = '';
+  let searchInput: HTMLInputElement | null = null;
+  let comboboxRoot: HTMLDivElement | null = null;
 
   const style = toStyleString({
     '--selector-trigger-padding': selector.trigger.padding,
@@ -26,19 +29,39 @@
     '--selector-trigger-color': selector.trigger.textColor,
     '--selector-trigger-radius': selector.trigger.radius,
     '--selector-trigger-font-size': selector.trigger.fontSize,
+    '--selector-trigger-focus': selector.trigger.focusRing,
+    '--selector-trigger-focus-offset': selector.trigger.focusOffset,
+    '--selector-trigger-disabled-bg': selector.trigger.disabledBackground,
+    '--selector-panel-bg': selector.panel.background,
+    '--selector-panel-border': selector.panel.borderColor,
+    '--selector-panel-radius': selector.panel.radius,
+    '--selector-panel-shadow': selector.panel.shadow,
+    '--selector-panel-padding': selector.panel.padding,
+    '--selector-option-padding': selector.option.padding,
+    '--selector-option-radius': selector.option.radius,
+    '--selector-option-color': selector.option.textColor,
+    '--selector-option-hover-bg': selector.option.hoverBackground,
+    '--selector-option-hover-border': selector.option.hoverBorder,
+    '--selector-option-title-size': selector.option.titleSize,
+    '--selector-meta-color': selector.meta.textColor,
+    '--selector-meta-size': selector.meta.fontSize,
+    '--selector-meta-secondary-size': selector.meta.secondarySize,
+    '--selector-empty-color': selector.empty.textColor,
     '--selector-detail-bg': selector.detailCard.background,
     '--selector-detail-border': selector.detailCard.borderColor,
     '--selector-detail-radius': selector.detailCard.radius,
     '--selector-detail-padding': selector.detailCard.padding,
     '--selector-detail-title-size': selector.detailTitle.fontSize,
-    '--selector-detail-title-color': selector.detailTitle.textColor,
-    '--selector-pill-radius': selector.pill.radius,
-    '--selector-pill-size': selector.pill.fontSize,
-    '--selector-pill-weight': selector.pill.fontWeight
+    '--selector-detail-title-color': selector.detailTitle.textColor
   });
 
   onMount(() => {
     loadData();
+    document.addEventListener('click', handleDocumentClick);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener('click', handleDocumentClick);
   });
 
   async function loadData() {
@@ -73,23 +96,59 @@
     return roaster?.name || 'Unknown Roaster';
   }
 
-  function formatBeanDisplay(bean: Bean): string {
-    const roasterName = getRoasterName(bean.roaster_id);
-    return `${bean.name} - ${roasterName} (${bean.roast_level})`;
+  function toggleOpen() {
+    if (disabled) return;
+    isOpen = !isOpen;
+    if (isOpen) {
+      searchTerm = '';
+      tick().then(() => searchInput?.focus());
+    }
   }
 
-  // Filtered beans based on search and roaster selection
-  $: filteredBeans = beans.filter(bean => {
-    const matchesSearch = !searchTerm || 
+  function selectBean(bean: Bean) {
+    value = bean.id;
+    isOpen = false;
+    searchTerm = '';
+  }
+
+  function handleSearchKey(event: KeyboardEvent) {
+    if (event.key === 'Enter' && filteredBeans.length > 0) {
+      event.preventDefault();
+      selectBean(filteredBeans[0]);
+    }
+  }
+
+  function closeIfEscape(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      isOpen = false;
+    }
+  }
+
+  function openCreateForm() {
+    isOpen = false;
+    showCreateForm = true;
+  }
+
+  function handleDocumentClick(event: MouseEvent) {
+    if (!isOpen || !comboboxRoot) return;
+    const path = event.composedPath() as EventTarget[];
+    if (!path.includes(comboboxRoot)) {
+      isOpen = false;
+    }
+  }
+
+  const matchesSearch = (bean: Bean) => {
+    const roasterName = getRoasterName(bean.roaster_id);
+    return !searchTerm ||
       bean.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getRoasterName(bean.roaster_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      roasterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       bean.roast_level.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (bean.country_of_origin && bean.country_of_origin.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesRoaster = !selectedRoaster || bean.roaster_id === selectedRoaster;
-    
-    return matchesSearch && matchesRoaster;
-  });
+  };
+
+  $: filteredBeans = beans.filter(matchesSearch);
+  $: selectedBean = beans.find(bean => bean.id === value) || null;
+  $: selectedLabel = selectedBean ? selectedBean.name : 'Select a bean...';
 </script>
 
 <div class="bean-selector" style={style}>
@@ -106,97 +165,108 @@
       on:cancel={() => showCreateForm = false}
     />
   {:else}
-    <div class="selector-controls">
-      <!-- Search -->
-      <div class="search-group">
-        <input
-          type="text"
-          bind:value={searchTerm}
-          placeholder="e.g., Ethiopia Yirgacheffe"
-          class="search-input"
+    <div class="bean-select-row">
+      <div class="bean-combobox" class:open={isOpen} bind:this={comboboxRoot}>
+        <button
+          type="button"
+          class="bean-combobox-trigger"
+          on:click={toggleOpen}
+          on:keydown={closeIfEscape}
           {disabled}
-        />
+        >
+          <span class:selection-placeholder={!selectedBean}>{selectedLabel}</span>
+          <span class="chevron">
+            <ChevronDown size={16} />
+          </span>
+        </button>
+        {#if isOpen}
+          <div class="bean-combobox-panel" on:keydown={closeIfEscape}>
+            <div class="search-field">
+              <span class="search-icon" aria-hidden="true">
+                <MagnifyingGlass size={18} />
+              </span>
+              <input
+                bind:this={searchInput}
+                type="text"
+                bind:value={searchTerm}
+                placeholder="e.g., Ethiopia Yirgacheffe"
+                class="bean-search-input"
+                {disabled}
+                on:keydown={handleSearchKey}
+              />
+            </div>
+            {#if beans.length === 0}
+              <div class="combobox-empty">
+                <p>No beans available yet.</p>
+                <button type="button" on:click={openCreateForm} class="btn-primary" {disabled}>
+                  Add Your First Bean
+                </button>
+              </div>
+            {:else if filteredBeans.length === 0}
+              <div class="combobox-empty">
+                <p>No beans match your search.</p>
+                <button type="button" on:click={() => { searchTerm = ''; }} class="btn-secondary" {disabled}>
+                  Clear Search
+                </button>
+              </div>
+            {:else}
+              <ul class="bean-options">
+                {#each filteredBeans as bean}
+                  <li>
+                    <button
+                      type="button"
+                      class="bean-option"
+                      on:click={() => selectBean(bean)}
+                    >
+                      <div class="option-header">
+                        <span class="option-title">{bean.name}</span>
+                        <div class="option-roast">
+                          <RoastLevel value={bean.roast_level} size="small" />
+                        </div>
+                      </div>
+                      <span class="option-meta">{getRoasterName(bean.roaster_id)}</span>
+                      {#if bean.country_of_origin}
+                        <span class="option-meta option-meta--secondary">{bean.country_of_origin}</span>
+                      {/if}
+                    </button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {/if}
       </div>
-
-      <!-- Roaster Filter -->
-      <div class="filter-group">
-        <select bind:value={selectedRoaster} class="roaster-filter" {disabled}>
-          <option value="">All Roasters</option>
-          {#each roasters as roaster}
-            <option value={roaster.id}>{roaster.name}</option>
-          {/each}
-        </select>
-      </div>
-
-      <!-- Create New Button -->
-      <button 
+      <IconButton
         type="button"
-        on:click={() => showCreateForm = true}
-        class="create-btn"
-        {disabled}
+        on:click={openCreateForm}
+        ariaLabel="Add bean"
+        title="Add bean"
+        variant="accent"
+        disabled={disabled}
       >
-        + New Bean
-      </button>
+        <Plus />
+      </IconButton>
     </div>
 
-    <!-- Bean Selection -->
-    <div class="bean-list">
-      {#if filteredBeans.length === 0}
-        <div class="empty-state">
-          {#if searchTerm || selectedRoaster}
-            <p>No beans match your filters.</p>
-            <button 
-              type="button"
-              on:click={() => { searchTerm = ''; selectedRoaster = ''; }}
-              class="clear-filters-btn"
-            >
-              Clear Filters
-            </button>
-          {:else}
-            <p>No beans available.</p>
-            <button 
-              type="button"
-              on:click={() => showCreateForm = true}
-              class="create-first-btn"
-              {disabled}
-            >
-              Create Your First Bean
-            </button>
+    {#if selectedBean}
+      <div class="selected-bean-details">
+        <div class="bean-info">
+          <h4>{selectedBean.name}</h4>
+          <div class="bean-meta">
+            <span class="meta-pill roaster">{getRoasterName(selectedBean.roaster_id)}</span>
+            <div class="roast-level">
+              <RoastLevel value={selectedBean.roast_level} size="small" />
+            </div>
+            {#if selectedBean.country_of_origin}
+              <span class="meta-pill origin">{selectedBean.country_of_origin}</span>
+            {/if}
+          </div>
+          {#if selectedBean.tasting_notes}
+            <p class="tasting-notes">{selectedBean.tasting_notes}</p>
           {/if}
         </div>
-      {:else}
-        <select bind:value={value} class="bean-select" {disabled} required>
-          <option value="">Select a bean...</option>
-          {#each filteredBeans as bean}
-            <option value={bean.id}>
-              {formatBeanDisplay(bean)}
-            </option>
-          {/each}
-        </select>
-
-        <!-- Selected Bean Details -->
-        {#if value}
-          {@const selectedBean = beans.find(b => b.id === value)}
-          {#if selectedBean}
-            <div class="selected-bean-details">
-              <div class="bean-info">
-                <h4>{selectedBean.name}</h4>
-                <div class="bean-meta">
-                  <span class="roaster">{getRoasterName(selectedBean.roaster_id)}</span>
-                  <span class="roast-level">{selectedBean.roast_level}</span>
-                  {#if selectedBean.country_of_origin}
-                    <span class="origin">{selectedBean.country_of_origin}</span>
-                  {/if}
-                </div>
-                {#if selectedBean.tasting_notes}
-                  <p class="tasting-notes">{selectedBean.tasting_notes}</p>
-                {/if}
-              </div>
-            </div>
-          {/if}
-        {/if}
-      {/if}
-    </div>
+      </div>
+    {/if}
   {/if}
 </div>
 
@@ -212,7 +282,7 @@
     color: var(--text-ink-muted);
     background: var(--bg-surface-paper-secondary);
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
   }
 
   .error {
@@ -233,136 +303,160 @@
   }
 
   .retry-btn:hover {
-    background: rgba(122, 62, 47, 0.35);
+    background: rgba(122, 62, 47, 0.3);
   }
 
-  .selector-controls {
+  .bean-select-row {
     display: flex;
     gap: 0.75rem;
-    margin-bottom: 1rem;
     align-items: center;
-    flex-wrap: wrap;
   }
 
-  .search-group {
+  .bean-combobox {
+    position: relative;
     flex: 1;
-    min-width: 150px;
   }
 
-  .search-input {
+  .bean-combobox-trigger {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    background: var(--bg-surface-paper);
-    color: var(--text-ink-primary);
-  }
-
-  .search-input::placeholder {
-    color: var(--text-ink-placeholder);
-  }
-
-  .search-input:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
-  }
-
-  .filter-group {
-    min-width: 120px;
-  }
-
-  .roaster-filter {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    background: var(--bg-surface-paper);
-  }
-
-  .create-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .create-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .create-btn:disabled {
-    background: rgba(123, 94, 58, 0.6);
-    cursor: not-allowed;
-  }
-
-  .bean-list {
-    width: 100%;
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: var(--text-ink-muted);
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-  }
-
-  .empty-state p {
-    margin-bottom: 1rem;
-  }
-
-  .clear-filters-btn,
-  .create-first-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: 1px solid var(--accent-primary);
-    padding: 0.45rem 1.1rem;
-    border-radius: 999px;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .clear-filters-btn:hover,
-  .create-first-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .create-first-btn:disabled {
-    background: rgba(123, 94, 58, 0.6);
-    cursor: not-allowed;
-  }
-
-  .bean-select {
-    width: 100%;
-    padding: var(--selector-trigger-padding, 0.75rem);
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: var(--selector-trigger-padding, 0.6rem 0.75rem);
     border: 1px solid var(--selector-trigger-border, var(--border-subtle));
     border-radius: var(--selector-trigger-radius, var(--radius-sm));
     font-size: var(--selector-trigger-font-size, 1rem);
     background: var(--selector-trigger-bg, var(--bg-surface-paper));
-    margin-bottom: 1rem;
+    color: var(--selector-trigger-color, var(--text-ink-primary));
+    cursor: pointer;
   }
 
-  .bean-select:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+  .bean-combobox-trigger:focus-visible {
+    outline: var(--selector-trigger-focus, 2px solid var(--accent-primary));
+    outline-offset: var(--selector-trigger-focus-offset, 2px);
   }
 
-  .bean-select:disabled {
-    background: var(--bg-surface-paper-secondary);
+  .bean-combobox-trigger:disabled {
+    background: var(--selector-trigger-disabled-bg, var(--bg-surface-paper-secondary));
     cursor: not-allowed;
   }
 
+  .chevron {
+    color: var(--text-ink-muted);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .bean-combobox-panel {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    background: var(--selector-panel-bg, var(--bg-surface-paper));
+    border: 1px solid var(--selector-panel-border, var(--border-subtle));
+    border-radius: var(--selector-panel-radius, var(--radius-md));
+    box-shadow: var(--selector-panel-shadow, var(--shadow-soft));
+    padding: var(--selector-panel-padding, 0.75rem);
+    z-index: 5;
+  }
+
+  .search-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .search-icon {
+    position: absolute;
+    top: 50%;
+    left: 0.75rem;
+    transform: translateY(-50%);
+    color: var(--text-ink-muted);
+    display: inline-flex;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .bean-search-input {
+    width: 100%;
+    font-size: 16px;
+    padding: 0.6rem 0.75rem 0.6rem 2.3rem;
+  }
+
+  .selection-placeholder {
+    color: var(--text-ink-placeholder);
+  }
+
+  .bean-options {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .bean-option {
+    width: 100%;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: var(--selector-option-radius, var(--radius-sm));
+    padding: var(--selector-option-padding, 0.5rem 0.6rem);
+    background: transparent;
+    color: var(--selector-option-color, var(--text-ink-primary));
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .bean-option:hover {
+    background: var(--selector-option-hover-bg, rgba(214, 199, 174, 0.24));
+    border-color: var(--selector-option-hover-border, rgba(123, 94, 58, 0.25));
+  }
+
+  .option-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .option-title {
+    font-weight: 600;
+    font-size: var(--selector-option-title-size, 1rem);
+  }
+
+  .option-roast {
+    display: flex;
+    align-items: center;
+  }
+
+  .option-meta {
+    font-size: var(--selector-meta-size, 0.85rem);
+    color: var(--selector-meta-color, var(--text-ink-muted));
+  }
+
+  .option-meta--secondary {
+    font-size: var(--selector-meta-secondary-size, 0.78rem);
+    opacity: 0.75;
+  }
+
+  .combobox-empty {
+    text-align: center;
+    color: var(--selector-empty-color, var(--text-ink-muted));
+    padding: 0.5rem 0 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
   .selected-bean-details {
+    margin-top: 0.75rem;
     background: var(--selector-detail-bg, var(--bg-surface-paper-secondary));
     border: 1px solid var(--selector-detail-border, var(--border-subtle));
     border-radius: var(--selector-detail-radius, var(--radius-md));
@@ -377,16 +471,16 @@
 
   .bean-meta {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-bottom: 0.75rem;
     flex-wrap: wrap;
   }
 
-  .bean-meta span {
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--selector-pill-radius, 999px);
-    font-size: var(--selector-pill-size, 0.8rem);
-    font-weight: var(--selector-pill-weight, 500);
+  .meta-pill {
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: var(--selector-meta-size, 0.8rem);
+    font-weight: 500;
   }
 
   .roaster {
@@ -395,12 +489,15 @@
   }
 
   .roast-level {
-    background: rgba(138, 106, 62, 0.15);
-    color: var(--semantic-warning);
+    display: flex;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(138, 106, 62, 0.18);
   }
 
   .origin {
-    background: rgba(85, 98, 74, 0.2);
+    background: rgba(85, 98, 74, 0.18);
     color: var(--semantic-success);
   }
 
@@ -413,14 +510,9 @@
   }
 
   @media (max-width: 768px) {
-    .selector-controls {
+    .bean-select-row {
       flex-direction: column;
       align-items: stretch;
-    }
-
-    .search-group,
-    .filter-group {
-      min-width: auto;
     }
 
     .bean-meta {

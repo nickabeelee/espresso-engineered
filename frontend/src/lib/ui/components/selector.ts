@@ -27,6 +27,7 @@ const selector = {
     textColor: colorCss.text.ink.primary,
     hoverBackground: "rgba(214, 199, 174, 0.24)",
     hoverBorder: "rgba(123, 94, 58, 0.25)",
+    titleSize: "0.85rem",
   },
   meta: {
     textColor: colorCss.text.ink.muted,

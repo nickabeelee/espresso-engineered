@@ -56,6 +56,7 @@
     '--selector-option-color': selector.option.textColor,
     '--selector-option-hover-bg': selector.option.hoverBackground,
     '--selector-option-hover-border': selector.option.hoverBorder,
+    '--selector-option-title-size': selector.option.titleSize,
     '--selector-meta-color': selector.meta.textColor,
     '--selector-meta-size': selector.meta.fontSize,
     '--selector-meta-secondary-size': selector.meta.secondarySize,
@@ -677,6 +678,7 @@
 
   .option-title {
     font-weight: 600;
+    font-size: var(--selector-option-title-size, 1rem);
   }
 
   .option-meta {

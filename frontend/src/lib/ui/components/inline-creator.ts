@@ -4,7 +4,7 @@ import { fontFamilies } from "../foundations/typography";
 
 const inlineCreator = {
   container: {
-    background: colorCss.bg.surface.paper.secondary,
+    background: colorCss.bg.surface.paper.primary,
     borderColor: colorCss.accent.primary,
     borderWidth: "2px",
     radius: radius.md,
@@ -36,12 +36,13 @@ const inlineCreator = {
   label: {
     fontFamily: fontFamilies.ui,
     fontWeight: 600,
-    color: colorCss.text.ink.primary,
+    color: colorCss.text.ink.secondary,
     fontSize: "0.9rem",
   },
   input: {
     padding: "0.5rem",
     borderColor: colorCss.border.subtle,
+    background: colorCss.bg.surface.paper.primary,
     radius: radius.sm,
     fontSize: "0.9rem",
     focusRing: "0 0 0 2px rgba(176, 138, 90, 0.2)",

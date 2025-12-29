@@ -2,7 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { XMark } from '$lib/icons';
+  import { CheckCircle, XMark } from '$lib/icons';
   import { inlineCreator } from '$lib/ui/components/inline-creator';
   import { toStyleString } from '$lib/ui/style';
 
@@ -46,6 +46,7 @@
     '--inline-label-weight': inlineCreator.label.fontWeight,
     '--inline-input-padding': inlineCreator.input.padding,
     '--inline-input-border': inlineCreator.input.borderColor,
+    '--inline-input-bg': inlineCreator.input.background,
     '--inline-input-radius': inlineCreator.input.radius,
     '--inline-input-size': inlineCreator.input.fontSize,
     '--inline-input-focus': inlineCreator.input.focusRing,
@@ -148,9 +149,16 @@
 <div class="inline-roaster-creator" style={style}>
   <div class="creator-header">
     <h4>Create New Roaster</h4>
-    <button type="button" on:click={handleCancel} class="close-btn" disabled={loading}>
-      ✕
-    </button>
+    <IconButton
+      type="button"
+      on:click={handleCancel}
+      ariaLabel="Cancel roaster"
+      title="Cancel"
+      variant="neutral"
+      disabled={loading}
+    >
+      <XMark />
+    </IconButton>
   </div>
 
   {#if error}
@@ -228,9 +236,15 @@
       <IconButton type="button" on:click={handleCancel} ariaLabel="Cancel roaster" title="Cancel" variant="neutral" disabled={loading}>
         <XMark />
       </IconButton>
-      <button type="submit" class="btn-primary" disabled={loading}>
-        {loading ? 'Creating...' : 'Create Roaster'}
-      </button>
+      <IconButton
+        type="submit"
+        ariaLabel={loading ? 'Creating roaster' : 'Create roaster'}
+        title="Create Roaster"
+        variant="success"
+        disabled={loading}
+      >
+        <CheckCircle />
+      </IconButton>
     </div>
   </form>
 </div>
@@ -257,24 +271,6 @@
     font-size: var(--inline-title-size, 1.1rem);
   }
 
-  .close-btn {
-    background: none;
-    border: 1px solid transparent;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: var(--inline-close-color, var(--text-ink-muted));
-    padding: 0.25rem;
-    line-height: 1;
-  }
-
-  .close-btn:hover:not(:disabled) {
-    color: var(--inline-close-hover, var(--semantic-error));
-  }
-
-  .close-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
 
   .error-banner {
     background: var(--inline-error-bg, rgba(122, 62, 47, 0.12));
@@ -309,6 +305,7 @@
     border: 1px solid var(--inline-input-border, var(--border-subtle));
     border-radius: var(--inline-input-radius, 999px);
     font-size: var(--inline-input-size, 0.9rem);
+    background: var(--inline-input-bg, var(--bg-surface-paper));
     font-family: inherit;
   }
 

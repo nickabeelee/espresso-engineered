@@ -2,15 +2,11 @@
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { XMark } from '$lib/icons';
+  import BeanSelector from '$lib/components/BeanSelector.svelte';
+  import { CheckCircle, XMark } from '$lib/icons';
   import { inlineCreator } from '$lib/ui/components/inline-creator';
   import { toStyleString } from '$lib/ui/style';
   import type { InventoryStatus } from '../../../../shared/types';
-
-  import InlineBeanCreator from './InlineBeanCreator.svelte';
-
-  export let beans: Bean[] = [];
-  export let roasters: Roaster[] = [];
 
   const dispatch = createEventDispatcher<{
     created: Bag;
@@ -30,7 +26,6 @@
   let loading = false;
   let error: string | null = null;
   let validationErrors: Record<string, string> = {};
-  let showBeanCreator = false;
 
   const style = toStyleString({
     '--inline-bg': inlineCreator.container.background,
@@ -57,6 +52,7 @@
     '--inline-label-weight': inlineCreator.label.fontWeight,
     '--inline-input-padding': inlineCreator.input.padding,
     '--inline-input-border': inlineCreator.input.borderColor,
+    '--inline-input-bg': inlineCreator.input.background,
     '--inline-input-radius': inlineCreator.input.radius,
     '--inline-input-size': inlineCreator.input.fontSize,
     '--inline-input-focus': inlineCreator.input.focusRing,
@@ -118,27 +114,6 @@
     dispatch('cancel');
   }
 
-  function handleBeanCreated(event: CustomEvent<Bean>) {
-    const newBean = event.detail;
-    beans = [newBean, ...beans];
-    bean_id = newBean.id;
-    showBeanCreator = false;
-  }
-
-  function getBeanInfo(id: string): Bean | undefined {
-    return beans.find(b => b.id === id);
-  }
-
-  function getRoasterName(roasterId: string): string {
-    const roaster = roasters.find(r => r.id === roasterId);
-    return roaster?.name || 'Unknown Roaster';
-  }
-
-  function formatBeanDisplay(bean: Bean): string {
-    const roasterName = getRoasterName(bean.roaster_id);
-    return `${bean.name} - ${roasterName} (${bean.roast_level})`;
-  }
-
   // Set default roast date to today
   function setTodayAsRoastDate() {
     const today = new Date();
@@ -156,42 +131,28 @@
 <div class="inline-bag-creator" style={style}>
   <div class="creator-header">
     <h4>Create New Bag</h4>
-    <button type="button" on:click={handleCancel} class="close-btn" disabled={loading}>
-      ✕
-    </button>
+    <IconButton
+      type="button"
+      on:click={handleCancel}
+      ariaLabel="Cancel bag"
+      title="Cancel"
+      variant="neutral"
+      disabled={loading}
+    >
+      <XMark />
+    </IconButton>
   </div>
 
   {#if error}
     <div class="error-banner">{error}</div>
   {/if}
 
-  {#if showBeanCreator}
-    <div class="nested-creator">
-      <InlineBeanCreator 
-        on:created={handleBeanCreated}
-        on:cancel={() => showBeanCreator = false}
-      />
-    </div>
-  {:else}
     <form on:submit|preventDefault={handleSubmit} class="creator-form">
       <!-- Name Preview -->
       <div class="form-group">
-        <label for="bean">Bean *</label>
+        <label>Bean *</label>
         <div class="bean-input-group">
-          <select id="bean" bind:value={bean_id} disabled={loading} required>
-            <option value="">Select a bean...</option>
-            {#each beans as bean}
-              <option value={bean.id}>{formatBeanDisplay(bean)}</option>
-            {/each}
-          </select>
-          <button 
-            type="button" 
-            on:click={() => showBeanCreator = true}
-            class="add-bean-btn"
-            disabled={loading}
-          >
-            + New
-          </button>
+          <BeanSelector bind:value={bean_id} disabled={loading} />
         </div>
         {#if validationErrors.bean_id}
           <span class="error-text">{validationErrors.bean_id}</span>
@@ -289,34 +250,21 @@
         </select>
       </div>
 
-      <!-- Selected Bean Preview -->
-      {#if bean_id}
-        {@const selectedBean = getBeanInfo(bean_id)}
-        {#if selectedBean}
-          <div class="bean-preview">
-            <h5>Selected Bean:</h5>
-            <div class="bean-info">
-              <span class="bean-name">{selectedBean.name}</span>
-              <span class="roaster-name">{getRoasterName(selectedBean.roaster_id)}</span>
-              <span class="roast-level">{selectedBean.roast_level}</span>
-              {#if selectedBean.country_of_origin}
-                <span class="origin">{selectedBean.country_of_origin}</span>
-              {/if}
-            </div>
-          </div>
-        {/if}
-      {/if}
-
       <div class="form-actions">
         <IconButton type="button" on:click={handleCancel} ariaLabel="Cancel bag" title="Cancel" variant="neutral" disabled={loading}>
           <XMark />
         </IconButton>
-        <button type="submit" class="btn-primary" disabled={loading}>
-          {loading ? 'Creating...' : 'Create Bag'}
-        </button>
+        <IconButton
+          type="submit"
+          ariaLabel={loading ? 'Creating bag' : 'Create bag'}
+          title="Create Bag"
+          variant="success"
+          disabled={loading}
+        >
+          <CheckCircle />
+        </IconButton>
       </div>
     </form>
-  {/if}
 </div>
 
 <style>
@@ -341,24 +289,6 @@
     font-size: var(--inline-title-size, 1.1rem);
   }
 
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: var(--inline-close-color, var(--text-ink-muted));
-    padding: 0.25rem;
-    line-height: 1;
-  }
-
-  .close-btn:hover:not(:disabled) {
-    color: var(--inline-close-hover, var(--semantic-error));
-  }
-
-  .close-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
 
   .error-banner {
     background: var(--inline-error-bg, rgba(122, 62, 47, 0.12));
@@ -370,12 +300,6 @@
     font-size: var(--inline-error-size, 0.9rem);
   }
 
-  .nested-creator {
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    padding: 0.5rem;
-    background: var(--bg-surface-paper-secondary);
-  }
 
   .creator-form {
     display: flex;
@@ -407,6 +331,7 @@
     border: 1px solid var(--inline-input-border, var(--border-subtle));
     border-radius: var(--inline-input-radius, var(--radius-sm));
     font-size: var(--inline-input-size, 0.9rem);
+    background: var(--inline-input-bg, var(--bg-surface-paper));
     font-family: inherit;
   }
 
@@ -434,7 +359,11 @@
     flex: 1;
   }
 
-  .add-bean-btn,
+  .bean-input-group :global(.bean-selector) {
+    flex: 1;
+    min-width: 0;
+  }
+
   .today-btn {
     background: var(--accent-primary);
     color: var(--text-ink-inverted);
@@ -447,12 +376,10 @@
     white-space: nowrap;
   }
 
-  .add-bean-btn:hover:not(:disabled),
   .today-btn:hover:not(:disabled) {
     background: var(--accent-primary-dark);
   }
 
-  .add-bean-btn:disabled,
   .today-btn:disabled {
     background: rgba(123, 94, 58, 0.6);
     cursor: not-allowed;
@@ -495,52 +422,6 @@
     font-size: 0.8rem;
   }
 
-  .bean-preview {
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid rgba(123, 94, 58, 0.2);
-    border-radius: var(--radius-sm);
-    padding: 1rem;
-  }
-
-  .bean-preview h5 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text-ink-secondary);
-    font-size: 0.9rem;
-  }
-
-  .bean-info {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .bean-info span {
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.8rem;
-    font-weight: 500;
-  }
-
-  .bean-name {
-    background: var(--text-ink-secondary);
-    color: var(--text-ink-inverted);
-  }
-
-  .roaster-name {
-    background: rgba(176, 138, 90, 0.18);
-    color: var(--text-ink-secondary);
-  }
-
-  .roast-level {
-    background: rgba(138, 106, 62, 0.15);
-    color: var(--semantic-warning);
-  }
-
-  .origin {
-    background: rgba(85, 98, 74, 0.2);
-    color: var(--semantic-success);
-  }
-
   .form-actions {
     display: flex;
     gap: var(--inline-actions-gap, 0.75rem);
@@ -560,11 +441,6 @@
 
     .weight-presets {
       justify-content: center;
-    }
-
-    .bean-info {
-      flex-direction: column;
-      gap: 0.5rem;
     }
 
     .form-actions {
