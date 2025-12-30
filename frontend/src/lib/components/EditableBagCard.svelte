@@ -7,6 +7,8 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import { PencilSquare, CheckCircle, XMark, Plus } from '$lib/icons';
+  import { editableCard, editableCardVariants } from '$lib/ui/components/editable-card';
+  import { toStyleString } from '$lib/ui/style';
   import type { BagWithBarista, Barista as BaristaType, InventoryStatus, UpdateBagRequest, CreateBagRequest } from '@shared/types';
 
   // Props for existing bag mode
@@ -100,6 +102,7 @@
     isEditing = false;
     formData = {};
     error = null;
+    dispatch('cancel');
   }
 
   function validateForm(): boolean {
@@ -210,9 +213,86 @@
 
   $: ownershipStatus = getBagOwnershipStatus();
   $: ownerName = getBagOwnerName();
+
+  const style = toStyleString({
+    '--editable-card-bg': editableCard.container.background,
+    '--editable-card-border': editableCard.container.borderColor,
+    '--editable-card-border-width': editableCard.container.borderWidth,
+    '--editable-card-border-style': editableCard.container.borderStyle,
+    '--editable-card-radius': editableCard.container.borderRadius,
+    '--editable-card-padding': editableCard.container.padding,
+    '--editable-card-transition': editableCard.container.transition,
+    '--editable-card-edit-border': editableCard.state.editing.borderColor,
+    '--editable-card-edit-shadow': editableCard.state.editing.shadow,
+    '--editable-card-new-border': editableCard.state.newCard.borderColor,
+    '--editable-card-new-border-style': editableCard.state.newCard.borderStyle,
+    '--editable-card-new-bg': editableCard.state.newCard.background,
+    '--editable-card-new-margin': editableCard.state.newCard.marginBottom,
+    '--editable-card-new-edit-border-style': editableCard.state.newEditing.borderStyle,
+    '--editable-card-new-edit-bg': editableCard.state.newEditing.background,
+    '--editable-card-new-edit-margin': editableCard.state.newEditing.marginBottom,
+    '--editable-card-header-gap': editableCard.header.gap,
+    '--editable-card-header-margin': editableCard.header.marginBottom,
+    '--editable-card-title-font': editableCard.title.fontFamily,
+    '--editable-card-title-size': editableCard.title.fontSize,
+    '--editable-card-title-weight': editableCard.title.fontWeight,
+    '--editable-card-title-color': editableCard.title.textColor,
+    '--editable-card-info-font': editableCard.info.fontFamily,
+    '--editable-card-info-size': editableCard.info.fontSize,
+    '--editable-card-info-color': editableCard.info.textColor,
+    '--editable-card-owner-color': editableCard.owner.textColor,
+    '--editable-card-owner-highlight': editableCard.owner.highlightColor,
+    '--editable-card-owner-size': editableCard.owner.fontSize,
+    '--editable-card-owner-weight': editableCard.owner.fontWeight,
+    '--editable-card-actions-gap': editableCard.actions.gap,
+    '--editable-card-edit-actions-gap': editableCard.actions.editActionsGap,
+    '--editable-card-status-font-size': editableCard.statusPill.fontSize,
+    '--editable-card-status-font-weight': editableCard.statusPill.fontWeight,
+    '--editable-card-status-radius': editableCard.statusPill.borderRadius,
+    '--editable-card-status-padding': editableCard.statusPill.padding,
+    '--editable-card-status-success-bg': editableCard.statusPill.variants.success.background,
+    '--editable-card-status-success-color': editableCard.statusPill.variants.success.textColor,
+    '--editable-card-status-warning-bg': editableCard.statusPill.variants.warning.background,
+    '--editable-card-status-warning-color': editableCard.statusPill.variants.warning.textColor,
+    '--editable-card-status-error-bg': editableCard.statusPill.variants.error.background,
+    '--editable-card-status-error-color': editableCard.statusPill.variants.error.textColor,
+    '--editable-card-error-bg': editableCard.error.background,
+    '--editable-card-error-border': editableCard.error.borderColor,
+    '--editable-card-error-color': editableCard.error.textColor,
+    '--editable-card-error-radius': editableCard.error.borderRadius,
+    '--editable-card-error-padding': editableCard.error.padding,
+    '--editable-card-error-font': editableCard.error.fontFamily,
+    '--editable-card-error-size': editableCard.error.fontSize,
+    '--editable-card-grid-gap': editableCard.detailGrid.gap,
+    '--editable-card-detail-min-col': editableCardVariants.compact.detailMinColumnWidth,
+    '--editable-card-label-font': editableCard.detail.label.fontFamily,
+    '--editable-card-label-size': editableCard.detail.label.fontSize,
+    '--editable-card-label-weight': editableCard.detail.label.fontWeight,
+    '--editable-card-label-color': editableCard.detail.label.textColor,
+    '--editable-card-value-font': editableCard.detail.value.fontFamily,
+    '--editable-card-value-size': editableCard.detail.value.fontSize,
+    '--editable-card-value-color': editableCard.detail.value.textColor,
+    '--editable-card-empty-font': editableCard.detail.empty.fontFamily,
+    '--editable-card-empty-style': editableCard.detail.empty.fontStyle,
+    '--editable-card-empty-color': editableCard.detail.empty.textColor,
+    '--editable-card-input-font': editableCard.input.fontFamily,
+    '--editable-card-input-size': editableCard.input.fontSize,
+    '--editable-card-input-color': editableCard.input.textColor,
+    '--editable-card-input-bg': editableCard.input.background,
+    '--editable-card-input-border': editableCard.input.borderColor,
+    '--editable-card-input-border-width': editableCard.input.borderWidth,
+    '--editable-card-input-radius': editableCard.input.borderRadius,
+    '--editable-card-input-padding': editableCard.input.padding,
+    '--editable-card-input-focus': editableCard.input.focusRing,
+    '--editable-card-section-divider': editableCard.section.dividerColor,
+    '--editable-card-section-title-font': editableCard.section.title.fontFamily,
+    '--editable-card-section-title-size': editableCard.section.title.fontSize,
+    '--editable-card-section-title-weight': editableCard.section.title.fontWeight,
+    '--editable-card-section-title-color': editableCard.section.title.textColor
+  });
 </script>
 
-<div class="bag-card" class:editing={isEditing} class:new-bag={isNewBag} on:keydown={handleKeydown}>
+<div class="bag-card" class:editing={isEditing} class:new-bag={isNewBag} on:keydown={handleKeydown} style={style}>
   <div class="bag-header">
     <div class="bag-title">
       {#if isEditing}
@@ -396,37 +476,37 @@
 
 <style>
   .bag-card {
-    background: var(--bg-surface-paper);
-    border: 1px solid rgba(123, 94, 58, 0.2);
-    border-radius: var(--radius-md);
-    padding: 1rem;
-    transition: border-color var(--motion-fast);
+    background: var(--editable-card-bg, var(--bg-surface-paper));
+    border: var(--editable-card-border-width, 1px) var(--editable-card-border-style, solid) var(--editable-card-border, rgba(123, 94, 58, 0.2));
+    border-radius: var(--editable-card-radius, var(--radius-md));
+    padding: var(--editable-card-padding, 1rem);
+    transition: var(--editable-card-transition, border-color var(--motion-fast));
   }
 
   .bag-card.editing {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.1);
+    border-color: var(--editable-card-edit-border, var(--accent-primary));
+    box-shadow: var(--editable-card-edit-shadow, 0 0 0 2px rgba(176, 138, 90, 0.1));
   }
 
   .bag-card.new-bag {
-    border-color: var(--accent-primary);
-    border-style: dashed;
-    background: rgba(176, 138, 90, 0.05);
-    margin-bottom: 1.5rem;
+    border-color: var(--editable-card-new-border, var(--accent-primary));
+    border-style: var(--editable-card-new-border-style, dashed);
+    background: var(--editable-card-new-bg, rgba(176, 138, 90, 0.05));
+    margin-bottom: var(--editable-card-new-margin, 1.5rem);
   }
 
   .bag-card.new-bag.editing {
-    border-style: solid;
-    background: var(--bg-surface-paper);
-    margin-bottom: 1.5rem;
+    border-style: var(--editable-card-new-edit-border-style, solid);
+    background: var(--editable-card-new-edit-bg, var(--bg-surface-paper));
+    margin-bottom: var(--editable-card-new-edit-margin, 1.5rem);
   }
 
   .bag-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
+    gap: var(--editable-card-header-gap, 1rem);
+    margin-bottom: var(--editable-card-header-margin, 0.75rem);
   }
 
   .bag-title {
@@ -436,27 +516,29 @@
 
   .bag-title h4 {
     margin: 0;
-    color: var(--text-ink-primary);
-    font-size: 1rem;
+    color: var(--editable-card-title-color, var(--text-ink-primary));
+    font-family: var(--editable-card-title-font, inherit);
+    font-size: var(--editable-card-title-size, 1rem);
+    font-weight: var(--editable-card-title-weight, 600);
     word-wrap: break-word;
   }
 
   .bag-name-input {
     width: 100%;
-    color: var(--text-ink-primary);
-    font-size: 1rem;
+    color: var(--editable-card-input-color, var(--text-ink-primary));
+    font-size: var(--editable-card-input-size, 1rem);
     font-weight: 600;
-    background: var(--bg-surface-paper);
-    border: 1px solid rgba(123, 94, 58, 0.3);
-    border-radius: var(--radius-sm);
+    background: var(--editable-card-input-bg, var(--bg-surface-paper));
+    border: var(--editable-card-input-border-width, 1px) solid var(--editable-card-input-border, rgba(123, 94, 58, 0.3));
+    border-radius: var(--editable-card-input-radius, var(--radius-sm));
     padding: 0.5rem 0.75rem;
     transition: border-color var(--motion-fast);
   }
 
   .bag-name-input:focus {
     outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.1);
+    border-color: var(--editable-card-edit-border, var(--accent-primary));
+    box-shadow: var(--editable-card-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.1));
   }
 
   .bag-name-input:disabled {
@@ -465,83 +547,87 @@
   }
 
   .bag-owner {
-    color: var(--text-ink-muted);
-    font-size: 0.8rem;
+    color: var(--editable-card-owner-color, var(--text-ink-muted));
+    font-size: var(--editable-card-owner-size, 0.8rem);
     margin-top: 0.25rem;
     display: block;
   }
 
   .bag-owner.own {
-    color: var(--semantic-success);
-    font-weight: 600;
+    color: var(--editable-card-owner-highlight, var(--semantic-success));
+    font-weight: var(--editable-card-owner-weight, 600);
   }
 
   .bag-info {
-    color: var(--text-ink-secondary);
-    font-size: 0.8rem;
+    color: var(--editable-card-info-color, var(--text-ink-secondary));
+    font-family: var(--editable-card-info-font, inherit);
+    font-size: var(--editable-card-info-size, 0.8rem);
     margin-top: 0.25rem;
     display: block;
   }
 
   .bag-info strong {
-    color: var(--accent-primary);
+    color: var(--editable-card-edit-border, var(--accent-primary));
   }
 
   .bag-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--editable-card-actions-gap, 0.5rem);
     flex-shrink: 0;
   }
 
   .edit-actions {
     display: flex;
-    gap: 0.25rem;
+    gap: var(--editable-card-edit-actions-gap, 0.25rem);
   }
 
   .inventory-status {
-    padding: 0.2rem 0.5rem;
-    border-radius: 999px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    padding: var(--editable-card-status-padding, 0.2rem 0.5rem);
+    border-radius: var(--editable-card-status-radius, 999px);
+    font-size: var(--editable-card-status-font-size, 0.7rem);
+    font-weight: var(--editable-card-status-font-weight, 600);
     text-transform: capitalize;
     white-space: nowrap;
+    background: var(--editable-card-status-bg, rgba(85, 98, 74, 0.18));
+    color: var(--editable-card-status-color, var(--semantic-success));
   }
 
   .inventory-status.unopened {
-    background: rgba(85, 98, 74, 0.18);
-    color: var(--semantic-success);
+    --editable-card-status-bg: var(--editable-card-status-success-bg, rgba(85, 98, 74, 0.18));
+    --editable-card-status-color: var(--editable-card-status-success-color, var(--semantic-success));
   }
 
   .inventory-status.plenty {
-    background: rgba(85, 98, 74, 0.18);
-    color: var(--semantic-success);
+    --editable-card-status-bg: var(--editable-card-status-success-bg, rgba(85, 98, 74, 0.18));
+    --editable-card-status-color: var(--editable-card-status-success-color, var(--semantic-success));
   }
 
   .inventory-status.getting_low {
-    background: rgba(138, 106, 62, 0.18);
-    color: var(--semantic-warning);
+    --editable-card-status-bg: var(--editable-card-status-warning-bg, rgba(138, 106, 62, 0.18));
+    --editable-card-status-color: var(--editable-card-status-warning-color, var(--semantic-warning));
   }
 
   .inventory-status.empty {
-    background: rgba(156, 69, 69, 0.18);
-    color: var(--semantic-error);
+    --editable-card-status-bg: var(--editable-card-status-error-bg, rgba(122, 62, 47, 0.18));
+    --editable-card-status-color: var(--editable-card-status-error-color, var(--semantic-error));
   }
 
   .error-message {
-    background: rgba(156, 69, 69, 0.1);
-    color: var(--semantic-error);
-    border: 1px solid rgba(156, 69, 69, 0.3);
-    border-radius: var(--radius-sm);
-    padding: 0.5rem 0.75rem;
+    background: var(--editable-card-error-bg, rgba(122, 62, 47, 0.1));
+    color: var(--editable-card-error-color, var(--semantic-error));
+    border: 1px solid var(--editable-card-error-border, rgba(122, 62, 47, 0.3));
+    border-radius: var(--editable-card-error-radius, var(--radius-sm));
+    padding: var(--editable-card-error-padding, 0.5rem 0.75rem);
     margin-bottom: 0.75rem;
-    font-size: 0.9rem;
+    font-family: var(--editable-card-error-font, inherit);
+    font-size: var(--editable-card-error-size, 0.9rem);
   }
 
   .bag-details {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(var(--editable-card-detail-min-col, 120px), 1fr));
+    gap: var(--editable-card-grid-gap, 0.75rem);
   }
 
   .bag-detail {
@@ -551,37 +637,41 @@
   }
 
   .detail-label {
-    font-weight: 500;
-    color: var(--text-ink-muted);
-    font-size: 0.8rem;
+    font-weight: var(--editable-card-label-weight, 500);
+    color: var(--editable-card-label-color, var(--text-ink-secondary));
+    font-size: var(--editable-card-label-size, 0.8rem);
+    font-family: var(--editable-card-label-font, inherit);
   }
 
   .detail-value {
-    color: var(--text-ink-primary);
-    font-size: 0.9rem;
+    color: var(--editable-card-value-color, var(--text-ink-primary));
+    font-size: var(--editable-card-value-size, 0.9rem);
+    font-family: var(--editable-card-value-font, inherit);
   }
 
   .detail-empty {
-    color: var(--text-ink-muted);
-    font-style: italic;
+    color: var(--editable-card-empty-color, var(--text-ink-muted));
+    font-style: var(--editable-card-empty-style, italic);
+    font-family: var(--editable-card-empty-font, inherit);
   }
 
   .detail-input,
   .detail-select {
-    color: var(--text-ink-primary);
-    font-size: 0.9rem;
-    background: var(--bg-surface-paper);
-    border: 1px solid rgba(123, 94, 58, 0.3);
-    border-radius: var(--radius-sm);
-    padding: 0.4rem 0.6rem;
+    color: var(--editable-card-input-color, var(--text-ink-primary));
+    font-size: var(--editable-card-input-size, 0.9rem);
+    font-family: var(--editable-card-input-font, inherit);
+    background: var(--editable-card-input-bg, var(--bg-surface-paper));
+    border: var(--editable-card-input-border-width, 1px) solid var(--editable-card-input-border, rgba(123, 94, 58, 0.3));
+    border-radius: var(--editable-card-input-radius, var(--radius-sm));
+    padding: var(--editable-card-input-padding, 0.4rem 0.6rem);
     transition: border-color var(--motion-fast);
   }
 
   .detail-input:focus,
   .detail-select:focus {
     outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.1);
+    border-color: var(--editable-card-edit-border, var(--accent-primary));
+    box-shadow: var(--editable-card-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.1));
   }
 
   .detail-input:disabled,
@@ -593,14 +683,15 @@
   .bag-status-section {
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid rgba(123, 94, 58, 0.2);
+    border-top: 1px solid var(--editable-card-section-divider, rgba(123, 94, 58, 0.2));
   }
 
   .bag-status-section h5 {
     margin: 0 0 0.75rem 0;
-    color: var(--text-ink-secondary);
-    font-size: 0.9rem;
-    font-weight: 600;
+    color: var(--editable-card-section-title-color, var(--text-ink-secondary));
+    font-size: var(--editable-card-section-title-size, 0.9rem);
+    font-weight: var(--editable-card-section-title-weight, 600);
+    font-family: var(--editable-card-section-title-font, inherit);
   }
 
   @media (max-width: 768px) {
