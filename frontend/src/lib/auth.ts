@@ -6,22 +6,32 @@ import type { Barista } from '@shared/types';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'profile_missing' | 'error';
 
+const isDev = import.meta.env.DEV;
 const rawAuthRedirectBaseUrl = import.meta.env.VITE_AUTH_REDIRECT_BASE_URL
-  || import.meta.env.VITE_BACKEND_BASE_URL
-  || (import.meta.env.VITE_API_BASE_URL
+  || (!isDev ? import.meta.env.VITE_BACKEND_BASE_URL : '')
+  || (!isDev && import.meta.env.VITE_API_BASE_URL
     ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '')
     : '');
 
+function normalizeBaseUrl(baseUrl: string) {
+  return baseUrl.replace(/\/+$/, '');
+}
+
 function getAuthRedirectUrl(path: string) {
-  if (rawAuthRedirectBaseUrl) {
-    return `${rawAuthRedirectBaseUrl}${path}`;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const baseUrl = rawAuthRedirectBaseUrl
+    ? normalizeBaseUrl(rawAuthRedirectBaseUrl)
+    : (browser ? window.location.origin : '');
+
+  if (baseUrl) {
+    try {
+      return new URL(normalizedPath, baseUrl).toString();
+    } catch {
+      return `${baseUrl}${normalizedPath}`;
+    }
   }
 
-  if (browser) {
-    return `${window.location.origin}${path}`;
-  }
-
-  return path;
+  return normalizedPath;
 }
 
 // Auth state stores
