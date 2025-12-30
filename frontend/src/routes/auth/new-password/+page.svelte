@@ -10,6 +10,7 @@
   let loading = false;
   let newPassword = '';
   let confirmPassword = '';
+  let redirecting = false;
 
   const getToken = () => $page.url.searchParams.get('token_hash')
     || $page.url.searchParams.get('token')
@@ -21,13 +22,26 @@
     const token = getToken();
     const type = getType();
 
+    status = 'verifying';
+
+    const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      status = 'error';
+      errorMessage = sessionError.message || 'Unable to read recovery session.';
+      return;
+    }
+
+    if (existingSession) {
+      status = 'ready';
+      return;
+    }
+
     if (!token) {
       status = 'error';
       errorMessage = 'Missing recovery token. Please request a new reset email.';
       return;
     }
 
-    status = 'verifying';
     const { error } = await supabase.auth.verifyOtp({
       token_hash: token,
       type
@@ -61,6 +75,8 @@
     try {
       await authService.updatePassword(newPassword);
       status = 'success';
+      redirecting = true;
+      await goto('/brews');
     } catch (err) {
       errorMessage = err instanceof Error ? err.message : 'Failed to update password.';
     } finally {
@@ -68,14 +84,6 @@
     }
   }
 
-  async function returnToSignIn() {
-    try {
-      await authService.signOut();
-    } catch {
-      // Ignore sign out errors to allow navigation.
-    }
-    goto('/auth');
-  }
 </script>
 
 <svelte:head>
@@ -96,10 +104,15 @@
         <p class="auth-status">Checking your reset link...</p>
       {:else if status === 'success'}
         <div class="notice success">
-          Password updated successfully. You can sign in with your new password now.
+          Password updated successfully.
+          {#if redirecting}
+            Taking you back to your brews.
+          {:else}
+            Continue to your workspace.
+          {/if}
         </div>
-        <button class="btn-primary auth-submit" type="button" on:click={returnToSignIn}>
-          Continue to sign in
+        <button class="btn-primary auth-submit" type="button" on:click={() => goto('/brews')}>
+          Continue to Espresso Engineered
         </button>
       {:else if status === 'error'}
         <div class="notice error">{errorMessage}</div>
@@ -108,10 +121,10 @@
         </button>
       {:else}
         <form class="auth-form" on:submit={handleSubmit}>
-          <h2>New password</h2>
+          <h2>Choose a new password</h2>
 
           <div class="form-group">
-            <label for="newPassword">New Password</label>
+            <label for="newPassword">New password</label>
             <input
               id="newPassword"
               type="password"
