@@ -1,6 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { InformationCircle, PlusCircle, MagnifyingGlass, ArrowPath } from '$lib/icons';
+  import { emptyState } from '$lib/ui/components/empty-state';
+  import { toStyleString } from '$lib/ui/style';
   
   export let title: string;
   export let description: string;
@@ -16,6 +18,33 @@
     action: void;
     secondaryAction: void;
   }>();
+
+  const style = toStyleString({
+    '--empty-padding': emptyState.container.padding,
+    '--empty-min-height': emptyState.container.minHeight,
+    '--empty-content-gap': emptyState.content.gap,
+    '--empty-content-max': emptyState.content.maxWidth,
+    '--empty-icon-color': emptyState.icon.color,
+    '--empty-icon-opacity': emptyState.icon.opacity,
+    '--empty-icon-size-sm': emptyState.icon.size.sm,
+    '--empty-icon-size-md': emptyState.icon.size.md,
+    '--empty-icon-size-lg': emptyState.icon.size.lg,
+    '--empty-title-color': emptyState.title.color,
+    '--empty-title-weight': emptyState.title.fontWeight,
+    '--empty-title-size-sm': emptyState.title.size.sm,
+    '--empty-title-size-md': emptyState.title.size.md,
+    '--empty-title-size-lg': emptyState.title.size.lg,
+    '--empty-desc-color': emptyState.description.color,
+    '--empty-desc-line-height': emptyState.description.lineHeight,
+    '--empty-desc-size-sm': emptyState.description.size.sm,
+    '--empty-desc-size-md': emptyState.description.size.md,
+    '--empty-desc-size-lg': emptyState.description.size.lg,
+    '--empty-actions-gap': emptyState.actions.gap,
+    '--empty-illustration-opacity': emptyState.illustration.opacity,
+    '--empty-illustration-sm': emptyState.illustration.maxWidth.sm,
+    '--empty-illustration-md': emptyState.illustration.maxWidth.md,
+    '--empty-illustration-lg': emptyState.illustration.maxWidth.lg
+  });
   
   function getIcon() {
     if (icon === 'custom' && customIcon) return customIcon;
@@ -42,7 +71,7 @@
   }
 </script>
 
-<div class="empty-state {size}" role="region" aria-label="Empty state">
+<div class="empty-state {size}" role="region" aria-label="Empty state" style={style}>
   <div class="empty-content">
     {#if illustration}
       <div class="empty-illustration">
@@ -94,8 +123,8 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 2rem;
-    min-height: 200px;
+    padding: var(--empty-padding, 2rem);
+    min-height: var(--empty-min-height, 200px);
   }
   
   .empty-state.sm {
@@ -112,8 +141,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
-    max-width: 400px;
+    gap: var(--empty-content-gap, 1.5rem);
+    max-width: var(--empty-content-max, 400px);
   }
   
   .empty-state.sm .empty-content {
@@ -127,21 +156,21 @@
   }
   
   .empty-icon {
-    color: var(--text-ink-muted);
-    opacity: 0.6;
+    color: var(--empty-icon-color, var(--text-ink-muted));
+    opacity: var(--empty-icon-opacity, 0.6);
   }
   
   .empty-illustration {
-    max-width: 200px;
-    opacity: 0.8;
+    max-width: var(--empty-illustration-md, 200px);
+    opacity: var(--empty-illustration-opacity, 0.8);
   }
   
   .empty-state.sm .empty-illustration {
-    max-width: 150px;
+    max-width: var(--empty-illustration-sm, 150px);
   }
   
   .empty-state.lg .empty-illustration {
-    max-width: 250px;
+    max-width: var(--empty-illustration-lg, 250px);
   }
   
   .empty-illustration img {
@@ -158,43 +187,43 @@
   
   .empty-title {
     margin: 0;
-    color: var(--text-ink-primary);
-    font-weight: 600;
+    color: var(--empty-title-color, var(--text-ink-primary));
+    font-weight: var(--empty-title-weight, 600);
   }
   
   .empty-state.sm .empty-title {
-    font-size: 1.1rem;
+    font-size: var(--empty-title-size-sm, 1.1rem);
   }
   
   .empty-state.md .empty-title {
-    font-size: 1.25rem;
+    font-size: var(--empty-title-size-md, 1.25rem);
   }
   
   .empty-state.lg .empty-title {
-    font-size: 1.5rem;
+    font-size: var(--empty-title-size-lg, 1.5rem);
   }
   
   .empty-description {
     margin: 0;
-    color: var(--text-ink-muted);
-    line-height: 1.5;
+    color: var(--empty-desc-color, var(--text-ink-muted));
+    line-height: var(--empty-desc-line-height, 1.5);
   }
   
   .empty-state.sm .empty-description {
-    font-size: 0.9rem;
+    font-size: var(--empty-desc-size-sm, 0.9rem);
   }
   
   .empty-state.md .empty-description {
-    font-size: 1rem;
+    font-size: var(--empty-desc-size-md, 1rem);
   }
   
   .empty-state.lg .empty-description {
-    font-size: 1.1rem;
+    font-size: var(--empty-desc-size-lg, 1.1rem);
   }
   
   .empty-actions {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--empty-actions-gap, 0.75rem);
     flex-wrap: wrap;
     justify-content: center;
   }

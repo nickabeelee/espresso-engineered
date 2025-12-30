@@ -6,7 +6,6 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import Chip from '$lib/components/Chip.svelte';
   import BeanRating from '$lib/components/BeanRating.svelte';
-  import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import EditableBagCard from '$lib/components/EditableBagCard.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
@@ -18,7 +17,7 @@
   import { barista } from '$lib/auth';
   import { getBeanPermissions, getBagPermissions } from '$lib/permissions';
   import { XMark, PencilSquare, Trash, CheckCircle, Plus } from '$lib/icons';
-  import type { BeanWithContext, Roaster, Bag, BagWithBarista, Barista as BaristaType, RoastLevel, CreateBeanRequest } from '@shared/types';
+  import type { BeanWithContext, Roaster, BagWithBarista, Barista as BaristaType, RoastLevel, CreateBeanRequest } from '@shared/types';
 
   let bean: BeanWithContext | null = null;
   let roaster: Roaster | null = null;
@@ -281,15 +280,6 @@
     if (beanId) {
       await loadBeanDetails(beanId);
     }
-  }
-
-  async function handleBagStatusUpdated(event: CustomEvent<Bag>) {
-    const updatedBag = event.detail;
-    
-    // Update the bag in the local bags array, preserving barista information
-    bags = bags.map(bag => 
-      bag.id === updatedBag.id ? { ...updatedBag, barista: bag.barista } : bag
-    );
   }
 
   async function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
@@ -593,14 +583,13 @@
                       aria-label="View brew details"
                     >
                       <span class="activity-text">
-                        {activity.barista_display_name} {activity.brew_name || `brew from ${formatDate(activity.created_at)}`}
+                        {activity.brew_name || `brew from ${formatDate(activity.created_at)}`}
                       </span>
                       <span class="activity-date">{formatDate(activity.created_at)}</span>
                     </button>
                   {:else}
                     <div class="activity-content">
                       <span class="activity-text">
-                        {activity.barista_display_name} 
                         {#if activity.activity_type === 'rating'}
                           rated this bean
                         {:else if activity.activity_type === 'bag_created'}

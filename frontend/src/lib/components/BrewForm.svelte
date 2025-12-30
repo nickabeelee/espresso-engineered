@@ -6,6 +6,8 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import { CheckCircle, DocumentDuplicate, XMark } from '$lib/icons';
   import { buildBrewName } from '$lib/utils/brew-naming';
+  import { editableField, formHelperText, formLabel, formSection, readOnlyField } from '$lib/ui/components/form';
+  import { toStyleString } from '$lib/ui/style';
 
   import BeanSelector from './BeanSelector.svelte';
   import BagSelector from './BagSelector.svelte';
@@ -66,6 +68,36 @@
   let loading = false;
   let error: string | null = null;
   let validationErrors: Record<string, string> = {};
+
+  const style = toStyleString({
+    '--form-section-title-color': formSection.title.textColor,
+    '--form-section-title-size': formSection.title.fontSize,
+    '--form-section-title-weight': formSection.title.fontWeight,
+    '--form-section-title-border': formSection.title.borderColor,
+    '--form-section-title-border-width': formSection.title.borderWidth,
+    '--form-label-color': formLabel.textColor,
+    '--form-label-size': formLabel.fontSize,
+    '--form-label-weight': formLabel.fontWeight,
+    '--form-input-padding': editableField.input.padding,
+    '--form-input-font-size': editableField.input.fontSize,
+    '--form-input-border': editableField.input.borderColor,
+    '--form-input-border-width': editableField.input.borderWidth,
+    '--form-input-radius': editableField.input.borderRadius,
+    '--form-input-focus': editableField.input.focusRing,
+    '--form-helper-color': formHelperText.textColor,
+    '--form-helper-size': formHelperText.fontSize,
+    '--form-error-color': editableField.error.textColor,
+    '--form-error-size': editableField.error.fontSize,
+    '--form-readonly-bg': readOnlyField.container.background,
+    '--form-readonly-border': readOnlyField.container.borderColor,
+    '--form-readonly-border-width': readOnlyField.container.borderWidth,
+    '--form-readonly-radius': readOnlyField.container.borderRadius,
+    '--form-readonly-padding': readOnlyField.container.padding,
+    '--form-readonly-label-color': readOnlyField.label.textColor,
+    '--form-readonly-value-color': readOnlyField.value.textColor,
+    '--form-readonly-value-size': readOnlyField.value.fontSize,
+    '--form-readonly-value-weight': readOnlyField.value.fontWeight
+  });
 
   onMount(async () => {
     if (brew) {
@@ -324,7 +356,7 @@
   }
 </script>
 
-<div class="brew-form">
+<div class="brew-form" style={style}>
   {#if error}
     <div class="error-banner">{error}</div>
   {/if}
@@ -636,9 +668,10 @@
 
   .form-section h3 {
     margin: 0;
-    color: var(--text-ink-secondary);
-    font-size: 1.25rem;
-    border-bottom: 1px solid var(--border-subtle);
+    color: var(--form-section-title-color, var(--text-ink-secondary));
+    font-size: var(--form-section-title-size, 1.25rem);
+    font-weight: var(--form-section-title-weight, 500);
+    border-bottom: var(--form-section-title-border-width, 1px) solid var(--form-section-title-border, var(--border-subtle));
     padding-bottom: 0.5rem;
   }
 
@@ -655,17 +688,17 @@
   }
 
   .form-group label {
-    font-weight: 600;
-    color: var(--text-ink-secondary);
-    font-size: 0.95rem;
+    font-weight: var(--form-label-weight, 600);
+    color: var(--form-label-color, var(--text-ink-secondary));
+    font-size: var(--form-label-size, 0.95rem);
   }
 
   .form-group input,
   .form-group textarea {
-    padding: 0.75rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 1rem;
+    padding: var(--form-input-padding, 0.75rem);
+    border: var(--form-input-border-width, 1px) solid var(--form-input-border, var(--border-subtle));
+    border-radius: var(--form-input-radius, var(--radius-sm));
+    font-size: var(--form-input-font-size, 1rem);
     font-family: inherit;
   }
 
@@ -673,7 +706,7 @@
   .form-group textarea:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+    box-shadow: var(--form-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.2));
   }
 
   .form-group input:disabled,
@@ -683,8 +716,8 @@
   }
 
   .form-group small {
-    color: var(--text-ink-muted);
-    font-size: 0.85rem;
+    color: var(--form-helper-color, var(--text-ink-muted));
+    font-size: var(--form-helper-size, 0.85rem);
   }
 
   .voice-text {
@@ -748,17 +781,17 @@
   }
 
   .error-text {
-    color: var(--semantic-error);
-    font-size: 0.85rem;
+    color: var(--form-error-color, var(--semantic-error));
+    font-size: var(--form-error-size, 0.85rem);
   }
 
   .calculated-fields {
     display: flex;
     gap: 2rem;
-    padding: 1rem;
-    background: var(--bg-surface-paper-secondary);
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(123, 94, 58, 0.2);
+    padding: var(--form-readonly-padding, 1rem);
+    background: var(--form-readonly-bg, var(--bg-surface-paper-secondary));
+    border-radius: var(--form-readonly-radius, var(--radius-md));
+    border: var(--form-readonly-border-width, 1px) solid var(--form-readonly-border, rgba(123, 94, 58, 0.2));
   }
 
   .calc-field {
@@ -769,12 +802,13 @@
 
   .calc-field .label {
     font-weight: 600;
-    color: var(--text-ink-secondary);
+    color: var(--form-readonly-label-color, var(--text-ink-secondary));
   }
 
   .calc-field .value {
-    color: var(--text-ink-primary);
-    font-size: 1.1rem;
+    color: var(--form-readonly-value-color, var(--text-ink-primary));
+    font-size: var(--form-readonly-value-size, 1.1rem);
+    font-weight: var(--form-readonly-value-weight, 600);
   }
 
   .form-actions {

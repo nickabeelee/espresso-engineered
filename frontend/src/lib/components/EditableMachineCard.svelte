@@ -7,6 +7,8 @@
   import ImageUpload from '$lib/components/ImageUpload.svelte';
   import Chip from '$lib/components/Chip.svelte';
   import { PencilSquare, CheckCircle, XMark, Plus, Trash } from '$lib/icons';
+  import { editableCard, editableCardVariants } from '$lib/ui/components/editable-card';
+  import { toStyleString } from '$lib/ui/style';
   import { getImageUrl } from '$lib/utils/image-utils';
   import { formatMostUsedBy } from '$lib/utils/usage-stats';
   import type { Machine, CreateMachineRequest, Barista } from '@shared/types';
@@ -38,6 +40,64 @@
 
   $: canEdit = true; // Machines are global, anyone can edit
   $: isAdmin = $barista?.is_admin === true;
+
+  const style = toStyleString({
+    '--editable-card-bg': editableCard.container.background,
+    '--editable-card-border': editableCard.container.borderColor,
+    '--editable-card-border-width': editableCard.container.borderWidth,
+    '--editable-card-border-style': editableCard.container.borderStyle,
+    '--editable-card-radius': editableCard.container.borderRadius,
+    '--editable-card-padding': editableCard.container.padding,
+    '--editable-card-transition': editableCard.container.transition,
+    '--editable-card-edit-border': editableCard.state.editing.borderColor,
+    '--editable-card-edit-shadow': editableCard.state.editing.shadow,
+    '--editable-card-new-border': editableCard.state.newCard.borderColor,
+    '--editable-card-new-border-style': editableCard.state.newCard.borderStyle,
+    '--editable-card-new-bg': editableCard.state.newCard.background,
+    '--editable-card-new-margin': editableCard.state.newCard.marginBottom,
+    '--editable-card-new-edit-border-style': editableCard.state.newEditing.borderStyle,
+    '--editable-card-new-edit-bg': editableCard.state.newEditing.background,
+    '--editable-card-new-edit-margin': editableCard.state.newEditing.marginBottom,
+    '--editable-card-header-gap': editableCard.header.gap,
+    '--editable-card-header-margin': editableCard.header.marginBottom,
+    '--editable-card-title-font': editableCard.title.fontFamily,
+    '--editable-card-title-size': editableCard.title.fontSize,
+    '--editable-card-title-weight': editableCard.title.fontWeight,
+    '--editable-card-title-color': editableCard.title.textColor,
+    '--editable-card-info-font': editableCard.info.fontFamily,
+    '--editable-card-info-size': editableCard.info.fontSize,
+    '--editable-card-info-color': editableCard.info.textColor,
+    '--editable-card-actions-gap': editableCard.actions.gap,
+    '--editable-card-edit-actions-gap': editableCard.actions.editActionsGap,
+    '--editable-card-error-bg': editableCard.error.background,
+    '--editable-card-error-border': editableCard.error.borderColor,
+    '--editable-card-error-color': editableCard.error.textColor,
+    '--editable-card-error-radius': editableCard.error.borderRadius,
+    '--editable-card-error-padding': editableCard.error.padding,
+    '--editable-card-error-font': editableCard.error.fontFamily,
+    '--editable-card-error-size': editableCard.error.fontSize,
+    '--editable-card-grid-gap': editableCard.detailGrid.gap,
+    '--editable-card-detail-min-col': editableCardVariants.standard.detailMinColumnWidth,
+    '--editable-card-label-font': editableCard.detail.label.fontFamily,
+    '--editable-card-label-size': editableCard.detail.label.fontSize,
+    '--editable-card-label-weight': editableCard.detail.label.fontWeight,
+    '--editable-card-label-color': editableCard.detail.label.textColor,
+    '--editable-card-value-font': editableCard.detail.value.fontFamily,
+    '--editable-card-value-size': editableCard.detail.value.fontSize,
+    '--editable-card-value-color': editableCard.detail.value.textColor,
+    '--editable-card-empty-font': editableCard.detail.empty.fontFamily,
+    '--editable-card-empty-style': editableCard.detail.empty.fontStyle,
+    '--editable-card-empty-color': editableCard.detail.empty.textColor,
+    '--editable-card-input-font': editableCard.input.fontFamily,
+    '--editable-card-input-size': editableCard.input.fontSize,
+    '--editable-card-input-color': editableCard.input.textColor,
+    '--editable-card-input-bg': editableCard.input.background,
+    '--editable-card-input-border': editableCard.input.borderColor,
+    '--editable-card-input-border-width': editableCard.input.borderWidth,
+    '--editable-card-input-radius': editableCard.input.borderRadius,
+    '--editable-card-input-padding': editableCard.input.padding,
+    '--editable-card-input-focus': editableCard.input.focusRing
+  });
 
   const commonManufacturers = [
     'La Marzocco',
@@ -220,7 +280,7 @@
   }
 </script>
 
-<div class="machine-card" class:editing={isEditing} class:new-machine={isNewMachine} on:keydown={handleKeydown} role="region" tabindex="-1">
+<div class="machine-card" class:editing={isEditing} class:new-machine={isNewMachine} on:keydown={handleKeydown} role="region" tabindex="-1" style={style}>
   <div class="machine-header">
     <div class="machine-title">
       {#if isNewMachine}
@@ -415,37 +475,37 @@
 
 <style>
   .machine-card {
-    background: var(--bg-surface-paper);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 1rem;
-    transition: border-color var(--motion-fast);
+    background: var(--editable-card-bg, var(--bg-surface-paper));
+    border: var(--editable-card-border-width, 1px) var(--editable-card-border-style, solid) var(--editable-card-border, var(--border-subtle));
+    border-radius: var(--editable-card-radius, var(--radius-md));
+    padding: var(--editable-card-padding, 1rem);
+    transition: var(--editable-card-transition, border-color var(--motion-fast));
   }
 
   .machine-card.editing {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.1);
+    border-color: var(--editable-card-edit-border, var(--accent-primary));
+    box-shadow: var(--editable-card-edit-shadow, 0 0 0 2px rgba(176, 138, 90, 0.1));
   }
 
   .machine-card.new-machine {
-    border-color: var(--accent-primary);
-    border-style: dashed;
-    background: var(--bg-surface-paper-secondary);
-    margin-bottom: 1.5rem;
+    border-color: var(--editable-card-new-border, var(--accent-primary));
+    border-style: var(--editable-card-new-border-style, dashed);
+    background: var(--editable-card-new-bg, var(--bg-surface-paper-secondary));
+    margin-bottom: var(--editable-card-new-margin, 1.5rem);
   }
 
   .machine-card.new-machine.editing {
-    border-style: solid;
-    background: var(--bg-surface-paper);
-    margin-bottom: 1.5rem;
+    border-style: var(--editable-card-new-edit-border-style, solid);
+    background: var(--editable-card-new-edit-bg, var(--bg-surface-paper));
+    margin-bottom: var(--editable-card-new-edit-margin, 1.5rem);
   }
 
   .machine-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
+    gap: var(--editable-card-header-gap, 1rem);
+    margin-bottom: var(--editable-card-header-margin, 0.75rem);
   }
 
   .machine-title {
@@ -455,17 +515,17 @@
 
   .machine-title h4 {
     margin: 0;
-    color: var(--text-ink-primary);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 1rem;
-    font-weight: 500;
+    color: var(--editable-card-title-color, var(--text-ink-primary));
+    font-family: var(--editable-card-title-font, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: var(--editable-card-title-size, 1rem);
+    font-weight: var(--editable-card-title-weight, 500);
     word-wrap: break-word;
   }
 
   .machine-info {
-    color: var(--text-ink-secondary);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 0.8rem;
+    color: var(--editable-card-info-color, var(--text-ink-secondary));
+    font-family: var(--editable-card-info-font, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: var(--editable-card-info-size, 0.8rem);
     margin-top: 0.25rem;
     display: block;
   }
@@ -484,30 +544,30 @@
   .machine-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--editable-card-actions-gap, 0.5rem);
     flex-shrink: 0;
   }
 
   .edit-actions {
     display: flex;
-    gap: 0.25rem;
+    gap: var(--editable-card-edit-actions-gap, 0.25rem);
   }
 
   .error-message {
-    background: rgba(122, 62, 47, 0.1);
-    color: var(--semantic-error);
-    border: 1px solid rgba(122, 62, 47, 0.3);
-    border-radius: var(--radius-sm);
-    padding: 0.5rem 0.75rem;
+    background: var(--editable-card-error-bg, rgba(122, 62, 47, 0.1));
+    color: var(--editable-card-error-color, var(--semantic-error));
+    border: 1px solid var(--editable-card-error-border, rgba(122, 62, 47, 0.3));
+    border-radius: var(--editable-card-error-radius, var(--radius-sm));
+    padding: var(--editable-card-error-padding, 0.5rem 0.75rem);
     margin-bottom: 0.75rem;
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 0.9rem;
+    font-family: var(--editable-card-error-font, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: var(--editable-card-error-size, 0.9rem);
   }
 
   .machine-details {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(var(--editable-card-detail-min-col, 200px), 1fr));
+    gap: var(--editable-card-grid-gap, 0.75rem);
   }
 
   .machine-detail {
@@ -521,29 +581,29 @@
   }
 
   .detail-label {
-    font-weight: 500;
-    color: var(--text-ink-secondary);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 0.8rem;
+    font-weight: var(--editable-card-label-weight, 500);
+    color: var(--editable-card-label-color, var(--text-ink-secondary));
+    font-family: var(--editable-card-label-font, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: var(--editable-card-label-size, 0.8rem);
   }
 
   .detail-value {
-    color: var(--text-ink-primary);
-    font-family: "Libre Baskerville", serif;
-    font-size: 0.9rem;
+    color: var(--editable-card-value-color, var(--text-ink-primary));
+    font-family: var(--editable-card-value-font, "Libre Baskerville", serif);
+    font-size: var(--editable-card-value-size, 0.9rem);
   }
 
   .detail-empty {
-    color: var(--text-ink-muted);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-style: italic;
+    color: var(--editable-card-empty-color, var(--text-ink-muted));
+    font-family: var(--editable-card-empty-font, "IBM Plex Sans", system-ui, sans-serif);
+    font-style: var(--editable-card-empty-style, italic);
   }
 
   .detail-link {
-    color: var(--accent-primary);
+    color: var(--editable-card-edit-border, var(--accent-primary));
     text-decoration: none;
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 0.9rem;
+    font-family: var(--editable-card-input-font, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: var(--editable-card-input-size, 0.9rem);
     transition: color var(--motion-fast);
   }
 
@@ -553,20 +613,20 @@
   }
 
   .detail-input {
-    color: var(--text-ink-primary);
-    font-size: 0.9rem;
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    background: var(--bg-surface-paper);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    padding: 0.4rem 0.6rem;
+    color: var(--editable-card-input-color, var(--text-ink-primary));
+    font-size: var(--editable-card-input-size, 0.9rem);
+    font-family: var(--editable-card-input-font, "IBM Plex Sans", system-ui, sans-serif);
+    background: var(--editable-card-input-bg, var(--bg-surface-paper));
+    border: var(--editable-card-input-border-width, 1px) solid var(--editable-card-input-border, var(--border-subtle));
+    border-radius: var(--editable-card-input-radius, var(--radius-sm));
+    padding: var(--editable-card-input-padding, 0.4rem 0.6rem);
     transition: border-color var(--motion-fast);
   }
 
   .detail-input:focus {
     outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.1);
+    border-color: var(--editable-card-edit-border, var(--accent-primary));
+    box-shadow: var(--editable-card-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.1));
   }
 
   .detail-input:disabled {

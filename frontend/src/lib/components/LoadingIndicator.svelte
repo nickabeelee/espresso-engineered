@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { loadingIndicator } from '$lib/ui/components/status';
+  import { toStyleString } from '$lib/ui/style';
   export let size: 'sm' | 'md' | 'lg' = 'md';
   export let variant: 'spinner' | 'dots' | 'pulse' | 'skeleton' = 'spinner';
   export let message: string | null = null;
@@ -7,6 +9,20 @@
   export let overlay = false;
   
   $: showProgress = progress !== null && progress >= 0 && progress <= 100;
+
+  const style = toStyleString({
+    '--loading-overlay-bg': loadingIndicator.overlay.background,
+    '--loading-overlay-blur': loadingIndicator.overlay.blur,
+    '--loading-card-bg': loadingIndicator.card.background,
+    '--loading-card-radius': loadingIndicator.card.radius,
+    '--loading-card-shadow': loadingIndicator.card.shadow,
+    '--loading-card-padding': loadingIndicator.card.padding,
+    '--loading-spinner-border': loadingIndicator.spinner.border,
+    '--loading-spinner-accent': loadingIndicator.spinner.accent,
+    '--loading-text-color': loadingIndicator.text.color,
+    '--loading-progress-bg': loadingIndicator.progress.background,
+    '--loading-progress-fill': loadingIndicator.progress.fill
+  });
 </script>
 
 <div 
@@ -16,6 +32,7 @@
   role="status"
   aria-live="polite"
   aria-label={message || 'Loading'}
+  style={style}
 >
   {#if overlay}
     <div class="loading-overlay">
@@ -120,11 +137,11 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--loading-overlay-bg, rgba(0, 0, 0, 0.5));
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(var(--loading-overlay-blur, 2px));
   }
   
   .loading-content {
@@ -132,10 +149,10 @@
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem;
-    background: var(--bg-surface-paper);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-soft);
+    padding: var(--loading-card-padding, 1rem);
+    background: var(--loading-card-bg, var(--bg-surface-paper));
+    border-radius: var(--loading-card-radius, var(--radius-md));
+    box-shadow: var(--loading-card-shadow, var(--shadow-soft));
     /* Ensure no transforms are inherited */
     transform: none;
   }
@@ -174,8 +191,8 @@
   
   /* Spinner animation */
   .spinner {
-    border: 2px solid rgba(176, 138, 90, 0.2);
-    border-top: 2px solid var(--accent-primary);
+    border: 2px solid var(--loading-spinner-border, rgba(176, 138, 90, 0.2));
+    border-top: 2px solid var(--loading-spinner-accent, var(--accent-primary));
     border-radius: 50%;
     animation: spin 1s linear infinite;
     /* Isolate the transform to prevent affecting siblings */
@@ -334,7 +351,7 @@
   
   /* Loading message */
   .loading-message {
-    color: var(--text-ink-secondary);
+    color: var(--loading-text-color, var(--text-ink-secondary));
     font-size: 0.9rem;
     text-align: center;
     max-width: 200px;
@@ -362,14 +379,14 @@
   
   .progress-bar {
     height: 4px;
-    background: rgba(176, 138, 90, 0.2);
+    background: var(--loading-progress-bg, rgba(176, 138, 90, 0.2));
     border-radius: 2px;
     overflow: hidden;
   }
   
   .progress-fill {
     height: 100%;
-    background: var(--accent-primary);
+    background: var(--loading-progress-fill, var(--accent-primary));
     border-radius: 2px;
     transition: width 0.3s ease;
   }

@@ -1,5 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { recordCard } from '$lib/ui/components/card';
+  import { toStyleString } from '$lib/ui/style';
 
   export let brew: Brew;
   export let baristaName: string | null = null;
@@ -34,10 +36,48 @@
       goto(`/brews/${brew.id}`);
     }
   }
+
+  const style = toStyleString({
+    '--record-card-bg': recordCard.container.background,
+    '--record-card-border': recordCard.container.borderColor,
+    '--record-card-border-width': recordCard.container.borderWidth,
+    '--record-card-border-style': recordCard.container.borderStyle,
+    '--record-card-radius': recordCard.container.borderRadius,
+    '--record-card-padding': recordCard.container.padding,
+    '--record-card-hover-shadow': recordCard.container.hover.shadow,
+    '--record-card-hover-border': recordCard.container.hover.borderColor,
+    '--record-card-focus-width': recordCard.container.focusRing.width,
+    '--record-card-focus-color': recordCard.container.focusRing.color,
+    '--record-card-focus-offset': recordCard.container.focusRing.offset,
+    '--record-card-header-gap': recordCard.header.gap,
+    '--record-card-header-margin': recordCard.header.marginBottom,
+    '--record-card-title-size': recordCard.title.fontSize,
+    '--record-card-title-color': recordCard.title.textColor,
+    '--record-card-meta-size': recordCard.meta.fontSize,
+    '--record-card-meta-color': recordCard.meta.textColor,
+    '--record-card-detail-grid-gap': recordCard.detailGrid.gap,
+    '--record-card-detail-grid-margin': recordCard.detailGrid.marginBottom,
+    '--record-card-detail-min-col': recordCard.detailGrid.minColumnWidth,
+    '--record-card-detail-label-size': recordCard.detailLabel.fontSize,
+    '--record-card-detail-label-color': recordCard.detailLabel.textColor,
+    '--record-card-detail-label-weight': recordCard.detailLabel.fontWeight,
+    '--record-card-detail-value-color': recordCard.detailValue.textColor,
+    '--record-card-detail-value-weight': recordCard.detailValue.fontWeight,
+    '--record-card-detail-value-font': recordCard.detailValue.fontFamily,
+    '--record-card-notes-bg': recordCard.notes.background,
+    '--record-card-notes-border': recordCard.notes.borderColor,
+    '--record-card-notes-border-width': recordCard.notes.borderWidth,
+    '--record-card-notes-radius': recordCard.notes.borderRadius,
+    '--record-card-notes-padding': recordCard.notes.padding,
+    '--record-card-notes-color': recordCard.notes.textColor,
+    '--record-card-notes-size': recordCard.notes.fontSize,
+    '--record-card-notes-line-height': recordCard.notes.lineHeight
+  });
 </script>
 
 <article
   class="brew-card"
+  style={style}
   role="link"
   tabindex="0"
   aria-label={`View ${getBrewTitle(brew)}`}
@@ -85,13 +125,6 @@
       </div>
     {/if}
 
-    {#if brew.yield_g}
-      <div class="detail-row">
-        <span class="label">Yield:</span>
-        <span class="value">{brew.yield_g.toFixed(1)}g</span>
-      </div>
-    {/if}
-
     {#if brew.ratio}
       <div class="detail-row">
         <span class="label">Ratio:</span>
@@ -132,29 +165,29 @@
 
 <style>
   .brew-card {
-    background: var(--bg-surface-paper);
-    border: 1px solid rgba(123, 94, 58, 0.2);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
+    background: var(--record-card-bg, var(--bg-surface-paper));
+    border: var(--record-card-border-width, 1px) var(--record-card-border-style, solid) var(--record-card-border, rgba(123, 94, 58, 0.2));
+    border-radius: var(--record-card-radius, var(--radius-md));
+    padding: var(--record-card-padding, 1.5rem);
     transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
     cursor: pointer;
   }
 
   .brew-card:hover {
-    box-shadow: var(--shadow-soft);
-    border-color: var(--accent-primary);
+    box-shadow: var(--record-card-hover-shadow, var(--shadow-soft));
+    border-color: var(--record-card-hover-border, var(--accent-primary));
   }
 
   .brew-card:focus-visible {
-    outline: 2px solid rgba(176, 138, 90, 0.4);
-    outline-offset: 2px;
+    outline: var(--record-card-focus-width, 2px) solid var(--record-card-focus-color, rgba(176, 138, 90, 0.4));
+    outline-offset: var(--record-card-focus-offset, 2px);
   }
 
   .brew-header {
     display: flex;
     flex-direction: column;
-    margin-bottom: 0.75rem;
-    gap: 0.75rem;
+    margin-bottom: var(--record-card-header-margin, 0.75rem);
+    gap: var(--record-card-header-gap, 0.75rem);
   }
 
   .brew-heading {
@@ -165,16 +198,16 @@
 
   .brew-title {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: var(--record-card-title-size, 1.05rem);
   }
 
   .brew-title {
-    color: var(--text-ink-primary);
+    color: var(--record-card-title-color, var(--text-ink-primary));
   }
 
   .brew-date {
-    color: var(--text-ink-muted);
-    font-size: 0.9rem;
+    color: var(--record-card-meta-color, var(--text-ink-muted));
+    font-size: var(--record-card-meta-size, 0.9rem);
   }
 
   .brew-chips {
@@ -237,9 +270,9 @@
 
   .brew-details {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 0.5rem 1.25rem;
-    margin-bottom: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(var(--record-card-detail-min-col, 120px), 1fr));
+    gap: var(--record-card-detail-grid-gap, 0.5rem 1.25rem);
+    margin-bottom: var(--record-card-detail-grid-margin, 1rem);
   }
 
   .detail-row {
@@ -254,14 +287,15 @@
   }
 
   .detail-row .label {
-    font-weight: 500;
-    color: var(--text-ink-secondary);
-    font-size: 0.9rem;
+    font-weight: var(--record-card-detail-label-weight, 500);
+    color: var(--record-card-detail-label-color, var(--text-ink-secondary));
+    font-size: var(--record-card-detail-label-size, 0.9rem);
   }
 
   .detail-row .value {
-    color: var(--text-ink-primary);
-    font-weight: 600;
+    color: var(--record-card-detail-value-color, var(--text-ink-primary));
+    font-weight: var(--record-card-detail-value-weight, 600);
+    font-family: var(--record-card-detail-value-font, inherit);
   }
 
   .value.rating {
@@ -281,17 +315,17 @@
 
   .brew-notes {
     margin-bottom: 0;
-    padding: 0.75rem;
-    background: rgba(123, 94, 58, 0.08);
-    border-radius: var(--radius-sm);
-    border-left: 3px solid var(--accent-primary);
+    padding: var(--record-card-notes-padding, 0.75rem);
+    background: var(--record-card-notes-bg, rgba(123, 94, 58, 0.08));
+    border-radius: var(--record-card-notes-radius, var(--radius-sm));
+    border-left: var(--record-card-notes-border-width, 3px) solid var(--record-card-notes-border, var(--accent-primary));
   }
 
   .notes-preview {
     margin: 0;
-    color: var(--text-ink-secondary);
-    font-size: 0.9rem;
-    line-height: 1.4;
+    color: var(--record-card-notes-color, var(--text-ink-secondary));
+    font-size: var(--record-card-notes-size, 0.9rem);
+    line-height: var(--record-card-notes-line-height, 1.4);
     font-style: italic;
   }
 

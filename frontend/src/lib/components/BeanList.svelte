@@ -8,27 +8,35 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { ArrowPath, MagnifyingGlass } from '$lib/icons';
+  import { recordListShell } from '$lib/ui/components/card';
+  import { toStyleString } from '$lib/ui/style';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
   import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
   import { AppError, debounce } from '$lib/utils/error-handling';
   import { NetworkMonitor } from '$lib/utils/enhanced-api-client';
-  import type { BeanWithContext, Roaster, BeanFilters, PaginationParams, RoastLevel } from '@shared/types';
+  import type { BeanWithContext, BeanFilters, PaginationParams, RoastLevel } from '@shared/types';
 
   export let limit = 20;
 
   let beans: BeanWithContext[] = [];
-  let roasters: Roaster[] = [];
   let error: AppError | null = null;
-  let roasterError: AppError | null = null;
   let hasMore = false;
   let currentPage = 1;
   let isOnline = true;
 
   // Filter state
   let searchTerm = '';
-  let selectedRoaster = '';
   let selectedRoastLevel: RoastLevel | null = null;
   let myBeansOnly = false;
+
+  const gridShellStyle = toStyleString({
+    '--record-list-bg': recordListShell.background,
+    '--record-list-border': recordListShell.borderColor,
+    '--record-list-border-width': recordListShell.borderWidth,
+    '--record-list-border-style': recordListShell.borderStyle,
+    '--record-list-radius': recordListShell.borderRadius,
+    '--record-list-padding': recordListShell.padding
+  });
 
   // Loading states
   $: isLoading = globalLoadingManager.isLoading(LoadingKeys.BEANS_LIST);
@@ -41,7 +49,6 @@
 
   onMount(() => {
     loadBeans();
-    loadRoasters();
     
     // Monitor network status
     const unsubscribeNetwork = NetworkMonitor.addListener((online) => {
@@ -61,7 +68,6 @@
 
       const filters: BeanFilters = {
         ...(searchTerm && { search: searchTerm }),
-        ...(selectedRoaster && { roaster_id: selectedRoaster }),
         ...(selectedRoastLevel && { roast_level: selectedRoastLevel }),
         ...(myBeansOnly && { my_beans: true })
       };
@@ -93,21 +99,6 @@
     }
   }
 
-  async function loadRoasters() {
-    try {
-      roasterError = null;
-      const response = await enhancedApiClient.getRoasters();
-      roasters = response.data;
-    } catch (err) {
-      roasterError = err instanceof AppError ? err : new AppError(
-        'Failed to load roasters',
-        { operation: 'load', entityType: 'roasters', retryable: true },
-        err as Error
-      );
-      // Don't block the main interface if roasters fail to load
-      roasters = [];
-    }
-  }
 
   function loadMore() {
     if (!$isLoading && hasMore) {
@@ -123,10 +114,6 @@
   // Export function for parent components
   export { refreshBeans };
 
-  function refreshRoasters() {
-    roasterError = null;
-    loadRoasters();
-  }
 
   function applyFilters() {
     currentPage = 1;
@@ -136,7 +123,6 @@
 
   function clearFilters() {
     searchTerm = '';
-    selectedRoaster = '';
     selectedRoastLevel = null;
     myBeansOnly = false;
     applyFilters();
@@ -160,20 +146,14 @@
     refreshBeans();
   }
 
-  function handleRetryRoasters() {
-    refreshRoasters();
-  }
-
   function handleDismissError() {
     error = null;
   }
 
-  function handleDismissRoasterError() {
-    roasterError = null;
-  }
-
-  $: roastersById = roasters.reduce<Record<string, Roaster>>((acc, roaster) => {
-    acc[roaster.id] = roaster;
+  $: roastersById = beans.reduce<Record<string, BeanWithContext['roaster']>>((acc, bean) => {
+    if (bean.roaster) {
+      acc[bean.roaster.id] = bean.roaster;
+    }
     return acc;
   }, {});
 </script>
@@ -188,6 +168,7 @@
             <MagnifyingGlass size={18} />
           </span>
           <input
+            id="bean-search"
             type="text"
             bind:value={searchTerm}
             on:input={handleSearchInput}
@@ -199,17 +180,6 @@
       </div>
 
       <div class="filter-group">
-        <label for="roaster-filter">Roaster</label>
-        <select id="roaster-filter" bind:value={selectedRoaster} on:change={applyFilters} class="filter-select" disabled={!isOnline}>
-          <option value="">All roasters</option>
-          {#each roasters as roaster}
-            <option value={roaster.id}>{roaster.name}</option>
-          {/each}
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label for="roast-level-filter">Roast Level</label>
         <div class="roast-level-filter">
           <RoastLevel
             value={selectedRoastLevel}
@@ -230,9 +200,6 @@
               ×
             </button>
           {/if}
-          <span class="roast-level-hint">
-            {selectedRoastLevel || 'All levels'}
-          </span>
         </div>
       </div>
 
@@ -265,17 +232,6 @@
   {/if}
 
   <!-- Roaster Loading Error (Non-blocking) -->
-  {#if roasterError}
-    <ErrorDisplay
-      error={roasterError}
-      variant="inline"
-      size="sm"
-      context="roaster loading"
-      on:retry={handleRetryRoasters}
-      on:dismiss={handleDismissRoasterError}
-    />
-  {/if}
-
   <!-- Results Summary -->
   <div class="results-header">
     <div class="results-summary">
@@ -322,7 +278,7 @@
         actionLabel="Browse All Beans"
         on:action={() => { myBeansOnly = false; applyFilters(); }}
       />
-    {:else if searchTerm || selectedRoaster || selectedRoastLevel}
+    {:else if searchTerm || selectedRoastLevel}
       <EmptyState
         title="No beans match your filters"
         description="Try adjusting your search or filter criteria to find what you're looking for."
@@ -345,14 +301,11 @@
 
   <!-- Bean Cards -->
   {#if beans.length > 0}
-    <div class="bean-grid-shell">
+    <div class="bean-grid-shell" style={gridShellStyle}>
       <div class="bean-grid">
         {#each beans as bean (bean.id)}
-          {@const roasterRecord = roastersById[bean.roaster_id]}
-          <BeanCard 
-            {bean} 
-            roaster={roasterRecord} 
-          />
+          {@const roasterRecord = roastersById[bean.roaster_id] ?? bean.roaster ?? null}
+          <BeanCard {bean} roaster={roasterRecord} />
         {/each}
       </div>
     </div>
@@ -384,6 +337,7 @@
     background: var(--bg-surface-paper-secondary);
     border: 1px solid rgba(123, 94, 58, 0.2);
     border-radius: var(--radius-md);
+    --filter-control-height: 2.75rem;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
   }
@@ -391,13 +345,15 @@
   .filter-row {
     display: flex;
     gap: 1rem;
-    align-items: end;
+    align-items: flex-end;
     flex-wrap: wrap;
   }
 
   .search-group {
     flex: 1;
     min-width: 200px;
+    display: flex;
+    flex-direction: column;
   }
 
   .search-field {
@@ -421,6 +377,7 @@
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
     font-size: 1rem;
+    min-height: var(--filter-control-height);
   }
 
   .search-input:focus {
@@ -432,32 +389,15 @@
   .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
   }
 
-  .filter-group label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-ink-secondary);
-  }
-
-  .filter-select {
-    padding: 0.5rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    min-width: 120px;
-  }
-
-  .filter-select:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.2);
+  .filters .btn-secondary {
+    min-height: var(--filter-control-height);
   }
 
   .roast-level-filter {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem;
@@ -466,6 +406,7 @@
     background: var(--bg-surface-paper);
     min-width: 120px;
     position: relative;
+    min-height: var(--filter-control-height);
   }
 
   .roast-level-filter:focus-within {
@@ -503,13 +444,6 @@
     cursor: not-allowed;
   }
 
-  .roast-level-hint {
-    font-size: 0.75rem;
-    color: var(--text-ink-muted);
-    text-align: center;
-    font-weight: 500;
-  }
-
   .quick-toggle {
     display: inline-flex;
     align-items: center;
@@ -519,7 +453,7 @@
     color: var(--text-ink-secondary);
     cursor: pointer;
     user-select: none;
-    margin-top: 1.2rem;
+    min-height: var(--filter-control-height);
   }
 
   .quick-toggle input {
@@ -618,10 +552,10 @@
   }
 
   .bean-grid-shell {
-    background: var(--bg-surface-paper-secondary);
-    border: 1px solid rgba(123, 94, 58, 0.2);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
+    background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
+    border-radius: var(--record-list-radius, var(--radius-md));
+    padding: var(--record-list-padding, 1.5rem);
   }
 
   .load-more,

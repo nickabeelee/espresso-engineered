@@ -403,14 +403,22 @@ textarea:disabled {
 }
 
 .icon-button {
-  min-width: 40px;
-  min-height: 40px;
-  padding: 0.45rem;
+  min-width: var(--icon-button-min-width, 40px);
+  min-height: var(--icon-button-min-height, 40px);
+  padding: var(--icon-button-padding, 0.45rem);
+  gap: var(--icon-button-gap, 0.5rem);
+  border-width: var(--icon-button-border-width, 1px);
+  border-style: var(--icon-button-border-style, solid);
+  border-radius: var(--icon-button-border-radius, 10px);
+  font-family: var(--icon-button-font-family, "IBM Plex Sans", system-ui, -apple-system, sans-serif);
+  font-size: var(--icon-button-font-size, 0.95rem);
+  line-height: var(--icon-button-line-height, 1.5);
+  transition: var(--icon-button-transition, background 120ms ease, border-color 120ms ease);
 }
 
 .icon-button svg {
-  width: 18px;
-  height: 18px;
+  width: var(--icon-button-icon-size, 18px);
+  height: var(--icon-button-icon-size, 18px);
 }
 
 .icon-button--accent {
