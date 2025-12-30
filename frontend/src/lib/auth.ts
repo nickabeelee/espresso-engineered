@@ -308,8 +308,13 @@ class AuthService {
   }
 
   async resetPassword(email: string) {
+    // In development, always use localhost. In production, let Supabase use the Site URL
+    const redirectTo = isDev 
+      ? 'http://localhost:5173/auth/new-password'
+      : getAuthRedirectUrl('/auth/new-password');
+      
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: getAuthRedirectUrl('/auth/new-password')
+      redirectTo
     });
     
     if (error) {

@@ -21,13 +21,26 @@
     const token = getToken();
     const type = getType();
 
+    status = 'verifying';
+
+    const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      status = 'error';
+      errorMessage = sessionError.message || 'Unable to read recovery session.';
+      return;
+    }
+
+    if (existingSession) {
+      status = 'ready';
+      return;
+    }
+
     if (!token) {
       status = 'error';
       errorMessage = 'Missing recovery token. Please request a new reset email.';
       return;
     }
 
-    status = 'verifying';
     const { error } = await supabase.auth.verifyOtp({
       token_hash: token,
       type
