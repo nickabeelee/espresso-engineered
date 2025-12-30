@@ -6,11 +6,7 @@ import type { Barista } from '@shared/types';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'profile_missing' | 'error';
 
-const rawAuthRedirectBaseUrl = import.meta.env.VITE_AUTH_REDIRECT_BASE_URL
-  || import.meta.env.VITE_BACKEND_BASE_URL
-  || (import.meta.env.VITE_API_BASE_URL
-    ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '')
-    : '');
+const rawAuthRedirectBaseUrl = import.meta.env.VITE_AUTH_REDIRECT_BASE_URL || '';
 
 function getAuthRedirectUrl(path: string) {
   if (rawAuthRedirectBaseUrl) {
