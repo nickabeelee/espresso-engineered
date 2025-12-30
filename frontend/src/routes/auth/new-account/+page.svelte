@@ -3,17 +3,35 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { supabase } from '$lib/supabase';
+  import { authService, authStatus } from '$lib/auth';
 
   let status: 'idle' | 'verifying' | 'success' | 'error' = 'idle';
   let errorMessage: string | null = null;
+  let redirecting = false;
+  let returnTo = '/brews';
 
   const getToken = () => $page.url.searchParams.get('token_hash')
     || $page.url.searchParams.get('token')
     || '';
 
   const getType = () => $page.url.searchParams.get('type') || 'signup';
+  const normalizeReturnTo = (value: string | null) => (value && value.startsWith('/') ? value : '/brews');
+  $: returnTo = normalizeReturnTo($page.url.searchParams.get('returnTo'));
+
+  const redirectToDestination = async () => {
+    if (redirecting) return;
+    redirecting = true;
+    await goto(returnTo);
+  };
 
   onMount(async () => {
+    await authService.initialize();
+
+    if ($authStatus === 'authenticated') {
+      await redirectToDestination();
+      return;
+    }
+
     const token = getToken();
     const type = getType();
 
@@ -36,7 +54,22 @@
     }
 
     status = 'success';
+    if ($authStatus === 'authenticated') {
+      await redirectToDestination();
+    }
   });
+
+  $: if (status === 'success' && $authStatus === 'authenticated') {
+    redirectToDestination();
+  }
+
+  function handleContinue() {
+    if ($authStatus === 'authenticated') {
+      goto(returnTo);
+      return;
+    }
+    goto('/auth');
+  }
 </script>
 
 <svelte:head>
@@ -57,10 +90,15 @@
         <p class="auth-status">Confirming your email...</p>
       {:else if status === 'success'}
         <div class="notice success">
-          Your account is confirmed. You can sign in and start logging brews.
+          Your account is confirmed.
+          {#if $authStatus === 'authenticated'}
+            Taking you to your workspace now.
+          {:else}
+            If you're not redirected, continue to sign in.
+          {/if}
         </div>
-        <button class="btn-primary auth-submit" type="button" on:click={() => goto('/auth')}>
-          Continue to sign in
+        <button class="btn-primary auth-submit" type="button" on:click={handleContinue}>
+          {$authStatus === 'authenticated' ? 'Continue to Espresso Engineered' : 'Continue to sign in'}
         </button>
       {:else if status === 'error'}
         <div class="notice error">{errorMessage}</div>
