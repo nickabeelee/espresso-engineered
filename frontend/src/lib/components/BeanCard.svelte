@@ -120,13 +120,15 @@
       </div>
     </div>
     <div class="bean-heading">
-      <h3 class="bean-title">{bean.name}</h3>
-      <div class="bean-meta">
+      <div class="bean-title-row">
+        <h3 class="bean-title">{bean.name}</h3>
         {#if bean.roast_level}
           <div class="roast-level-container">
             <RoastLevel value={bean.roast_level} size="small" />
           </div>
         {/if}
+      </div>
+      <div class="bean-meta">
         {#if bean.country_of_origin}
           <span class="origin">{bean.country_of_origin}</span>
         {/if}
@@ -136,19 +138,23 @@
 
   <div class="bean-details">
     {#if bean.personal_rating}
-      <div class="detail-row">
+      <div class="detail-row rating-row">
         <span class="label">My Rating:</span>
         <span class="value rating personal">
           {renderStars(bean.personal_rating)}
           <span class="rating-number">({bean.personal_rating}/5)</span>
         </span>
       </div>
-    {:else if bean.average_rating}
-      <div class="detail-row">
+    {/if}
+    {#if bean.average_rating}
+      <div class="detail-row rating-row">
         <span class="label">Community:</span>
         <span class="value rating community">
           {renderStars(bean.average_rating)}
           <span class="rating-number">({bean.average_rating.toFixed(1)}/5)</span>
+          {#if bean.rating_count > 0}
+            <span class="rating-count">{bean.rating_count}</span>
+          {/if}
         </span>
       </div>
     {/if}
@@ -165,12 +171,6 @@
       </div>
     {/if}
 
-    {#if bean.rating_count > 0}
-      <div class="detail-row">
-        <span class="label">Ratings:</span>
-        <span class="value">{bean.rating_count}</span>
-      </div>
-    {/if}
   </div>
 
   {#if bean.tasting_notes}
@@ -227,6 +227,13 @@
     gap: 0.25rem;
   }
 
+  .bean-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
   .bean-title {
     margin: 0;
     font-size: var(--record-card-title-size, 1.05rem);
@@ -244,6 +251,7 @@
   .roast-level-container {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
   }
 
   .origin {
@@ -280,6 +288,18 @@
     gap: 0.5rem;
   }
 
+  .detail-row.rating-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 7rem) 1fr;
+    column-gap: 0.35rem;
+    align-items: center;
+  }
+
+  .detail-row.rating-row .value {
+    justify-self: start;
+  }
+
   .detail-row .label {
     font-weight: var(--record-card-detail-label-weight, 500);
     color: var(--record-card-detail-label-color, var(--text-ink-secondary));
@@ -312,6 +332,12 @@
     font-weight: normal;
     font-size: 0.8rem;
     margin-left: 0;
+  }
+
+  .rating-count {
+    color: var(--text-ink-muted);
+    font-weight: normal;
+    font-size: 0.75rem;
   }
 
   .bean-notes {
@@ -358,6 +384,11 @@
     .bean-meta {
       flex-direction: column;
       gap: 0.25rem;
+    }
+
+    .bean-title-row {
+      align-items: flex-start;
+      flex-direction: column;
     }
   }
 </style>
