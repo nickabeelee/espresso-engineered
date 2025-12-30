@@ -61,6 +61,7 @@
     if (!editable) return;
     
     const newValue = beanPositionToRoastLevel[beanIndex];
+    value = newValue;
     draftValue = newValue;
     
     // Call onChange prop if provided
