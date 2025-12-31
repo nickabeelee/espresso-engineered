@@ -45,8 +45,8 @@ describe('Image Upload Utils', () => {
       const filename2 = generateImageFilename('test.jpg', 'grinder');
       
       expect(filename1).not.toBe(filename2);
-      expect(filename1).toMatch(/^[a-f0-9-]+\.jpg$/);
-      expect(filename2).toMatch(/^[a-f0-9-]+\.jpg$/);
+      expect(filename1).toMatch(/^grinder\/[a-f0-9-]+\.jpg$/);
+      expect(filename2).toMatch(/^grinder\/[a-f0-9-]+\.jpg$/);
     });
 
     it('should generate unique filenames for machines', () => {
@@ -54,8 +54,8 @@ describe('Image Upload Utils', () => {
       const filename2 = generateImageFilename('test.png', 'machine');
       
       expect(filename1).not.toBe(filename2);
-      expect(filename1).toMatch(/^[a-f0-9-]+\.png$/);
-      expect(filename2).toMatch(/^[a-f0-9-]+\.png$/);
+      expect(filename1).toMatch(/^machine\/[a-f0-9-]+\.png$/);
+      expect(filename2).toMatch(/^machine\/[a-f0-9-]+\.png$/);
     });
 
     it('should preserve file extensions', () => {

@@ -5,6 +5,7 @@
   import { CheckCircle, XMark } from '$lib/icons';
   import { inlineCreator } from '$lib/ui/components/inline-creator';
   import { toStyleString } from '$lib/ui/style';
+  import { getImageUrl } from '$lib/utils/image-utils';
 
   import ImageUpload from './ImageUpload.svelte';
 
@@ -70,8 +71,8 @@
     if (user_manual_link && !isValidUrl(user_manual_link)) {
       validationErrors.user_manual_link = 'Please enter a valid URL';
     }
-    if (image_path && !isValidUrl(image_path)) {
-      validationErrors.image_path = 'Please enter a valid URL';
+    if (image_path && !isValidImagePath(image_path)) {
+      validationErrors.image_path = 'Please enter a valid URL or image path';
     }
 
     return Object.keys(validationErrors).length === 0;
@@ -84,6 +85,12 @@
     } catch (_) {
       return false;
     }
+  }
+
+  function isValidImagePath(value: string): boolean {
+    if (!value) return true;
+    if (isValidUrl(value)) return true;
+    return !/\s/.test(value);
   }
 
   async function handleSubmit() {
@@ -123,8 +130,8 @@
     dispatch('cancel');
   }
 
-  function handleImageUpload(event: CustomEvent<{ file: File; imageUrl: string }>) {
-    image_path = event.detail.imageUrl;
+  function handleImageUpload(event: CustomEvent<{ file: File; imageUrl: string; imagePath: string }>) {
+    image_path = event.detail.imagePath;
     // Clear any previous image validation errors
     delete validationErrors.image_path;
     validationErrors = { ...validationErrors };
@@ -274,7 +281,7 @@
           {/if}
           {#if image_path}
             <div class="preview-image">
-              <img src={image_path} alt="{manufacturer} {model}" loading="lazy" />
+              <img src={getImageUrl(image_path, 'machine')} alt="{manufacturer} {model}" loading="lazy" />
             </div>
           {/if}
         </div>

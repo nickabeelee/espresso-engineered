@@ -207,6 +207,7 @@ export async function grinderRoutes(fastify: FastifyInstance) {
 
       return {
         data: mapGrinderToApi(updatedGrinder),
+        image_path: uploadResult.path,
         image_url: uploadResult.publicUrl
       };
     } catch (error) {

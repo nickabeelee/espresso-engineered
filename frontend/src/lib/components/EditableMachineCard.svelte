@@ -250,8 +250,8 @@
     }
   }
 
-  function handleImageUpload(event: CustomEvent<{ file: File; imageUrl: string }>) {
-    formData.image_path = event.detail.imageUrl;
+  function handleImageUpload(event: CustomEvent<{ file: File; imageUrl: string; imagePath: string }>) {
+    formData.image_path = event.detail.imagePath;
   }
 
   function handleImageDelete() {
@@ -451,7 +451,7 @@
       <div class="machine-detail image-detail">
         <span class="detail-label">Image</span>
         <img 
-          src={getImageUrl(machine.image_path)} 
+          src={getImageUrl(machine.image_path, 'machine')} 
           alt="{machine.manufacturer} {machine.model}"
           class="machine-image"
         />
