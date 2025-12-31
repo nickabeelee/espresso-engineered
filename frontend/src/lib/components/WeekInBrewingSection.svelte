@@ -48,19 +48,13 @@
       loading = true;
       error = null;
 
-      const params = new URLSearchParams();
+      const params: any = {};
       if (weekStart) {
-        params.append('week_start', weekStart.toISOString());
+        params.week_start = weekStart.toISOString();
       }
 
-      const response = await apiClient.get(`/api/brews/week?${params.toString()}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        brewGroups = data.data || [];
-      } else {
-        throw new Error('Failed to load week brews');
-      }
+      const response = await apiClient.getWeekBrews(params);
+      brewGroups = response.data || [];
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load week brews';
       console.error('Error loading week brews:', err);

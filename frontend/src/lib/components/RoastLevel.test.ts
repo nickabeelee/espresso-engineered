@@ -7,8 +7,8 @@ describe('RoastLevel Component', () => {
   it('renders 5 coffee bean icons', () => {
     render(RoastLevel, { props: { value: 'Medium' } });
     
-    // Should render 5 buttons (one for each bean)
-    const beanButtons = screen.getAllByRole('button');
+    // Should render 5 radio buttons (one for each bean)
+    const beanButtons = screen.getAllByRole('radio');
     expect(beanButtons).toHaveLength(5);
   });
 
@@ -59,20 +59,20 @@ describe('RoastLevel Component', () => {
   it('displays text label when showLabel is true', () => {
     render(RoastLevel, { props: { value: 'Medium Light', showLabel: true } });
     
-    expect(screen.getByText('Medium Light')).toBeInTheDocument();
+    expect(screen.getByText('(Medium Light)')).toBeInTheDocument();
   });
 
   it('does not display text label when showLabel is false', () => {
     render(RoastLevel, { props: { value: 'Medium Light', showLabel: false } });
     
-    expect(screen.queryByText('Medium Light')).not.toBeInTheDocument();
+    expect(screen.queryByText('(Medium Light)')).not.toBeInTheDocument();
   });
 
   it('has proper accessibility attributes', () => {
     render(RoastLevel, { props: { value: 'Medium' } });
     
-    // Should have proper ARIA label
-    const component = screen.getByRole('img');
+    // Should have proper ARIA label on the radiogroup
+    const component = screen.getByRole('radiogroup');
     expect(component).toHaveAttribute('aria-label', 'Roast level: Medium');
     expect(component).toHaveAttribute('title', 'Medium');
   });
@@ -80,34 +80,34 @@ describe('RoastLevel Component', () => {
   it('is not focusable when not editable', () => {
     render(RoastLevel, { props: { value: 'Medium', editable: false } });
     
-    const component = screen.getByRole('img');
-    expect(component).toHaveAttribute('tabindex', '-1');
+    const component = screen.getByRole('radiogroup');
+    expect(component).not.toHaveAttribute('tabindex');
   });
 
   it('is focusable when editable', () => {
     render(RoastLevel, { props: { value: 'Medium', editable: true } });
     
-    const component = screen.getByRole('slider');
+    const component = screen.getByRole('radiogroup');
     expect(component).toHaveAttribute('tabindex', '0');
   });
 
   // Interactive editing functionality tests
   it('responds to hover events in editable mode', async () => {
     let changeEventFired = false;
-    let changeValue: RoastLevel | null = null;
+    let changeValue: RoastLevelType | null = null;
     
     const { component } = render(RoastLevel, { 
       props: { 
         value: 'Light', 
         editable: true,
-        onChange: (value: RoastLevel) => {
+        onChange: (value: RoastLevelType) => {
           changeEventFired = true;
           changeValue = value;
         }
       } 
     });
     
-    const beanButtons = screen.getAllByRole('button');
+    const beanButtons = screen.getAllByRole('radio');
     
     // Click on the third bean (Medium roast) to test interaction
     await fireEvent.click(beanButtons[2]);
@@ -121,7 +121,7 @@ describe('RoastLevel Component', () => {
     const onChange = vi.fn();
     render(RoastLevel, { props: { value: 'Light', editable: true, onChange } });
     
-    const beanButtons = screen.getAllByRole('button');
+    const beanButtons = screen.getAllByRole('radio');
     
     // Click on the fourth bean (Medium Dark roast)
     await fireEvent.click(beanButtons[3]);
@@ -135,7 +135,7 @@ describe('RoastLevel Component', () => {
     const onChange = vi.fn();
     render(RoastLevel, { props: { value: 'Light', editable: true, onChange } });
     
-    const beanButtons = screen.getAllByRole('button');
+    const beanButtons = screen.getAllByRole('radio');
     
     // Click on the fourth bean (Medium Dark roast)
     await fireEvent.click(beanButtons[3]);
@@ -148,7 +148,7 @@ describe('RoastLevel Component', () => {
     const onChange = vi.fn();
     const { container } = render(RoastLevel, { props: { value: 'Light', editable: false, onChange } });
     
-    const beanButtons = screen.getAllByRole('button');
+    const beanButtons = screen.getAllByRole('radio');
     
     // Try to hover and click
     await fireEvent.mouseEnter(beanButtons[2]);

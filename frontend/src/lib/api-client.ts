@@ -169,6 +169,53 @@ class ApiClient {
     return this.makeRequest<ApiResponse<PrefillData>>('/brews/prefill');
   }
 
+  async getWeekBrews(params?: { week_start?: string }): Promise<{
+    data: Array<{
+      barista: {
+        id: string;
+        display_name: string;
+      };
+      bean: {
+        id: string;
+        name: string;
+        roast_level: string;
+        roaster: {
+          id: string;
+          name: string;
+        };
+      };
+      brews: Brew[];
+      stackDepth: number;
+    }>;
+    week_start: string;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.week_start) searchParams.append('week_start', params.week_start);
+    
+    const queryString = searchParams.toString();
+    const url = queryString ? `/brews/week?${queryString}` : '/brews/week';
+    return this.makeRequest<{
+      data: Array<{
+        barista: {
+          id: string;
+          display_name: string;
+        };
+        bean: {
+          id: string;
+          name: string;
+          roast_level: string;
+          roaster: {
+            id: string;
+            name: string;
+          };
+        };
+        brews: Brew[];
+        stackDepth: number;
+      }>;
+      week_start: string;
+    }>(url);
+  }
+
   async getDraftBrews(): Promise<ListResponse<Brew>> {
     return this.makeRequest<ListResponse<Brew>>('/brews/drafts');
   }
@@ -258,6 +305,49 @@ class ApiClient {
 
   async getBagInventory(): Promise<ListResponse<Bag> & { current_week_start: string }> {
     return this.makeRequest<ListResponse<Bag> & { current_week_start: string }>('/bags/inventory');
+  }
+
+  async getBrewAnalysis(params?: { 
+    bean_id?: string; 
+    bag_id?: string; 
+    recency?: '2D' | 'W' | 'M' | '3M' | 'Y' 
+  }): Promise<{
+    data: Array<{
+      id: string;
+      x_ratio: number | null;
+      x_brew_time: number | null;
+      y_rating: number | null;
+      bag_id: string;
+      bag_name?: string;
+      date: string;
+    }>;
+    count: number;
+    bean?: any;
+    bag?: any;
+    filters: any;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.bean_id) searchParams.append('bean_id', params.bean_id);
+    if (params?.bag_id) searchParams.append('bag_id', params.bag_id);
+    if (params?.recency) searchParams.append('recency', params.recency);
+    
+    const queryString = searchParams.toString();
+    const url = queryString ? `/brews/analysis?${queryString}` : '/brews/analysis';
+    return this.makeRequest<{
+      data: Array<{
+        id: string;
+        x_ratio: number | null;
+        x_brew_time: number | null;
+        y_rating: number | null;
+        bag_id: string;
+        bag_name?: string;
+        date: string;
+      }>;
+      count: number;
+      bean?: any;
+      bag?: any;
+      filters: any;
+    }>(url);
   }
 
   async getBag(id: string): Promise<ApiResponse<Bag>> {
