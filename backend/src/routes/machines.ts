@@ -207,6 +207,7 @@ export async function machineRoutes(fastify: FastifyInstance) {
 
       return {
         data: mapMachineToApi(updatedMachine),
+        image_path: uploadResult.path,
         image_url: uploadResult.publicUrl
       };
     } catch (error) {

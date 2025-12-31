@@ -100,7 +100,25 @@ function validateFileSignature(signature: Buffer, extension: string): boolean {
 export function generateImageFilename(originalFilename: string, entityType: 'grinder' | 'machine'): string {
   const extension = path.extname(originalFilename).toLowerCase();
   const uuid = randomUUID();
-  return `${uuid}${extension}`;
+  return `${entityType}/${uuid}${extension}`;
+}
+
+function normalizeImagePath(imagePath: string, entityType: 'grinder' | 'machine'): string {
+  if (!imagePath) {
+    return '';
+  }
+
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    const bucketName = entityType === 'grinder' ? 'grinders' : 'machines';
+    const marker = `/storage/v1/object/public/${bucketName}/`;
+    const markerIndex = imagePath.indexOf(marker);
+
+    if (markerIndex !== -1) {
+      return imagePath.substring(markerIndex + marker.length);
+    }
+  }
+
+  return imagePath.replace(/^\/+/, '');
 }
 
 /**
@@ -150,7 +168,8 @@ export async function uploadImage(
  * Delete image from Supabase Storage
  */
 export async function deleteImage(imagePath: string, entityType: 'grinder' | 'machine'): Promise<void> {
-  if (!imagePath) {
+  const normalizedPath = normalizeImagePath(imagePath, entityType);
+  if (!normalizedPath) {
     return;
   }
 
@@ -159,7 +178,7 @@ export async function deleteImage(imagePath: string, entityType: 'grinder' | 'ma
 
   const { error } = await supabase.storage
     .from(bucketName)
-    .remove([imagePath]);
+    .remove([normalizedPath]);
 
   if (error) {
     throw new Error(`Failed to delete image: ${error.message}`);
@@ -198,13 +217,17 @@ export function getImagePublicUrl(imagePath: string, entityType: 'grinder' | 'ma
   if (!imagePath) {
     return '';
   }
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
 
   // Determine bucket name based on entity type
   const bucketName = entityType === 'grinder' ? 'grinders' : 'machines';
 
+  const normalizedPath = normalizeImagePath(imagePath, entityType);
   const { data } = supabase.storage
     .from(bucketName)
-    .getPublicUrl(imagePath);
+    .getPublicUrl(normalizedPath);
 
   return data.publicUrl;
 }
