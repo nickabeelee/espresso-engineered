@@ -34,6 +34,8 @@
   // Animation cleanup functions
   let cleanupFunctions: (() => void)[] = [];
 
+  const getBagCards = () => bagCards.filter((card): card is HTMLElement => Boolean(card));
+
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
     color: colorCss.text.ink.primary,
@@ -89,8 +91,9 @@
 
       // Animate in the new content after data loads
       setTimeout(() => {
-        if (bagCards.length > 0) {
-          animations.fadeInUp(bagCards, {
+        const cards = getBagCards();
+        if (cards.length > 0) {
+          animations.fadeInUp(cards, {
             duration: 0.3,
             ease: 'power2.out',
             stagger: 0.1
@@ -123,24 +126,25 @@
   }
 
   function setupAnimations() {
-    if (bagCards.length === 0) return;
+    const cards = getBagCards();
+    if (cards.length === 0) return;
 
     // Animate cards on load with staggered entrance
-    const timeline = animations.horizontalScroll(bagCards, {
+    const timeline = animations.horizontalScroll(cards, {
       duration: 0.4,
       ease: 'power2.out',
       stagger: 0.08
     });
     
     // Add hover effects to each card with enhanced lift
-    bagCards.forEach(card => {
+    cards.forEach(card => {
       const cleanup = animationUtils.createHoverLift(card);
       cleanupFunctions.push(cleanup);
     });
 
     // Add momentum scrolling effect
     if (scrollContainer) {
-      const momentumCleanup = animationUtils.createMomentumScroll(scrollContainer, bagCards);
+      const momentumCleanup = animationUtils.createMomentumScroll(scrollContainer, cards);
       cleanupFunctions.push(momentumCleanup);
     }
   }

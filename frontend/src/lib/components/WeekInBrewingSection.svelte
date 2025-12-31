@@ -27,6 +27,10 @@
   let groupElements: HTMLElement[] = [];
   let cardElements: HTMLElement[] = [];
 
+  const hasAllElements = <T extends Element>(items: Array<T | undefined>): items is T[] => {
+    return items.length > 0 && items.every(Boolean);
+  };
+
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
     color: colorCss.text.ink.primary,
@@ -251,37 +255,36 @@
       // Get cards for current group
       const groupStartIndex = currentGroupIndex * 5; // Assuming max 5 cards per group for stacking
       const groupCards = cardElements.slice(groupStartIndex, groupStartIndex + currentGroup.brews.length);
+      if (!hasAllElements(groupCards)) return;
       
-      if (groupCards.length > 0) {
-        // Animate card stacking with enhanced GSAP timeline
-        const timeline = gsap.timeline();
-        
-        // First, set all cards to their base stacked state
-        timeline.set(groupCards, {
-          scale: 0.98,
-          y: (i) => i * 4,
-          zIndex: (i) => currentGroup.brews.length - i,
-          opacity: 0.7
-        });
-        
-        // Then animate the active card to prominence
-        if (groupCards[currentBrewIndex]) {
-          timeline.to(groupCards[currentBrewIndex], {
-            scale: 1,
-            y: 0,
-            opacity: 1,
-            duration: 0.15,
-            ease: 'power1.inOut'
-          }, 0);
-        }
-        
-        // Add subtle hover effect preparation
-        groupCards.forEach((card, index) => {
-          if (index === currentBrewIndex) {
-            animationUtils.createHoverLift(card);
-          }
-        });
+      // Animate card stacking with enhanced GSAP timeline
+      const timeline = gsap.timeline();
+      
+      // First, set all cards to their base stacked state
+      timeline.set(groupCards, {
+        scale: 0.98,
+        y: (i) => i * 4,
+        zIndex: (i) => currentGroup.brews.length - i,
+        opacity: 0.7
+      });
+      
+      // Then animate the active card to prominence
+      if (groupCards[currentBrewIndex]) {
+        timeline.to(groupCards[currentBrewIndex], {
+          scale: 1,
+          y: 0,
+          opacity: 1,
+          duration: 0.15,
+          ease: 'power1.inOut'
+        }, 0);
       }
+      
+      // Add subtle hover effect preparation
+      groupCards.forEach((card, index) => {
+        if (index === currentBrewIndex) {
+          animationUtils.createHoverLift(card);
+        }
+      });
     }
   }
 
@@ -290,35 +293,34 @@
     if (currentGroup && cardElements.length > 0) {
       const groupStartIndex = currentGroupIndex * 5;
       const groupCards = cardElements.slice(groupStartIndex, groupStartIndex + currentGroup.brews.length);
+      if (!hasAllElements(groupCards)) return;
       
-      if (groupCards.length > 0) {
-        // Create entrance animation for the entire stack
-        const timeline = gsap.timeline();
-        
-        // Start with cards off-screen
-        timeline.set(groupCards, {
-          x: 100,
-          opacity: 0,
-          scale: 0.8
-        });
-        
-        // Animate cards in with stagger
-        timeline.to(groupCards, {
-          x: 0,
-          opacity: (i) => i === currentBrewIndex ? 1 : 0.7,
-          scale: (i) => i === currentBrewIndex ? 1 : 0.98,
-          y: (i) => i === currentBrewIndex ? 0 : i * 4,
-          duration: 0.4,
-          ease: 'back.out(1.7)',
-          stagger: 0.05
-        });
-      }
+      // Create entrance animation for the entire stack
+      const timeline = gsap.timeline();
+      
+      // Start with cards off-screen
+      timeline.set(groupCards, {
+        x: 100,
+        opacity: 0,
+        scale: 0.8
+      });
+      
+      // Animate cards in with stagger
+      timeline.to(groupCards, {
+        x: 0,
+        opacity: (i) => i === currentBrewIndex ? 1 : 0.7,
+        scale: (i) => i === currentBrewIndex ? 1 : 0.98,
+        y: (i) => i === currentBrewIndex ? 0 : i * 4,
+        duration: 0.4,
+        ease: 'back.out(1.7)',
+        stagger: 0.05
+      });
     }
   }
 
   function animateNavigationControls() {
     const navButtons = containerElement?.querySelectorAll('.nav-button');
-    if (navButtons) {
+    if (navButtons && navButtons.length > 0) {
       animations.fadeInUp(Array.from(navButtons), {
         duration: 0.2,
         ease: 'power2.out',
@@ -329,7 +331,7 @@
 
   function animateIndicators() {
     const indicators = containerElement?.querySelectorAll('.group-indicator, .brew-indicator');
-    if (indicators) {
+    if (indicators && indicators.length > 0) {
       animations.fadeInUp(Array.from(indicators), {
         duration: 0.15,
         ease: 'power2.out',

@@ -1,5 +1,9 @@
 import { gsap } from 'gsap';
 
+const compactElements = <T extends Element>(elements: Array<T | null | undefined>): T[] => {
+  return elements.filter((element): element is T => Boolean(element));
+};
+
 /**
  * Animation configuration interface for consistent animation parameters
  */
@@ -37,8 +41,13 @@ export const animations = {
    * Horizontal scrolling animation for card lists
    */
   horizontalScroll: (elements: Element[], config: AnimationConfig = defaultConfigs.horizontalScroll) => {
+    const targets = compactElements(elements);
+    if (targets.length === 0) {
+      return gsap.timeline();
+    }
+
     return gsap.timeline()
-      .fromTo(elements, 
+      .fromTo(targets, 
         { x: 50, opacity: 0 },
         { 
           x: 0, 
@@ -54,9 +63,14 @@ export const animations = {
    * Card stacking animation for layered brew cards
    */
   cardStack: (cards: Element[], config: AnimationConfig = defaultConfigs.cardStack) => {
+    const targets = compactElements(cards);
+    if (targets.length === 0) {
+      return gsap.timeline();
+    }
+
     return gsap.timeline()
-      .set(cards, { zIndex: (i) => cards.length - i })
-      .fromTo(cards,
+      .set(targets, { zIndex: (i) => targets.length - i })
+      .fromTo(targets,
         { scale: 0.95, y: 10 },
         {
           scale: 1,
@@ -72,8 +86,17 @@ export const animations = {
    * Fade in up animation for general element entrance
    */
   fadeInUp: (element: Element | Element[], config: AnimationConfig = defaultConfigs.fadeInUp) => {
+    if (!element) {
+      return gsap.timeline();
+    }
+
+    const targets = Array.isArray(element) ? compactElements(element) : element;
+    if (Array.isArray(targets) && targets.length === 0) {
+      return gsap.timeline();
+    }
+
     return gsap.timeline()
-      .fromTo(element,
+      .fromTo(targets,
         { y: 20, opacity: 0 },
         {
           y: 0,
@@ -94,13 +117,18 @@ export const animationUtils = {
    * Create a momentum-based horizontal scroll effect
    */
   createMomentumScroll: (container: Element, items: Element[]) => {
+    const targets = compactElements(items);
+    if (targets.length === 0) {
+      return () => {};
+    }
+
     let isScrolling = false;
     let scrollVelocity = 0;
 
     const handleScroll = () => {
       if (!isScrolling) {
         isScrolling = true;
-        gsap.to(items, {
+        gsap.to(targets, {
           x: (i) => -container.scrollLeft + (i * 10),
           duration: 0.1,
           ease: 'none',
