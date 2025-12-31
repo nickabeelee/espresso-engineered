@@ -197,6 +197,18 @@ class EnhancedApiClient {
       LoadingKeys.BAGS_LIST
     );
   }
+
+  async getBagInventory(): Promise<ListResponse<Bag> & { current_week_start: string }> {
+    return this.executeWithErrorHandling(
+      () => apiClient.getBagInventory(),
+      {
+        operation: 'load',
+        entityType: 'bag inventory',
+        retryable: true
+      },
+      LoadingKeys.BAGS_LIST
+    );
+  }
   
   async createBag(bag: CreateBagRequest): Promise<ApiResponse<Bag>> {
     return this.executeWithErrorHandling(

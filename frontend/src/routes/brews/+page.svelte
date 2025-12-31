@@ -13,6 +13,9 @@
 
 <AuthGuard>
   <div class="brew-list-page">
+    <nav class="breadcrumb">
+      <a href="/" class="breadcrumb-link">← Home</a>
+    </nav>
     <div class="section-header">
       <div>
         <p class="voice-line">You came back.</p>
@@ -34,4 +37,18 @@
     gap: 2rem;
   }
 
+  .breadcrumb {
+    margin-bottom: 1rem;
+  }
+
+  .breadcrumb-link {
+    color: var(--text-ink-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+  }
+
+  .breadcrumb-link:hover {
+    color: var(--text-ink-secondary);
+  }
 </style>

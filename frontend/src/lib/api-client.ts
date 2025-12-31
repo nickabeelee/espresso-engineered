@@ -256,6 +256,10 @@ class ApiClient {
     return this.makeRequest<ListResponse<Bag>>(url);
   }
 
+  async getBagInventory(): Promise<ListResponse<Bag> & { current_week_start: string }> {
+    return this.makeRequest<ListResponse<Bag> & { current_week_start: string }>('/bags/inventory');
+  }
+
   async getBag(id: string): Promise<ApiResponse<Bag>> {
     return this.makeRequest<ApiResponse<Bag>>(`/bags/${id}`);
   }

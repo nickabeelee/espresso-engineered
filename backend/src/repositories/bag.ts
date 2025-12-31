@@ -19,6 +19,13 @@ export class BagRepository extends BaseRepository<Bag> {
   }
 
   /**
+   * Bag table has modified_at field
+   */
+  protected hasModifiedAt(): boolean {
+    return true;
+  }
+
+  /**
    * Find bags with bean and roaster information included
    */
   async findManyWithDetails(baristaId: string, filters: Record<string, any> = {}): Promise<Bag[]> {
@@ -191,5 +198,73 @@ export class BagRepository extends BaseRepository<Bag> {
     }
 
     return (data as Bag[]) || [];
+  }
+
+  /**
+   * Get inventory bags for dashboard - non-empty bags + recently emptied bags
+   * Sorted by most recent brew date (calculated from brews table)
+   */
+  async findInventoryBags(baristaId: string): Promise<Bag[]> {
+    // Calculate current week start (Monday)
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Days to subtract to get to Monday
+    const currentWeekStart = new Date(now);
+    currentWeekStart.setDate(now.getDate() - daysToMonday);
+    currentWeekStart.setHours(0, 0, 0, 0);
+
+    // Query bags with their most recent brew date for sorting
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .select(`
+        *,
+        bean:bean_id (
+          id,
+          name,
+          roast_level,
+          country_of_origin,
+          tasting_notes,
+          roaster:roaster_id (
+            id,
+            name,
+            website_url
+          )
+        ),
+        last_brew:brew!bag_id (
+          created_at
+        )
+      `)
+      .eq('owner_id', baristaId)
+      .or(`inventory_status.neq.empty,and(inventory_status.eq.empty,emptied_on_date.gte.${currentWeekStart.toISOString()})`)
+      .order('created_at', { ascending: false }); // Fallback ordering by bag creation
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    const bags = (data as any[]) || [];
+
+    // Sort by most recent brew date, then by bag creation date
+    bags.sort((a, b) => {
+      const aLastBrew = a.last_brew?.[0]?.created_at;
+      const bLastBrew = b.last_brew?.[0]?.created_at;
+      
+      if (aLastBrew && bLastBrew) {
+        return new Date(bLastBrew).getTime() - new Date(aLastBrew).getTime();
+      } else if (aLastBrew) {
+        return -1; // a has brews, b doesn't - a comes first
+      } else if (bLastBrew) {
+        return 1; // b has brews, a doesn't - b comes first
+      } else {
+        // Neither has brews, sort by bag creation date (newest first)
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+
+    // Clean up the response to remove the temporary last_brew field
+    return bags.map(bag => {
+      const { last_brew, ...cleanBag } = bag;
+      return cleanBag as Bag;
+    });
   }
 }

@@ -55,13 +55,14 @@ describe('BeanRepository - Ownership Context', () => {
         })
       } as any);
 
-      // Mock bag ownership query
+      // Mock bag ownership queries - need to match the actual implementation calls
       mockSupabase.from
         .mockReturnValueOnce({
           select: mockSelect.mockReturnValue({
             order: mockOrder
           })
         } as any)
+        // Mock for calculateOwnershipStatus
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -72,6 +73,25 @@ describe('BeanRepository - Ownership Context', () => {
             })
           })
         } as any)
+        // Mock for calculateUsageStats - all bags query
+        .mockReturnValueOnce({
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              data: mockBagData,
+              error: null
+            })
+          })
+        } as any)
+        // Mock for calculateUsageStats - all brews query
+        .mockReturnValueOnce({
+          select: jest.fn().mockReturnValue({
+            in: jest.fn().mockReturnValue({
+              data: mockBrewData,
+              error: null
+            })
+          })
+        } as any)
+        // Mock for calculateUsageStats - my bags query
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -82,6 +102,7 @@ describe('BeanRepository - Ownership Context', () => {
             })
           })
         } as any)
+        // Mock for calculateUsageStats - my brews query
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -92,13 +113,12 @@ describe('BeanRepository - Ownership Context', () => {
             })
           })
         } as any)
+        // Mock for getBagCount
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                data: mockBagData,
-                error: null
-              })
+              data: mockBagData,
+              error: null
             })
           })
         } as any);
@@ -151,13 +171,14 @@ describe('BeanRepository - Ownership Context', () => {
         })
       } as any);
 
-      // Mock empty bag ownership query
+      // Mock empty bag ownership queries to simulate no ownership
       mockSupabase.from
         .mockReturnValueOnce({
           select: mockSelect.mockReturnValue({
             order: mockOrder
           })
         } as any)
+        // Mock for calculateOwnershipStatus - no bags owned
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -168,23 +189,21 @@ describe('BeanRepository - Ownership Context', () => {
             })
           })
         } as any)
+        // Mock for calculateUsageStats - all bags query (empty)
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                data: [],
-                error: null
-              })
+              data: [],
+              error: null
             })
           })
         } as any)
+        // Mock for getBagCount (empty)
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                data: [],
-                error: null
-              })
+              data: [],
+              error: null
             })
           })
         } as any);
@@ -233,7 +252,7 @@ describe('BeanRepository - Ownership Context', () => {
         })
       } as any);
 
-      // Mock empty ownership queries for simplicity
+      // Mock empty ownership queries for simplicity - no ownership context needed
       mockSupabase.from
         .mockReturnValueOnce({
           select: mockSelect.mockReturnValue({
@@ -242,6 +261,7 @@ describe('BeanRepository - Ownership Context', () => {
             })
           })
         } as any)
+        // Mock for calculateOwnershipStatus - no bags owned
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -252,23 +272,21 @@ describe('BeanRepository - Ownership Context', () => {
             })
           })
         } as any)
+        // Mock for calculateUsageStats - all bags query (empty)
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                data: [],
-                error: null
-              })
+              data: [],
+              error: null
             })
           })
         } as any)
+        // Mock for getBagCount (empty)
         .mockReturnValueOnce({
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                data: [],
-                error: null
-              })
+              data: [],
+              error: null
             })
           })
         } as any);

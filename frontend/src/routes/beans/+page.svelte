@@ -29,6 +29,9 @@
 
 <AuthGuard>
   <div class="beans-page">
+    <nav class="breadcrumb">
+      <a href="/" class="breadcrumb-link">← Home</a>
+    </nav>
     <div class="section-header">
       <div>
         <p class="voice-line">Discover what drives great coffee.</p>
@@ -68,5 +71,20 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+  }
+
+  .breadcrumb {
+    margin-bottom: 1rem;
+  }
+
+  .breadcrumb-link {
+    color: var(--text-ink-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+  }
+
+  .breadcrumb-link:hover {
+    color: var(--text-ink-secondary);
   }
 </style>

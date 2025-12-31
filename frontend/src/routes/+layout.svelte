@@ -107,11 +107,17 @@
     <div class="app-chrome">
       <header class="top-nav" class:hidden={isNavHidden}>
         <div class="top-nav-inner">
-          <a href="/brews" class="logo">
+          <a href="/" class="logo">
             <img src={logoInverted} alt="Espresso Engineered" class="logo-mark" />
             <span class="logo-text">Espresso Engineered</span>
           </a>
           <nav class="top-nav-links">
+            <a
+              href="/"
+              class:active={$page.url.pathname === '/'}
+            >
+              Home
+            </a>
             <a
               href="/brews"
               class:active={

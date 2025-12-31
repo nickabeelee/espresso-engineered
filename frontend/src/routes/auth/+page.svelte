@@ -17,7 +17,7 @@
   let success = null;
 
   // Get return URL from query params
-  $: returnTo = $page.url.searchParams.get('returnTo') || '/brews';
+  $: returnTo = $page.url.searchParams.get('returnTo') || '/';
 
   onMount(async () => {
     console.log('Auth page: Initializing auth service...');

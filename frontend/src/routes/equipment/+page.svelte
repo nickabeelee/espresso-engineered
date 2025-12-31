@@ -12,6 +12,9 @@
 
 <AuthGuard>
   <div class="equipment-page">
+    <nav class="breadcrumb">
+      <a href="/" class="breadcrumb-link">← Home</a>
+    </nav>
     <div class="section-header">
       <div>
         <p class="voice-line">Keep what serves you close.</p>
@@ -54,6 +57,21 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+  }
+
+  .breadcrumb {
+    margin-bottom: 1rem;
+  }
+
+  .breadcrumb-link {
+    color: var(--text-ink-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+  }
+
+  .breadcrumb-link:hover {
+    color: var(--text-ink-secondary);
   }
 
   .equipment-tabs {
