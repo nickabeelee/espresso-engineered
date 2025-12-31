@@ -8,6 +8,10 @@
   import LoadingIndicator from './LoadingIndicator.svelte';
   import ErrorDisplay from './ErrorDisplay.svelte';
   import type { Bean, Bag, Brew } from '@shared/types';
+  import { recordListShell } from '$lib/ui/components/card';
+  import { colorCss } from '$lib/ui/foundations/color';
+  import { textStyles } from '$lib/ui/foundations/typography';
+  import { toStyleString } from '$lib/ui/style';
   import type { BrewDataPoint, ScatterPlotConfig, RecencyPeriod } from '$lib/ui/viz/d3-integration';
 
   // Props
@@ -28,6 +32,34 @@
   let lastUsedBag: Bag | null = null;
   let availableBags: Bag[] = [];
   let availableBeans: Bean[] = [];
+
+  const sectionTitleStyle = toStyleString({
+    ...textStyles.headingSecondary,
+    color: colorCss.text.ink.primary,
+    margin: '0 0 0.5rem 0'
+  });
+
+  const chartTitleStyle = toStyleString({
+    ...textStyles.headingTertiary,
+    color: colorCss.text.ink.primary,
+    margin: 0,
+    textAlign: 'center'
+  });
+
+  const voiceLineStyle = toStyleString({
+    ...textStyles.voice,
+    color: colorCss.text.ink.muted,
+    margin: 0
+  });
+
+  const analysisShellStyle = toStyleString({
+    '--record-list-bg': recordListShell.background,
+    '--record-list-border': recordListShell.borderColor,
+    '--record-list-border-width': recordListShell.borderWidth,
+    '--record-list-border-style': recordListShell.borderStyle,
+    '--record-list-radius': recordListShell.borderRadius,
+    '--record-list-padding': recordListShell.padding
+  });
 
   // Recency filter options
   const recencyOptions = [
@@ -182,105 +214,113 @@
 
 <section class="bean-analysis-section">
   <div class="section-header">
-    <h2>Bean Analysis</h2>
-    <p class="voice-text">Discover patterns in your brewing technique</p>
+    <div class="section-header-text">
+      <h2 style={sectionTitleStyle}>Bean Analysis</h2>
+      <p class="voice-text" style={voiceLineStyle}>Small shifts leave a trace.</p>
+    </div>
   </div>
 
-  {#if loading}
-    <LoadingIndicator message="Loading analysis data..." />
-  {:else if error}
-    <ErrorDisplay {error} />
-  {:else}
-    <div class="analysis-controls">
-      <div class="selector-row">
-        <div class="selector-group">
-          <label for="bean-selector">Bean</label>
-          <BeanSelector 
-            value={selectedBean?.id || ''}
-            on:change={handleBeanChange}
-          />
-        </div>
-        
-        <div class="selector-group">
-          <label for="bag-selector">Bag</label>
-          <BagSelector 
-            value={selectedBag?.id || ''}
-            on:bagSelected={handleBagChange}
-          />
-        </div>
-      </div>
-
-      <div class="filter-row">
-        <div class="filter-group">
-          <label for="recency-filter">Time Period</label>
-          <select 
-            id="recency-filter"
-            bind:value={recencyFilter}
-            on:change={handleRecencyChange}
-            class="recency-select"
-          >
-            {#each recencyOptions as option}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
-        </div>
-      </div>
-    </div>
-
-    {#if analysisData.length === 0}
-      <div class="empty-state">
-        <p class="voice-text">{emptyStateMessage}</p>
-      </div>
+  <div class="analysis-shell" style={analysisShellStyle}>
+    {#if loading}
+      <LoadingIndicator message="Loading analysis data..." />
+    {:else if error}
+      <ErrorDisplay {error} />
     {:else}
-      <div class="charts-container">
-        <div class="chart-wrapper">
-          <h3>Rating vs Ratio</h3>
-          <ScatterPlot 
-            data={ratioData}
-            config={ratioChartConfig}
-            highlightedBagId={selectedBag?.id || null}
-          />
+      <div class="analysis-controls">
+        <div class="selector-row">
+          <div class="selector-group">
+            <label for="bean-selector">Bean</label>
+            <BeanSelector 
+              value={selectedBean?.id || ''}
+              on:change={handleBeanChange}
+            />
+          </div>
+          
+          <div class="selector-group">
+            <label for="bag-selector">Bag</label>
+            <BagSelector 
+              value={selectedBag?.id || ''}
+              on:bagSelected={handleBagChange}
+            />
+          </div>
         </div>
-        
-        <div class="chart-wrapper">
-          <h3>Rating vs Brew Time</h3>
-          <ScatterPlot 
-            data={brewTimeData}
-            config={brewTimeChartConfig}
-            highlightedBagId={selectedBag?.id || null}
-          />
+
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="recency-filter">Time Period</label>
+            <select 
+              id="recency-filter"
+              bind:value={recencyFilter}
+              on:change={handleRecencyChange}
+              class="recency-select"
+            >
+              {#each recencyOptions as option}
+                <option value={option.value}>{option.label}</option>
+              {/each}
+            </select>
+          </div>
         </div>
       </div>
+
+      {#if analysisData.length === 0}
+        <div class="empty-state">
+          <p class="voice-text" style={voiceLineStyle}>{emptyStateMessage}</p>
+        </div>
+      {:else}
+        <div class="charts-container">
+          <div class="chart-wrapper">
+            <h3 style={chartTitleStyle}>Rating vs Ratio</h3>
+            <ScatterPlot 
+              data={ratioData}
+              config={ratioChartConfig}
+              highlightedBagId={selectedBag?.id || null}
+            />
+          </div>
+          
+          <div class="chart-wrapper">
+            <h3 style={chartTitleStyle}>Rating vs Brew Time</h3>
+            <ScatterPlot 
+              data={brewTimeData}
+              config={brewTimeChartConfig}
+              highlightedBagId={selectedBag?.id || null}
+            />
+          </div>
+        </div>
+      {/if}
     {/if}
-  {/if}
+  </div>
 </section>
 
 <style>
   .bean-analysis-section {
-    padding: 1.5rem;
-    background: var(--bg-surface-paper);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-top: 0.5rem;
+  }
+
+  .analysis-shell {
+    padding: var(--record-list-padding, 1.5rem);
+    background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+    border-radius: var(--record-list-radius, var(--radius-md));
+    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
   }
 
   .section-header {
     margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
   }
 
-  .section-header h2 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text-ink-primary);
-    font-size: 1.5rem;
-    font-weight: 600;
+  .section-header-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
   }
 
-  .voice-text {
-    margin: 0;
-    font-family: 'Libre Baskerville', serif;
-    color: var(--text-ink-muted);
-    font-size: 0.95rem;
-    line-height: 1.4;
-  }
 
   .analysis-controls {
     margin-bottom: 2rem;
@@ -353,16 +393,8 @@
     gap: 1rem;
   }
 
-  .chart-wrapper h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-ink-primary);
-    text-align: center;
-  }
-
   @media (max-width: 768px) {
-    .bean-analysis-section {
+    .analysis-shell {
       padding: 1rem;
     }
 

@@ -1,11 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { browser } from '$app/environment';
   import { isAuthenticated, barista } from '$lib/auth';
-  import VoiceGreeting from '$lib/components/VoiceGreeting.svelte';
   import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import { apiClient } from '$lib/api-client';
+  import { colorCss } from '$lib/ui/foundations/color';
+  import { textStyles } from '$lib/ui/foundations/typography';
+  import { toStyleString } from '$lib/ui/style';
   import type { Bean, Bag, BagWithBarista } from '@shared/types';
 
   // Lazy load components for better performance
@@ -14,7 +17,7 @@
   let BeanAnalysisSection: any = null;
 
   // Redirect unauthenticated users to auth page
-  $: if (!$isAuthenticated && $barista === null) {
+  $: if (browser && !$isAuthenticated && $barista === null) {
     goto('/auth');
   }
 
@@ -150,6 +153,54 @@
   async function retryLoad() {
     await loadDashboardData();
   }
+
+  const voiceLineStyle = toStyleString({
+    ...textStyles.voice,
+    color: colorCss.text.ink.muted,
+    margin: 0
+  });
+
+  const pageTitleStyle = toStyleString({
+    ...textStyles.headingPrimary,
+    color: colorCss.text.ink.primary,
+    margin: 0
+  });
+
+  const pageSubtitleStyle = toStyleString({
+    ...textStyles.helper,
+    color: colorCss.text.ink.muted,
+    margin: 0
+  });
+
+  const heroTitleStyle = toStyleString({
+    ...textStyles.headingPrimary,
+    color: colorCss.text.ink.primary,
+    margin: '0 0 0.75rem 0'
+  });
+
+  const heroTaglineStyle = toStyleString({
+    ...textStyles.headingTertiary,
+    color: colorCss.text.ink.secondary,
+    margin: '0 0 1rem 0'
+  });
+
+  const heroDescriptionStyle = toStyleString({
+    ...textStyles.body,
+    color: colorCss.text.ink.primary,
+    margin: '0 0 2rem 0'
+  });
+
+  const featureTitleStyle = toStyleString({
+    ...textStyles.headingTertiary,
+    color: colorCss.text.ink.primary,
+    margin: '0 0 0.6rem 0'
+  });
+
+  const featureBodyStyle = toStyleString({
+    ...textStyles.body,
+    color: colorCss.text.ink.secondary,
+    margin: 0
+  });
 </script>
 
 <svelte:head>
@@ -159,11 +210,16 @@
 
 {#if $isAuthenticated && $barista}
   <div class="home-dashboard">
+    <div class="page-header">
+      <p class="voice-line" style={voiceLineStyle}>Settle in.</p>
+      <h1 style={pageTitleStyle}>Home</h1>
+      <p style={pageSubtitleStyle}>Your brewing dashboard.</p>
+    </div>
     <!-- Voice Greeting Section -->
     {#if loading}
       <div class="loading-container">
         <LoadingIndicator />
-        <p class="voice-text">Preparing your brewing dashboard...</p>
+        <p class="voice-text" style={voiceLineStyle}>Preparing your brewing dashboard...</p>
       </div>
     {:else if error}
       <ErrorDisplay 
@@ -171,12 +227,6 @@
         onRetry={retryLoad}
       />
     {:else}
-      <VoiceGreeting 
-        barista={$barista} 
-        {lastBrewDate} 
-        {hasRecentActivity} 
-      />
-
       <!-- Bean Inventory Section -->
       {#if inventoryLoaded && BeanInventorySection}
         <div class="section-container inventory-section">
@@ -242,10 +292,10 @@
   <!-- Landing page for unauthenticated users -->
   <div class="home-page">
     <div class="hero">
-      <p class="voice-line">Take a moment.</p>
-      <h1>Espresso Engineered</h1>
-      <p class="tagline">A quieter place to record the way you brew.</p>
-      <p class="description">
+      <p class="voice-line" style={voiceLineStyle}>Take a moment.</p>
+      <h1 style={heroTitleStyle}>Espresso Engineered</h1>
+      <p class="tagline" style={heroTaglineStyle}>A quieter place to record the way you brew.</p>
+      <p class="description" style={heroDescriptionStyle}>
         Capture espresso sessions with deliberate notes, revisit past ratios, and
         discover the patterns you return to most.
       </p>
@@ -258,18 +308,18 @@
 
     <div class="features">
       <div class="feature card">
-        <h3>Quiet logging</h3>
-        <p>Pre-fill from your last brew and focus only on what changed.</p>
+        <h3 style={featureTitleStyle}>Quiet logging</h3>
+        <p style={featureBodyStyle}>Pre-fill from your last brew and focus only on what changed.</p>
       </div>
       
       <div class="feature card">
-        <h3>Offline first</h3>
-        <p>Drafts hold steady when you're away and sync when you return.</p>
+        <h3 style={featureTitleStyle}>Offline first</h3>
+        <p style={featureBodyStyle}>Drafts hold steady when you're away and sync when you return.</p>
       </div>
       
       <div class="feature card">
-        <h3>Shared patterns</h3>
-        <p>See how your equipment shapes results, without turning it into noise.</p>
+        <h3 style={featureTitleStyle}>Shared patterns</h3>
+        <p style={featureBodyStyle}>See how your equipment shapes results, without turning it into noise.</p>
       </div>
     </div>
   </div>
@@ -286,6 +336,16 @@
     padding: 1rem;
   }
 
+  .page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .page-header h1 {
+    margin: 0;
+  }
+
   .loading-container {
     display: flex;
     flex-direction: column;
@@ -294,12 +354,6 @@
     padding: 3rem 1rem;
   }
 
-  .voice-text {
-    font-family: 'Libre Baskerville', serif;
-    color: var(--text-ink-muted);
-    margin: 0;
-    text-align: center;
-  }
 
   .section-container {
     opacity: 0;
@@ -411,21 +465,6 @@
     max-width: 680px;
   }
 
-  h1 {
-    font-size: 2.6rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .tagline {
-    font-size: 1.2rem;
-    color: var(--text-ink-secondary);
-    margin: 0 0 1rem 0;
-  }
-
-  .description {
-    margin: 0 0 2rem 0;
-  }
-
   .cta-buttons {
     display: flex;
     gap: 1rem;
@@ -438,19 +477,10 @@
     gap: 1.5rem;
   }
 
-  .feature h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0.6rem;
-  }
-
   @media (max-width: 768px) {
     .home-dashboard {
       gap: 2rem;
       padding: 0.5rem;
-    }
-
-    h1 {
-      font-size: 2.1rem;
     }
 
     .cta-buttons {

@@ -9,6 +9,10 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import { ChevronLeft, ChevronRight } from '$lib/icons';
   import { animations, animationUtils, gsap } from '$lib/ui/animations';
+  import { recordListShell } from '$lib/ui/components/card';
+  import { colorCss } from '$lib/ui/foundations/color';
+  import { textStyles } from '$lib/ui/foundations/typography';
+  import { toStyleString } from '$lib/ui/style';
   import type { BagWithBarista, Barista as BaristaType } from '@shared/types';
 
   const dispatch = createEventDispatcher<{
@@ -29,6 +33,27 @@
 
   // Animation cleanup functions
   let cleanupFunctions: (() => void)[] = [];
+
+  const sectionTitleStyle = toStyleString({
+    ...textStyles.headingSecondary,
+    color: colorCss.text.ink.primary,
+    margin: 0
+  });
+
+  const voiceLineStyle = toStyleString({
+    ...textStyles.voice,
+    color: colorCss.text.ink.muted,
+    margin: 0
+  });
+
+  const inventoryShellStyle = toStyleString({
+    '--record-list-bg': recordListShell.background,
+    '--record-list-border': recordListShell.borderColor,
+    '--record-list-border-width': recordListShell.borderWidth,
+    '--record-list-border-style': recordListShell.borderStyle,
+    '--record-list-radius': recordListShell.borderRadius,
+    '--record-list-padding': recordListShell.padding
+  });
 
   onMount(async () => {
     await loadInventoryData();
@@ -177,7 +202,10 @@
 
 <div class="bean-inventory-section">
   <div class="section-header">
-    <h2>Your Bean Inventory</h2>
+    <div class="section-header-text">
+      <h2 style={sectionTitleStyle}>Your Bean Inventory</h2>
+      <p class="voice-text" style={voiceLineStyle}>Keep the shelves honest.</p>
+    </div>
     {#if bags.length > 0}
       <div class="scroll-controls">
         <IconButton
@@ -207,7 +235,7 @@
   {#if loading}
     <div class="loading-container">
       <LoadingIndicator />
-      <p class="voice-text">Loading your coffee collection...</p>
+      <p class="voice-text" style={voiceLineStyle}>Loading your coffee collection...</p>
     </div>
   {:else if error}
     <ErrorDisplay 
@@ -216,29 +244,31 @@
     />
   {:else if bags.length === 0}
     <div class="empty-state">
-      <p class="voice-text">Your coffee collection is empty.</p>
-      <p class="voice-text">Add some bags to get started with tracking your inventory.</p>
+      <p class="voice-text" style={voiceLineStyle}>Your coffee collection is empty.</p>
+      <p class="voice-text" style={voiceLineStyle}>Add some bags to get started with tracking your inventory.</p>
     </div>
   {:else}
-    <div class="inventory-container">
-      <div 
-        class="bag-scroll-container" 
-        bind:this={scrollContainer}
-      >
-        <div class="bag-list">
-          {#each bags as bag, index (bag.id)}
-            <div 
-              class="bag-card-wrapper"
-              bind:this={bagCards[index]}
-            >
-              <EditableBagCard
-                {bag}
-                beanName={bag.bean?.name || 'Unknown Bean'}
-                {baristasById}
-                on:updated={handleBagUpdated}
-              />
-            </div>
-          {/each}
+    <div class="inventory-shell" style={inventoryShellStyle}>
+      <div class="inventory-container">
+        <div 
+          class="bag-scroll-container" 
+          bind:this={scrollContainer}
+        >
+          <div class="bag-list">
+            {#each bags as bag, index (bag.id)}
+              <div 
+                class="bag-card-wrapper"
+                bind:this={bagCards[index]}
+              >
+                <EditableBagCard
+                  {bag}
+                  beanName={bag.bean?.name || 'Unknown Bean'}
+                  {baristasById}
+                  on:updated={handleBagUpdated}
+                />
+              </div>
+            {/each}
+          </div>
         </div>
       </div>
     </div>
@@ -248,6 +278,7 @@
 <style>
   .bean-inventory-section {
     width: 100%;
+    padding-top: 0.5rem;
   }
 
   .section-header {
@@ -255,12 +286,13 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
+    gap: 1.5rem;
   }
 
-  .section-header h2 {
-    font-size: 1.4rem;
-    margin: 0;
-    color: var(--text-ink-primary);
+  .section-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
   }
 
   .scroll-controls {
@@ -282,12 +314,6 @@
     padding: 3rem 1rem;
   }
 
-  .voice-text {
-    font-family: 'Libre Baskerville', serif;
-    color: var(--text-ink-muted);
-    margin: 0;
-    text-align: center;
-  }
 
   .empty-state {
     text-align: center;
@@ -300,6 +326,13 @@
   .empty-state .voice-text:first-child {
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
+  }
+
+  .inventory-shell {
+    background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
+    border-radius: var(--record-list-radius, var(--radius-md));
+    padding: var(--record-list-padding, 1.5rem);
   }
 
   .inventory-container {

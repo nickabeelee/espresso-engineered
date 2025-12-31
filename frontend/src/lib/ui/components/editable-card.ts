@@ -1,5 +1,6 @@
 import { colorCss } from "../foundations/color";
 import { motion } from "../foundations/motion";
+import { elevation } from "../foundations/elevation";
 import { radius } from "../foundations/radius";
 import { fontFamilies } from "../foundations/typography";
 
@@ -11,7 +12,11 @@ const editableCard = {
     borderStyle: "solid",
     borderRadius: radius.md,
     padding: "1rem",
-    transition: `border-color ${motion.duration.fast}`,
+    transition: `box-shadow ${motion.duration.fast}, border-color ${motion.duration.fast}`,
+    hover: {
+      shadow: elevation.soft,
+      borderColor: colorCss.accent.primary,
+    },
   },
   state: {
     editing: {

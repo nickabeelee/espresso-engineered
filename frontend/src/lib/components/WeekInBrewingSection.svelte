@@ -6,6 +6,10 @@
   import ErrorDisplay from './ErrorDisplay.svelte';
   import { apiClient } from '$lib/api-client';
   import { animations, animationUtils, gsap } from '$lib/ui/animations';
+  import { recordListShell } from '$lib/ui/components/card';
+  import { colorCss } from '$lib/ui/foundations/color';
+  import { textStyles } from '$lib/ui/foundations/typography';
+  import { toStyleString } from '$lib/ui/style';
   import type { Brew } from '../../../shared/types';
 
   // Component props
@@ -22,6 +26,27 @@
   let containerElement: HTMLElement;
   let groupElements: HTMLElement[] = [];
   let cardElements: HTMLElement[] = [];
+
+  const sectionTitleStyle = toStyleString({
+    ...textStyles.headingSecondary,
+    color: colorCss.text.ink.primary,
+    margin: '0 0 0.5rem 0'
+  });
+
+  const voiceLineStyle = toStyleString({
+    ...textStyles.voice,
+    color: colorCss.text.ink.muted,
+    margin: 0
+  });
+
+  const stackShellStyle = toStyleString({
+    '--record-list-bg': recordListShell.background,
+    '--record-list-border': recordListShell.borderColor,
+    '--record-list-border-width': recordListShell.borderWidth,
+    '--record-list-border-style': recordListShell.borderStyle,
+    '--record-list-radius': recordListShell.borderRadius,
+    '--record-list-padding': recordListShell.padding
+  });
 
   // Types for the component
   interface LayeredBrewGroup {
@@ -516,8 +541,10 @@
 
 <section class="week-brewing-section" bind:this={containerElement} tabindex="0">
   <div class="section-header">
-    <h2 class="section-title">Week in Brewing</h2>
-    <p class="section-subtitle">See what the community is brewing this week</p>
+    <div class="section-header-text">
+      <h2 class="section-title" style={sectionTitleStyle}>Week in Brewing</h2>
+      <p class="voice-text" style={voiceLineStyle}>Shared rhythms, small details.</p>
+    </div>
   </div>
 
   {#if loading}
@@ -528,158 +555,160 @@
     <ErrorDisplay message={error} onRetry={loadWeekBrews} />
   {:else if brewGroups.length === 0}
     <div class="empty-state">
-      <p class="voice-text">The week is just beginning. Check back soon to see what everyone's brewing!</p>
+      <p class="voice-text" style={voiceLineStyle}>The week is just beginning. Check back soon to see what everyone's brewing!</p>
     </div>
   {:else}
-    <div class="brewing-content">
-      <!-- Navigation indicators -->
-      <div class="navigation-indicators">
-        <div class="group-indicators">
-          {#each brewGroups as group, index}
-            <button
-              class="group-indicator"
-              class:active={index === currentGroupIndex}
-              on:click={() => navigateToGroup(index)}
-              aria-label={`View ${getGroupTitle(group)}`}
-            >
-              <span class="indicator-dot"></span>
-            </button>
-          {/each}
-        </div>
-        
-        {#if brewGroups[currentGroupIndex] && brewGroups[currentGroupIndex].brews.length > 1}
-          <div class="brew-indicators">
-            {#each brewGroups[currentGroupIndex].brews as brew, index}
+    <div class="brewing-shell" style={stackShellStyle}>
+      <div class="brewing-content">
+        <!-- Navigation indicators -->
+        <div class="navigation-indicators">
+          <div class="group-indicators">
+            {#each brewGroups as group, index}
               <button
-                class="brew-indicator"
-                class:active={index === currentBrewIndex}
-                on:click={() => navigateWithinGroup(index)}
-                aria-label={`View brew ${index + 1} of ${brewGroups[currentGroupIndex].brews.length}`}
+                class="group-indicator"
+                class:active={index === currentGroupIndex}
+                on:click={() => navigateToGroup(index)}
+                aria-label={`View ${getGroupTitle(group)}`}
               >
-                <span class="indicator-line"></span>
+                <span class="indicator-dot"></span>
               </button>
             {/each}
           </div>
-        {/if}
-      </div>
-
-      <!-- Main content area -->
-      <div class="content-area">
-        <!-- Navigation controls -->
-        <div class="navigation-controls">
-          <button
-            class="nav-button prev-group"
-            disabled={!canNavigateToPreviousGroup()}
-            on:click={navigateToPreviousGroup}
-            aria-label="Previous group"
-            title="Previous group (Shift + ←)"
-          >
-            <span class="nav-icon">‹‹</span>
-          </button>
           
-          <button
-            class="nav-button prev-brew"
-            disabled={!canNavigateToPreviousBrew()}
-            on:click={navigateToPreviousBrew}
-            aria-label="Previous brew"
-            title="Previous brew (←)"
-          >
-            <span class="nav-icon">‹</span>
-          </button>
-        </div>
-
-        <!-- Current group display -->
-        {#if brewGroups[currentGroupIndex]}
-          {@const currentGroup = brewGroups[currentGroupIndex]}
-          <div class="group-container" bind:this={groupElements[currentGroupIndex]}>
-            <div class="group-header">
-              <h3 class="group-title">{getGroupTitle(currentGroup)}</h3>
-              <p class="group-meta">
-                {getBrewCountText(currentGroup.brews.length)} • 
-                {currentGroup.bean.roaster.name} • 
-                {currentGroup.bean.roast_level}
-              </p>
-              
-              <!-- Quick action button -->
-              <button
-                class="quick-action-btn"
-                on:click={quickNavigateToBrewDetail}
-                aria-label="View current brew details"
-                title="View brew details (Enter)"
-              >
-                <span class="action-icon">👁</span>
-                View Details
-              </button>
-            </div>
-
-            <!-- Layered brew cards -->
-            <div class="brew-stack">
-              {#each currentGroup.brews as brew, index}
-                <div
-                  class="brew-card-wrapper"
+          {#if brewGroups[currentGroupIndex] && brewGroups[currentGroupIndex].brews.length > 1}
+            <div class="brew-indicators">
+              {#each brewGroups[currentGroupIndex].brews as brew, index}
+                <button
+                  class="brew-indicator"
                   class:active={index === currentBrewIndex}
-                  class:stacked={index !== currentBrewIndex}
-                  style="z-index: {currentGroup.brews.length - index}; transform: translateY({index === currentBrewIndex ? 0 : index * 4}px) scale({index === currentBrewIndex ? 1 : 0.98})"
-                  bind:this={cardElements[currentGroupIndex * 5 + index]}
-                  role="button"
-                  tabindex={index === currentBrewIndex ? 0 : -1}
-                  aria-label={`${index === currentBrewIndex ? 'View' : 'Select'} brew by ${currentGroup.barista.display_name}`}
-                  on:click={(event) => handleBrewInteraction(brew, event)}
-                  on:keydown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      handleBrewInteraction(brew, event);
-                    }
-                  }}
+                  on:click={() => navigateWithinGroup(index)}
+                  aria-label={`View brew ${index + 1} of ${brewGroups[currentGroupIndex].brews.length}`}
                 >
-                  <BrewCard
-                    {brew}
-                    baristaName={currentGroup.barista.display_name}
-                  />
-                  
-                  <!-- Visual indicator for active card -->
-                  {#if index === currentBrewIndex}
-                    <div class="active-indicator" aria-hidden="true">
-                      <span class="indicator-text">Press Enter to view details</span>
-                    </div>
-                  {/if}
-                </div>
+                  <span class="indicator-line"></span>
+                </button>
               {/each}
             </div>
-          </div>
-        {/if}
-
-        <!-- Navigation controls -->
-        <div class="navigation-controls">
-          <button
-            class="nav-button next-brew"
-            disabled={!canNavigateToNextBrew()}
-            on:click={navigateToNextBrew}
-            aria-label="Next brew"
-            title="Next brew (→)"
-          >
-            <span class="nav-icon">›</span>
-          </button>
-          
-          <button
-            class="nav-button next-group"
-            disabled={!canNavigateToNextGroup()}
-            on:click={navigateToNextGroup}
-            aria-label="Next group"
-            title="Next group (Shift + →)"
-          >
-            <span class="nav-icon">››</span>
-          </button>
+          {/if}
         </div>
-      </div>
 
-      <!-- Keyboard shortcuts help -->
-      <div class="keyboard-help">
-        <p class="help-text">
-          Use ← → to navigate brews, Shift + ← → for groups, Home/End for first/last, Enter to view details
-        </p>
-        <p class="navigation-context" aria-live="polite">
-          {getNavigationContext()}
-        </p>
+        <!-- Main content area -->
+        <div class="content-area">
+          <!-- Navigation controls -->
+          <div class="navigation-controls">
+            <button
+              class="nav-button prev-group"
+              disabled={!canNavigateToPreviousGroup()}
+              on:click={navigateToPreviousGroup}
+              aria-label="Previous group"
+              title="Previous group (Shift + ←)"
+            >
+              <span class="nav-icon">‹‹</span>
+            </button>
+            
+            <button
+              class="nav-button prev-brew"
+              disabled={!canNavigateToPreviousBrew()}
+              on:click={navigateToPreviousBrew}
+              aria-label="Previous brew"
+              title="Previous brew (←)"
+            >
+              <span class="nav-icon">‹</span>
+            </button>
+          </div>
+
+          <!-- Current group display -->
+          {#if brewGroups[currentGroupIndex]}
+            {@const currentGroup = brewGroups[currentGroupIndex]}
+            <div class="group-container" bind:this={groupElements[currentGroupIndex]}>
+              <div class="group-header">
+                <h3 class="group-title">{getGroupTitle(currentGroup)}</h3>
+                <p class="group-meta">
+                  {getBrewCountText(currentGroup.brews.length)} • 
+                  {currentGroup.bean.roaster.name} • 
+                  {currentGroup.bean.roast_level}
+                </p>
+                
+                <!-- Quick action button -->
+                <button
+                  class="quick-action-btn"
+                  on:click={quickNavigateToBrewDetail}
+                  aria-label="View current brew details"
+                  title="View brew details (Enter)"
+                >
+                  <span class="action-icon">👁</span>
+                  View Details
+                </button>
+              </div>
+
+              <!-- Layered brew cards -->
+              <div class="brew-stack">
+                {#each currentGroup.brews as brew, index}
+                  <div
+                    class="brew-card-wrapper"
+                    class:active={index === currentBrewIndex}
+                    class:stacked={index !== currentBrewIndex}
+                    style="z-index: {currentGroup.brews.length - index}; transform: translateY({index === currentBrewIndex ? 0 : index * 4}px) scale({index === currentBrewIndex ? 1 : 0.98})"
+                    bind:this={cardElements[currentGroupIndex * 5 + index]}
+                    role="button"
+                    tabindex={index === currentBrewIndex ? 0 : -1}
+                    aria-label={`${index === currentBrewIndex ? 'View' : 'Select'} brew by ${currentGroup.barista.display_name}`}
+                    on:click={(event) => handleBrewInteraction(brew, event)}
+                    on:keydown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        handleBrewInteraction(brew, event);
+                      }
+                    }}
+                  >
+                    <BrewCard
+                      {brew}
+                      baristaName={currentGroup.barista.display_name}
+                    />
+                    
+                    <!-- Visual indicator for active card -->
+                    {#if index === currentBrewIndex}
+                      <div class="active-indicator" aria-hidden="true">
+                        <span class="indicator-text">Press Enter to view details</span>
+                      </div>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
+          <!-- Navigation controls -->
+          <div class="navigation-controls">
+            <button
+              class="nav-button next-brew"
+              disabled={!canNavigateToNextBrew()}
+              on:click={navigateToNextBrew}
+              aria-label="Next brew"
+              title="Next brew (→)"
+            >
+              <span class="nav-icon">›</span>
+            </button>
+            
+            <button
+              class="nav-button next-group"
+              disabled={!canNavigateToNextGroup()}
+              on:click={navigateToNextGroup}
+              aria-label="Next group"
+              title="Next group (Shift + →)"
+            >
+              <span class="nav-icon">››</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Keyboard shortcuts help -->
+        <div class="keyboard-help">
+          <p class="help-text">
+            Use ← → to navigate brews, Shift + ← → for groups, Home/End for first/last, Enter to view details
+          </p>
+          <p class="navigation-context" aria-live="polite">
+            {getNavigationContext()}
+          </p>
+        </div>
       </div>
     </div>
   {/if}
@@ -687,26 +716,24 @@
 
 <style>
   .week-brewing-section {
-    padding: 2rem 0;
+    padding: 0.5rem 0 0;
     outline: none;
   }
 
   .section-header {
-    margin-bottom: 2rem;
-    text-align: center;
+    margin-bottom: 1.5rem;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
   }
 
-  .section-title {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: var(--text-ink-primary);
-    margin: 0 0 0.5rem 0;
-  }
-
-  .section-subtitle {
-    color: var(--text-ink-muted);
-    font-size: 1rem;
-    margin: 0;
+  .section-header-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
   }
 
   .loading-container {
@@ -720,17 +747,17 @@
     padding: 3rem 1rem;
   }
 
-  .voice-text {
-    font-family: 'Libre Baskerville', serif;
-    color: var(--text-ink-muted);
-    font-size: 1.1rem;
-    line-height: 1.6;
-    margin: 0;
-  }
 
   .brewing-content {
     max-width: 1200px;
     margin: 0 auto;
+  }
+
+  .brewing-shell {
+    background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
+    border-radius: var(--record-list-radius, var(--radius-md));
+    padding: var(--record-list-padding, 1.5rem);
   }
 
   .navigation-indicators {

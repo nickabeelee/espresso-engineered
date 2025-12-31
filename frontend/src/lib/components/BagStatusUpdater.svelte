@@ -21,7 +21,6 @@
   $: canUpdate = permissions.canEdit && !disabled;
 
   const statusOptions = [
-    { value: 'unopened', label: 'Unopened', variant: 'success' },
     { value: 'plenty', label: 'Plenty', variant: 'success' },
     { value: 'getting_low', label: 'Getting Low', variant: 'warning' },
     { value: 'empty', label: 'Empty', variant: 'danger' }

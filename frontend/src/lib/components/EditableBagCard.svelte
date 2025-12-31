@@ -222,6 +222,8 @@
     '--editable-card-radius': editableCard.container.borderRadius,
     '--editable-card-padding': editableCard.container.padding,
     '--editable-card-transition': editableCard.container.transition,
+    '--editable-card-hover-shadow': editableCard.container.hover.shadow,
+    '--editable-card-hover-border': editableCard.container.hover.borderColor,
     '--editable-card-edit-border': editableCard.state.editing.borderColor,
     '--editable-card-edit-shadow': editableCard.state.editing.shadow,
     '--editable-card-new-border': editableCard.state.newCard.borderColor,
@@ -453,7 +455,6 @@
           disabled={isSaving}
         >
           <option value="">Select status</option>
-          <option value="unopened">Unopened</option>
           <option value="plenty">Plenty</option>
           <option value="getting_low">Getting Low</option>
           <option value="empty">Empty</option>
@@ -481,6 +482,11 @@
     border-radius: var(--editable-card-radius, var(--radius-md));
     padding: var(--editable-card-padding, 1rem);
     transition: var(--editable-card-transition, border-color var(--motion-fast));
+  }
+
+  .bag-card:hover {
+    box-shadow: var(--editable-card-hover-shadow, var(--shadow-soft));
+    border-color: var(--editable-card-hover-border, var(--accent-primary));
   }
 
   .bag-card.editing {
