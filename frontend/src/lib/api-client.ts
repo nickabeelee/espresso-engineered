@@ -169,6 +169,53 @@ class ApiClient {
     return this.makeRequest<ApiResponse<PrefillData>>('/brews/prefill');
   }
 
+  async getWeekBrews(params?: { week_start?: string }): Promise<{
+    data: Array<{
+      barista: {
+        id: string;
+        display_name: string;
+      };
+      bean: {
+        id: string;
+        name: string;
+        roast_level: string;
+        roaster: {
+          id: string;
+          name: string;
+        };
+      };
+      brews: Brew[];
+      stackDepth: number;
+    }>;
+    week_start: string;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.week_start) searchParams.append('week_start', params.week_start);
+    
+    const queryString = searchParams.toString();
+    const url = queryString ? `/brews/week?${queryString}` : '/brews/week';
+    return this.makeRequest<{
+      data: Array<{
+        barista: {
+          id: string;
+          display_name: string;
+        };
+        bean: {
+          id: string;
+          name: string;
+          roast_level: string;
+          roaster: {
+            id: string;
+            name: string;
+          };
+        };
+        brews: Brew[];
+        stackDepth: number;
+      }>;
+      week_start: string;
+    }>(url);
+  }
+
   async getDraftBrews(): Promise<ListResponse<Brew>> {
     return this.makeRequest<ListResponse<Brew>>('/brews/drafts');
   }
@@ -245,15 +292,71 @@ class ApiClient {
     });
   }
 
-  async getBags(params?: { bean_id?: string; active_only?: boolean; inventory_status?: string }): Promise<ListResponse<Bag>> {
+  async getBags(params?: { bean_id?: string; active_only?: boolean; inventory_status?: string; include_community?: boolean }): Promise<ListResponse<Bag>> {
     const searchParams = new URLSearchParams();
     if (params?.bean_id) searchParams.append('bean_id', params.bean_id);
     if (params?.active_only) searchParams.append('active_only', 'true');
     if (params?.inventory_status) searchParams.append('inventory_status', params.inventory_status);
+    if (params?.include_community) searchParams.append('include_community', 'true');
     
     const queryString = searchParams.toString();
     const url = queryString ? `/bags?${queryString}` : '/bags';
     return this.makeRequest<ListResponse<Bag>>(url);
+  }
+
+  async getBagInventory(): Promise<ListResponse<Bag> & { current_week_start: string }> {
+    return this.makeRequest<ListResponse<Bag> & { current_week_start: string }>('/bags/inventory');
+  }
+
+  async getBrewAnalysis(params?: { 
+    bean_id?: string; 
+    bag_id?: string; 
+    recency?: '2D' | 'W' | 'M' | '3M' | 'Y';
+    include_community?: boolean;
+  }): Promise<{
+    data: Array<{
+      id: string;
+      barista_id: string;
+      name?: string;
+      x_ratio: number | null;
+      x_brew_time: number | null;
+      y_rating: number | null;
+      bag_id: string;
+      bag_name?: string;
+      grind_setting?: string;
+      date: string;
+    }>;
+    count: number;
+    bean?: any;
+    bag?: any;
+    filters: any;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.bean_id) searchParams.append('bean_id', params.bean_id);
+    if (params?.bag_id) searchParams.append('bag_id', params.bag_id);
+    if (params?.recency) searchParams.append('recency', params.recency);
+    if (params?.include_community) searchParams.append('include_community', 'true');
+    
+    const queryString = searchParams.toString();
+    const url = queryString ? `/brews/analysis?${queryString}` : '/brews/analysis';
+    return this.makeRequest<{
+      data: Array<{
+        id: string;
+        barista_id: string;
+        name?: string;
+        x_ratio: number | null;
+        x_brew_time: number | null;
+        y_rating: number | null;
+        bag_id: string;
+        bag_name?: string;
+        grind_setting?: string;
+        date: string;
+      }>;
+      count: number;
+      bean?: any;
+      bag?: any;
+      filters: any;
+    }>(url);
   }
 
   async getBag(id: string): Promise<ApiResponse<Bag>> {

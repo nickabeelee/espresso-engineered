@@ -11,7 +11,8 @@
   // Pages that don't require authentication
   const publicPages = ['/auth', '/'];
   
-  $: isPublicPage = publicPages.includes($page.url.pathname);
+  $: isPublicPage = publicPages.includes($page.url.pathname)
+    && !($page.url.pathname === '/' && $isAuthenticated);
 
   let isNavHidden = false;
   let lastScrollY = 0;
@@ -107,7 +108,7 @@
     <div class="app-chrome">
       <header class="top-nav" class:hidden={isNavHidden}>
         <div class="top-nav-inner">
-          <a href="/brews" class="logo">
+          <a href="/" class="logo">
             <img src={logoInverted} alt="Espresso Engineered" class="logo-mark" />
             <span class="logo-text">Espresso Engineered</span>
           </a>

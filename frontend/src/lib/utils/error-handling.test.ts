@@ -130,11 +130,14 @@ describe('Error Handling Utilities', () => {
     it('should fail after max attempts', async () => {
       const operation = vi.fn().mockRejectedValue(new Error('network error'));
       
-      const promise = withRetry(operation, { maxAttempts: 2, baseDelay: 100 });
+      // Use expect.rejects to properly handle the rejection
+      const retryPromise = withRetry(operation, { maxAttempts: 2, baseDelay: 100 });
       
+      // Run timers and wait for completion
+      const testPromise = expect(retryPromise).rejects.toThrow('network error');
       await vi.runAllTimersAsync();
+      await testPromise;
       
-      await expect(promise).rejects.toThrow('network error');
       expect(operation).toHaveBeenCalledTimes(2);
     });
   });

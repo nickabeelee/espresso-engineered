@@ -24,7 +24,7 @@
       goto(redirectUrl);
     } else if (!requireAuth && $isAuthenticated) {
       // User is authenticated but on a public page (like auth page)
-      goto('/brews');
+      goto('/');
     }
   }
 

@@ -76,7 +76,7 @@
       await authService.updatePassword(newPassword);
       status = 'success';
       redirecting = true;
-      await goto('/brews');
+      await goto('/');
     } catch (err) {
       errorMessage = err instanceof Error ? err.message : 'Failed to update password.';
     } finally {
@@ -106,12 +106,12 @@
         <div class="notice success">
           Password updated successfully.
           {#if redirecting}
-            Taking you back to your brews.
+            Taking you back to your dashboard.
           {:else}
             Continue to your workspace.
           {/if}
         </div>
-        <button class="btn-primary auth-submit" type="button" on:click={() => goto('/brews')}>
+        <button class="btn-primary auth-submit" type="button" on:click={() => goto('/')}>
           Continue to Espresso Engineered
         </button>
       {:else if status === 'error'}

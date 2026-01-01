@@ -4,10 +4,20 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import InlineBeanCreator from '$lib/components/InlineBeanCreator.svelte';
   import { Plus } from '$lib/icons';
+  import { colorCss } from '$lib/ui/foundations/color';
+  import { textStyles } from '$lib/ui/foundations/typography';
+  import { toStyleString } from '$lib/ui/style';
   import type { Bean } from '@shared/types';
 
   let showBeanCreator = false;
   let beanListComponent: BeanList;
+
+  const breadcrumbLinkStyle = toStyleString({
+    ...textStyles.helper,
+    color: colorCss.text.ink.muted,
+    '--breadcrumb-color': colorCss.text.ink.muted,
+    '--breadcrumb-hover': colorCss.text.ink.secondary
+  });
 
   function handleBeanCreated(event: CustomEvent<Bean>) {
     showBeanCreator = false;
@@ -29,6 +39,9 @@
 
 <AuthGuard>
   <div class="beans-page">
+    <nav class="breadcrumb">
+      <a href="/" class="breadcrumb-link" style={breadcrumbLinkStyle}>← Home</a>
+    </nav>
     <div class="section-header">
       <div>
         <p class="voice-line">Discover what drives great coffee.</p>
@@ -68,5 +81,19 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+  }
+
+  .breadcrumb {
+    margin-bottom: 0.5rem;
+  }
+
+  .breadcrumb-link {
+    text-decoration: none;
+    color: var(--breadcrumb-color, var(--text-ink-muted));
+    transition: color 0.2s ease;
+  }
+
+  .breadcrumb-link:hover {
+    color: var(--breadcrumb-hover, var(--text-ink-secondary));
   }
 </style>
