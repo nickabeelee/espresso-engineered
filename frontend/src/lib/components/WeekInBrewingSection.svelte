@@ -25,6 +25,10 @@
   // DOM references
   let scrollContainer: HTMLElement | null = null;
   let groupElements: HTMLElement[] = [];
+  let prefersReducedMotion = false;
+  let reduceMotionQuery: MediaQueryList | null = null;
+  let reduceMotionListener: ((event: MediaQueryListEvent) => void) | null = null;
+  let stackRenderedIds: Array<Set<string>> = [];
 
   // Scroll state
   let canScrollLeft = false;
@@ -33,6 +37,7 @@
 
   // Swipe tracking
   const swipeStates = new Map<number, { x: number; y: number; scrollLeft: number }>();
+  const stackAnimating = new Set<number>();
 
   const maxStackDepth = 3;
 
@@ -134,7 +139,11 @@
       : group.brews.map((_, index) => index);
   };
 
-  const updateStackOrder = async (groupIndex: number, order: number[]) => {
+  const updateStackOrder = async (
+    groupIndex: number,
+    order: number[],
+    options: { animateActive?: boolean } = {}
+  ) => {
     stackOrders = stackOrders.map((current, index) => (index === groupIndex ? order : current));
     await tick();
 
@@ -142,17 +151,96 @@
     if (!groupElement) return;
 
     const stackCards = Array.from(groupElement.querySelectorAll('.stack-card'));
-    if (stackCards.length > 0) {
-      gsap.set(stackCards, { clearProps: 'transform' });
+    if (stackCards.length > 0 && !prefersReducedMotion) {
+      const group = brewGroups[groupIndex];
+      if (group) {
+        const stackedBrews = getStackedBrews(group, groupIndex, stackOrders);
+        const nextIds = new Set(stackedBrews.map((item) => item.brew.id));
+        const previousIds = stackRenderedIds[groupIndex];
+        stackRenderedIds[groupIndex] = nextIds;
+
+        if (previousIds) {
+          const newIds = stackedBrews
+            .filter((item) => !previousIds.has(item.brew.id))
+            .map((item) => item.brew.id);
+
+          const newCards = newIds
+            .map((id) => groupElement.querySelector(`[data-brew-id="${id}"]`))
+            .filter((element): element is HTMLElement => Boolean(element));
+
+          if (newCards.length > 0) {
+            gsap.set(newCards, { opacity: 0 });
+          }
+        }
+      }
+
+      gsap.to(stackCards, {
+        x: 0,
+        rotate: 0,
+        y: (index) => index * 10,
+        scale: (index) => 1 - index * 0.02,
+        opacity: (index) => 1 - index * 0.12,
+        duration: 0.2,
+        ease: 'power2.out',
+        overwrite: 'auto'
+      });
     }
+
+    if (options.animateActive === false) return;
 
     const activeCard = groupElement.querySelector('.stack-card.is-active') as HTMLElement | null;
     if (activeCard) {
       gsap.fromTo(
         activeCard,
-        { scale: 0.98, opacity: 0.92, y: 0, transformOrigin: 'top center' },
-        { scale: 1, opacity: 1, y: 0, duration: 0.14, ease: 'power2.out', transformOrigin: 'top center', clearProps: 'transform' }
+        { scale: 0.96, opacity: 0.88, y: 12, transformOrigin: 'top center' },
+        { scale: 1, opacity: 1, y: 0, duration: 0.18, ease: 'power2.out', transformOrigin: 'top center', clearProps: 'transform' }
       );
+    }
+  };
+
+  const animateStackShuffle = async (
+    groupIndex: number,
+    order: number[],
+    direction: -1 | 1
+  ) => {
+    if (stackAnimating.has(groupIndex)) return;
+    stackAnimating.add(groupIndex);
+
+    try {
+      const groupElement = groupElements[groupIndex];
+      if (!groupElement || prefersReducedMotion) {
+        await updateStackOrder(groupIndex, order);
+        return;
+      }
+
+      const activeCard = groupElement.querySelector('.stack-card.is-active') as HTMLElement | null;
+      if (!activeCard) {
+        await updateStackOrder(groupIndex, order);
+        return;
+      }
+
+      gsap.killTweensOf(activeCard);
+
+      const exitX = direction === 1 ? 38 : -38;
+      const exitY = 18;
+      const rotate = direction === 1 ? 2.5 : -2.5;
+
+      await new Promise<void>((resolve) => {
+        gsap.to(activeCard, {
+          x: exitX,
+          y: exitY,
+          rotate,
+          opacity: 0.35,
+          scale: 0.98,
+          duration: 0.2,
+          ease: 'power2.in',
+          onComplete: resolve
+        });
+      });
+
+      await updateStackOrder(groupIndex, order);
+    } finally {
+      stackAnimating.delete(groupIndex);
     }
   };
 
@@ -170,6 +258,10 @@
       const response = await apiClient.getWeekBrews(params);
       brewGroups = response.data || [];
       stackOrders = brewGroups.map((group) => group.brews.map((_, index) => index));
+      stackRenderedIds = brewGroups.map((group, groupIndex) => {
+        const stackedBrews = getStackedBrews(group, groupIndex, stackOrders);
+        return new Set(stackedBrews.map((item) => item.brew.id));
+      });
       await tick();
 
       const groupTargets = groupElements.filter(Boolean);
@@ -252,7 +344,7 @@
       ? [...currentOrder.slice(1), currentOrder[0]]
       : [currentOrder[currentOrder.length - 1], ...currentOrder.slice(0, -1)];
 
-    updateStackOrder(groupIndex, rotated);
+    animateStackShuffle(groupIndex, rotated, direction);
   }
 
   function handleStackPointerDown(groupIndex: number, event: PointerEvent) {
@@ -292,6 +384,19 @@
   }
 
   onMount(() => {
+    if (typeof window !== 'undefined') {
+      reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const updateMotionPreference = () => {
+        prefersReducedMotion = reduceMotionQuery?.matches ?? false;
+      };
+      updateMotionPreference();
+      reduceMotionListener = updateMotionPreference;
+      if (reduceMotionQuery.addEventListener) {
+        reduceMotionQuery.addEventListener('change', updateMotionPreference);
+      } else {
+        reduceMotionQuery.addListener(updateMotionPreference);
+      }
+    }
     loadWeekBrews();
   });
 
@@ -302,6 +407,13 @@
   onDestroy(() => {
     if (scrollContainer) {
       scrollContainer.removeEventListener('scroll', updateScrollButtons);
+    }
+    if (reduceMotionQuery && reduceMotionListener) {
+      if (reduceMotionQuery.removeEventListener) {
+        reduceMotionQuery.removeEventListener('change', reduceMotionListener);
+      } else {
+        reduceMotionQuery.removeListener(reduceMotionListener);
+      }
     }
     scrollTrackingInitialized = false;
     swipeStates.clear();
@@ -387,6 +499,7 @@
                     class="stack-card"
                     class:is-active={stackItem.offset === 0}
                     class:is-stacked={stackItem.offset > 0}
+                    data-brew-id={stackItem.brew.id}
                     style={`--stack-offset: ${stackItem.offset}; --stack-depth: ${getStackDepth(group)}; z-index: ${getStackDepth(group) - stackItem.offset}; opacity: ${1 - stackItem.offset * 0.12};`}
                   >
                     <BrewCard brew={stackItem.brew} baristaName={group.barista.display_name} />
