@@ -16,6 +16,9 @@ const vizTheme = {
     borderColor: "rgba(123, 94, 58, 0.2)",
     textColor: colorCss.text.ink.primary,
   },
+  trendLine: {
+    color: colorCss.text.ink.placeholder,
+  },
   palette: vizPalette,
 } as const;
 

@@ -9,16 +9,48 @@ const bagRepository = new BagRepository();
 const beanRepository = new BeanRepository();
 
 export async function bagRoutes(fastify: FastifyInstance) {
+  // GET /api/bags/inventory - Get inventory bags for dashboard (authenticated)
+  fastify.get('/api/bags/inventory', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const authRequest = request as AuthenticatedRequest;
+      
+      const bags = await bagRepository.findInventoryBags(authRequest.barista!.id);
+      
+      // Calculate current week start for response metadata
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const currentWeekStart = new Date(now);
+      currentWeekStart.setDate(now.getDate() - daysToMonday);
+      currentWeekStart.setHours(0, 0, 0, 0);
+
+      return {
+        data: bags,
+        count: bags.length,
+        current_week_start: currentWeekStart.toISOString()
+      };
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to fetch inventory bags'
+      });
+    }
+  });
+
   // GET /api/bags - List user's bags (authenticated)
   fastify.get('/api/bags', {
     preHandler: authenticateRequest
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const authRequest = request as AuthenticatedRequest;
-      const { bean_id, active_only, inventory_status } = request.query as { 
+      const { bean_id, active_only, inventory_status, include_community } = request.query as { 
         bean_id?: string;
         active_only?: string;
         inventory_status?: string;
+        include_community?: string;
       };
       
       let bags;
@@ -34,6 +66,12 @@ export async function bagRoutes(fastify: FastifyInstance) {
         if (inventory_status) {
           bags = bags.filter(bag => bag.inventory_status === inventory_status);
         }
+      } else if (include_community === 'true') {
+        const filters: Record<string, any> = {};
+        if (inventory_status) {
+          filters.inventory_status = inventory_status;
+        }
+        bags = await bagRepository.findAllWithDetails(filters);
       } else if (active_only === 'true') {
         bags = await bagRepository.findActiveBags(authRequest.barista!.id);
       } else {
@@ -130,6 +168,67 @@ export async function bagRoutes(fastify: FastifyInstance) {
             message: 'Referenced bean does not exist'
           });
         }
+      }
+
+      // Automatically set emptied_on_date when status changes to 'empty'
+      if (bagData.inventory_status === 'empty' && !bagData.emptied_on_date) {
+        bagData.emptied_on_date = new Date().toISOString();
+      }
+
+      // Clear emptied_on_date if status is changed from 'empty' to something else
+      if (bagData.inventory_status && bagData.inventory_status !== 'empty') {
+        bagData.emptied_on_date = null;
+      }
+
+      // Update bag (ownership validation handled by repository)
+      const bag = await bagRepository.update(id, bagData, authRequest.barista!.id);
+      
+      // Fetch updated bag with details
+      const bagWithDetails = await bagRepository.findByIdWithDetails(bag.id, authRequest.barista!.id);
+      
+      return { data: bagWithDetails };
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Bag not found or access denied'
+        });
+      }
+      
+      request.log.error(error);
+      return handleRouteError(error, reply, 'update bag');
+    }
+  });
+
+  // PATCH /api/bags/:id - Partially update bag (authenticated, ownership validated)
+  fastify.patch('/api/bags/:id', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const authRequest = request as AuthenticatedRequest;
+      const { id } = request.params as { id: string };
+      const bagData = validateSchema(createBagSchema.partial(), request.body);
+
+      // If bean_id is being updated, validate it exists
+      if (bagData.bean_id) {
+        try {
+          await beanRepository.findById(bagData.bean_id);
+        } catch (error) {
+          return reply.status(400).send({
+            error: 'Validation Error',
+            message: 'Referenced bean does not exist'
+          });
+        }
+      }
+
+      // Automatically set emptied_on_date when status changes to 'empty'
+      if (bagData.inventory_status === 'empty' && !bagData.emptied_on_date) {
+        bagData.emptied_on_date = new Date().toISOString();
+      }
+
+      // Clear emptied_on_date if status is changed from 'empty' to something else
+      if (bagData.inventory_status && bagData.inventory_status !== 'empty') {
+        bagData.emptied_on_date = null;
       }
 
       // Update bag (ownership validation handled by repository)

@@ -20,6 +20,19 @@ export function getImageUrl(imagePath: string | null | undefined, entityType: 'g
   return `${supabaseUrl}/storage/v1/object/public/${bucketName}/${imagePath}`;
 }
 
+export function resolveApiBaseUrl(explicitBase?: string): string {
+  return explicitBase || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+}
+
+export function getImageUploadUrl(
+  entityType: 'grinder' | 'machine',
+  entityId: string,
+  apiBaseUrl?: string
+): string {
+  const baseUrl = resolveApiBaseUrl(apiBaseUrl);
+  return `${baseUrl}/${entityType}s/${entityId}/image`;
+}
+
 // Get a fallback image URL for when no image is available
 export function getFallbackImageUrl(entityType: 'grinder' | 'machine'): string {
   // Return a placeholder or empty string

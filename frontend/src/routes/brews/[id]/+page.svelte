@@ -192,7 +192,7 @@
   }
 
   function handleClose() {
-    goto('/brews');
+    goto('/');
   }
 
   function handleBagCardClick() {

@@ -4,6 +4,7 @@
   import { Trash } from '$lib/icons';
   import { getAuthToken } from '$lib/supabase';
   import { upload } from '$lib/ui/components/upload';
+  import { getImageUploadUrl, getImageUrl } from '$lib/utils/image-utils';
   import { toStyleString } from '$lib/ui/style';
   
   export let currentImageUrl: string = '';
@@ -13,7 +14,7 @@
   export let maxSizeMB: number = 5;
   
   const dispatch = createEventDispatcher<{
-    upload: { file: File; imageUrl: string };
+    upload: { file: File; imageUrl: string; imagePath: string };
     delete: void;
     error: { message: string };
   }>();
@@ -55,6 +56,11 @@
     return null;
   }
   
+  let resolvedImageUrl = '';
+  $: resolvedImageUrl = currentImageUrl
+    ? getImageUrl(currentImageUrl, entityType)
+    : '';
+
   async function handleFileSelect(file: File) {
     const error = validateFile(file);
     if (error) {
@@ -74,9 +80,7 @@
       formData.append('file', file);
       
       const token = await getAuthToken();
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-      
-      const response = await fetch(`${apiBaseUrl}/api/${entityType}s/${entityId}/image`, {
+      const response = await fetch(getImageUploadUrl(entityType, entityId), {
         method: 'POST',
         body: formData,
         headers: {
@@ -90,7 +94,7 @@
       }
       
       const result = await response.json();
-      dispatch('upload', { file, imageUrl: result.image_url });
+      dispatch('upload', { file, imageUrl: result.image_url, imagePath: result.image_path });
       
     } catch (error) {
       console.error('Upload error:', error);
@@ -109,9 +113,7 @@
     
     try {
       const token = await getAuthToken();
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-      
-      const response = await fetch(`${apiBaseUrl}/api/${entityType}s/${entityId}/image`, {
+      const response = await fetch(getImageUploadUrl(entityType, entityId), {
         method: 'DELETE',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` })
@@ -180,9 +182,9 @@
     {disabled}
   />
   
-  {#if currentImageUrl}
+  {#if resolvedImageUrl}
     <div class="current-image">
-      <img src={currentImageUrl} alt="{entityType} image" loading="lazy" />
+      <img src={resolvedImageUrl} alt="{entityType} image" loading="lazy" />
       <div class="image-actions">
         <button
           type="button"

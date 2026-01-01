@@ -54,7 +54,8 @@ export const createBagSchema = z.object({
   weight_g: positiveNumber.optional(),
   price: nonNegativeNumber.optional(),
   purchase_location: z.string().max(255).optional(),
-  inventory_status: inventoryStatusSchema.optional()
+  inventory_status: inventoryStatusSchema.optional(),
+  emptied_on_date: z.string().datetime().nullable().optional()
 });
 
 export const createGrinderSchema = z.object({

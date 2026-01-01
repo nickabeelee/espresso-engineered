@@ -195,4 +195,243 @@ export class BrewRepository extends BaseRepository<Brew> {
 
     return calculated;
   }
+
+  /**
+   * Get brews from current week starting Monday, grouped by barista and bean
+   */
+  async findWeekBrews(weekStart?: Date): Promise<any[]> {
+    // Calculate current week start (Monday) if not provided
+    const currentWeekStart = weekStart || (() => {
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Days to subtract to get to Monday
+      const weekStartDate = new Date(now);
+      weekStartDate.setDate(now.getDate() - daysToMonday);
+      weekStartDate.setHours(0, 0, 0, 0);
+      return weekStartDate;
+    })();
+
+    const weekEnd = new Date(currentWeekStart);
+    weekEnd.setDate(currentWeekStart.getDate() + 7);
+
+    const { data, error } = await supabase
+      .from('brew')
+      .select(`
+        *,
+        barista:barista_id (
+          id,
+          display_name
+        ),
+        bean:bag_id (
+          bean:bean_id (
+            id,
+            name,
+            roast_level,
+            roaster:roaster_id (
+              id,
+              name
+            )
+          )
+        ),
+        bag:bag_id (
+          id,
+          name
+        ),
+        machine:machine_id (
+          id,
+          manufacturer,
+          name
+        ),
+        grinder:grinder_id (
+          id,
+          manufacturer,
+          name
+        )
+      `)
+      .gte('created_at', currentWeekStart.toISOString())
+      .lt('created_at', weekEnd.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    const brews = (data as any[]) || [];
+
+    // Group brews by barista_id + bean_id combination
+    const groups = new Map<string, any>();
+    
+    brews.forEach(brew => {
+      const baristaId = brew.barista?.id;
+      const beanId = brew.bean?.bean?.id;
+      const groupKey = `${baristaId}-${beanId}`;
+      
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          barista: brew.barista,
+          bean: brew.bean?.bean,
+          brews: [],
+          stackDepth: 0
+        });
+      }
+      
+      groups.get(groupKey)!.brews.push(brew);
+    });
+
+    // Convert map to array and set stack depths
+    const groupsArray = Array.from(groups.values());
+    groupsArray.forEach(group => {
+      group.stackDepth = group.brews.length;
+    });
+
+    return groupsArray;
+  }
+
+  /**
+   * Get brew analysis data optimized for D3 scatter plots
+   * Supports filtering by bean_id, bag_id, and recency period
+   */
+  async findAnalysisData(filters: {
+    bean_id?: string;
+    bag_id?: string;
+    recency?: '2D' | 'W' | 'M' | '3M' | 'Y';
+    barista_id?: string;
+    include_community?: boolean;
+  }): Promise<{
+    brews: Array<{
+      id: string;
+      barista_id: string;
+      name?: string;
+      x_ratio: number | null;
+      x_brew_time: number | null;
+      y_rating: number | null;
+      bag_id: string;
+      bag_name?: string;
+      grind_setting?: string;
+      date: string;
+    }>;
+    bean?: any;
+    bag?: any;
+  }> {
+    let query = supabase
+      .from('brew')
+      .select(`
+        id,
+        barista_id,
+        name,
+        ratio,
+        brew_time_s,
+        rating,
+        grind_setting,
+        created_at,
+        bag_id,
+        bag:bag_id (
+          id,
+          name,
+          bean:bean_id (
+            id,
+            name,
+            roast_level,
+            roaster:roaster_id (
+              id,
+              name
+            )
+          )
+        )
+      `);
+
+    // Apply filters
+    if (filters.barista_id && !filters.include_community) {
+      query = query.eq('barista_id', filters.barista_id);
+    }
+
+    if (filters.bag_id) {
+      query = query.eq('bag_id', filters.bag_id);
+    } else if (filters.bean_id) {
+      // If bean_id is provided but not bag_id, filter by bean through bag relationship
+      const bagQuery = supabase
+        .from('bag')
+        .select('id')
+        .eq('bean_id', filters.bean_id);
+      
+      const { data: bags } = await bagQuery;
+      if (bags && bags.length > 0) {
+        const bagIds = bags.map(bag => bag.id);
+        query = query.in('bag_id', bagIds);
+      } else {
+        // No bags found for this bean, return empty result
+        return { brews: [] };
+      }
+    }
+
+    // Apply recency filter
+    if (filters.recency) {
+      const now = new Date();
+      let cutoffDate: Date;
+
+      switch (filters.recency) {
+        case '2D':
+          cutoffDate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+          break;
+        case 'W':
+          cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'M':
+          cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '3M':
+          cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          break;
+        case 'Y':
+          cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          cutoffDate = new Date(0); // No filter
+      }
+
+      query = query.gte('created_at', cutoffDate.toISOString());
+    }
+
+    // Only include brews with rating (for scatter plot)
+    query = query.not('rating', 'is', null);
+    query = query.order('created_at', { ascending: false });
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    const brews = (data as any[]) || [];
+
+    // Transform data for D3 scatter plots
+    const transformedBrews = brews.map(brew => ({
+      id: brew.id,
+      barista_id: brew.barista_id,
+      name: brew.name,
+      x_ratio: brew.ratio,
+      x_brew_time: brew.brew_time_s,
+      y_rating: brew.rating,
+      bag_id: brew.bag_id,
+      bag_name: brew.bag?.name,
+      grind_setting: brew.grind_setting,
+      date: brew.created_at
+    }));
+
+    // Get bean and bag info for response metadata
+    let bean, bag;
+    if (brews.length > 0) {
+      const firstBrew = brews[0];
+      bean = firstBrew.bag?.bean;
+      if (filters.bag_id) {
+        bag = firstBrew.bag;
+      }
+    }
+
+    return {
+      brews: transformedBrews,
+      bean,
+      bag
+    };
+  }
 }

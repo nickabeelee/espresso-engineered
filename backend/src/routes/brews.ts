@@ -18,6 +18,51 @@ import { handleRouteError, isNotFoundError } from '../utils/error-helpers.js';
 const brewRepository = new BrewRepository();
 
 export async function brewRoutes(fastify: FastifyInstance) {
+  // GET /api/brews/week - Get brews from current week grouped by barista and bean
+  fastify.get('/api/brews/week', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { week_start } = request.query as { week_start?: string };
+      
+      let weekStartDate: Date | undefined;
+      if (week_start) {
+        weekStartDate = new Date(week_start);
+        if (isNaN(weekStartDate.getTime())) {
+          return reply.status(400).send({
+            error: 'Bad Request',
+            message: 'Invalid week_start date format'
+          });
+        }
+      }
+
+      const groups = await brewRepository.findWeekBrews(weekStartDate);
+      
+      // Calculate the actual week start used
+      const actualWeekStart = weekStartDate || (() => {
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - daysToMonday);
+        weekStart.setHours(0, 0, 0, 0);
+        return weekStart;
+      })();
+
+      return {
+        data: groups,
+        count: groups.length,
+        week_start: actualWeekStart.toISOString()
+      };
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to fetch week brews'
+      });
+    }
+  });
+
   // POST /api/brews - Create new brew
   fastify.post('/api/brews', {
     preHandler: authenticateRequest
@@ -32,6 +77,55 @@ export async function brewRoutes(fastify: FastifyInstance) {
     } catch (error) {
       request.log.error(error);
       return handleRouteError(error, reply, 'create brew');
+    }
+  });
+
+  // GET /api/brews/analysis - Get brew analysis data for scatter plots
+  fastify.get('/api/brews/analysis', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const authRequest = request as AuthenticatedRequest;
+      const { bean_id, bag_id, recency, include_community } = request.query as { 
+        bean_id?: string;
+        bag_id?: string;
+        recency?: '2D' | 'W' | 'M' | '3M' | 'Y';
+        include_community?: string;
+      };
+
+      // Validate recency parameter
+      if (recency && !['2D', 'W', 'M', '3M', 'Y'].includes(recency)) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'Invalid recency parameter. Must be one of: 2D, W, M, 3M, Y'
+        });
+      }
+
+      const analysisData = await brewRepository.findAnalysisData({
+        bean_id,
+        bag_id,
+        recency,
+        barista_id: authRequest.barista!.id,
+        include_community: include_community === 'true'
+      });
+
+      return {
+        data: analysisData.brews,
+        count: analysisData.brews.length,
+        bean: analysisData.bean,
+        bag: analysisData.bag,
+        filters: {
+          bean_id,
+          bag_id,
+          recency
+        }
+      };
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to fetch brew analysis data'
+      });
     }
   });
 

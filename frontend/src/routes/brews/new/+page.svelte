@@ -78,7 +78,7 @@
   }
 
   function handleCancel() {
-    goto('/brews');
+    goto('/');
   }
 </script>
 

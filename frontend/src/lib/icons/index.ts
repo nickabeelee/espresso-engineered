@@ -9,6 +9,8 @@ export { default as XMark } from './outline/XMark.svelte';
 export { default as ArrowDownTray } from './outline/ArrowDownTray.svelte';
 export { default as ArrowPath } from './outline/ArrowPath.svelte';
 export { default as ChevronDown } from './outline/ChevronDown.svelte';
+export { default as ChevronLeft } from './outline/ChevronLeft.svelte';
+export { default as ChevronRight } from './outline/ChevronRight.svelte';
 export { default as MagnifyingGlass } from './outline/MagnifyingGlass.svelte';
 export { default as DocumentDuplicate } from './outline/DocumentDuplicate.svelte';
 
