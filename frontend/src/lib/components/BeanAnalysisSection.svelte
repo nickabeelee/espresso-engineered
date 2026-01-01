@@ -1,16 +1,17 @@
 <script lang="ts">
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount, onDestroy, tick, createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import BeanSelector from './BeanSelector.svelte';
-  import BagSelector from './BagSelector.svelte';
   import ScatterPlot from './ScatterPlot.svelte';
   import LoadingIndicator from './LoadingIndicator.svelte';
   import ErrorDisplay from './ErrorDisplay.svelte';
+  import { ChevronDown } from '$lib/icons';
+  import { gsap } from '$lib/ui/animations';
   import type { Bean, Bag, Brew } from '@shared/types';
   import { recordListShell } from '$lib/ui/components/card';
+  import { selector } from '$lib/ui/components/selector';
   import { colorCss } from '$lib/ui/foundations/color';
-  import { textStyles } from '$lib/ui/foundations/typography';
+  import { textStyles, fontFamilies } from '$lib/ui/foundations/typography';
   import { toStyleString } from '$lib/ui/style';
   import type { BrewDataPoint, ScatterPlotConfig, RecencyPeriod } from '$lib/ui/viz/d3-integration';
 
@@ -27,11 +28,32 @@
   // Component state
   let loading = true;
   let error: string | null = null;
-  let analysisData: any[] = [];
+  type AnalysisPoint = {
+    id: string;
+    x_ratio: number | null;
+    x_brew_time: number | null;
+    y_rating: number | null;
+    bag_id: string;
+    bag_name?: string;
+    date: string;
+  };
+
+  let analysisData: AnalysisPoint[] = [];
   let recencyFilter: RecencyPeriod = 'M'; // Default to 1 month
-  let lastUsedBag: Bag | null = null;
   let availableBags: Bag[] = [];
   let availableBeans: Bean[] = [];
+  let selectorRoot: HTMLDivElement | null = null;
+  let beanMenuOpen = false;
+  let bagMenuOpen = false;
+  let chartsShell: HTMLDivElement | null = null;
+  let chartsWidth = 0;
+  let resizeObserver: ResizeObserver | null = null;
+  let recencyTrack: HTMLDivElement | null = null;
+  let recencyIndicator: HTMLDivElement | null = null;
+  let recencyResizeObserver: ResizeObserver | null = null;
+  const recencyButtons = new Map<RecencyPeriod, HTMLButtonElement>();
+  let recencyHasPositioned = false;
+  let recencyAnimating = false;
 
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
@@ -61,6 +83,32 @@
     '--record-list-padding': recordListShell.padding
   });
 
+  const selectorStyle = toStyleString({
+    '--font-ui': fontFamilies.ui,
+    '--selector-trigger-padding': selector.trigger.padding,
+    '--selector-trigger-border': selector.trigger.borderColor,
+    '--selector-trigger-bg': selector.trigger.background,
+    '--selector-trigger-color': selector.trigger.textColor,
+    '--selector-trigger-radius': selector.trigger.radius,
+    '--selector-trigger-font-size': selector.trigger.fontSize,
+    '--selector-trigger-focus': selector.trigger.focusRing,
+    '--selector-trigger-focus-offset': selector.trigger.focusOffset,
+    '--selector-panel-bg': selector.panel.background,
+    '--selector-panel-border': selector.panel.borderColor,
+    '--selector-panel-radius': selector.panel.radius,
+    '--selector-panel-shadow': selector.panel.shadow,
+    '--selector-panel-padding': selector.panel.padding,
+    '--selector-option-padding': selector.option.padding,
+    '--selector-option-radius': selector.option.radius,
+    '--selector-option-color': selector.option.textColor,
+    '--selector-option-hover-bg': selector.option.hoverBackground,
+    '--selector-option-hover-border': selector.option.hoverBorder,
+    '--selector-option-title-size': selector.option.titleSize,
+    '--selector-meta-color': selector.meta.textColor,
+    '--selector-meta-size': selector.meta.fontSize,
+    '--selector-empty-color': selector.empty.textColor
+  });
+
   // Recency filter options
   const recencyOptions = [
     { value: '2D' as RecencyPeriod, label: '2 Days' },
@@ -72,15 +120,15 @@
 
   // Chart configurations
   const chartConfig: ScatterPlotConfig = {
-    width: 300,
-    height: 250,
+    width: 320,
+    height: 220,
     margin: { top: 20, right: 20, bottom: 40, left: 20 },
     showYAxisLabels: false, // Per requirements: omit vertical axis labels
     responsive: true
   };
 
   // Transform analysis data to scatter plot format
-  function transformToScatterData(data: any[], xField: 'x_ratio' | 'x_brew_time'): BrewDataPoint[] {
+  function transformToScatterData(data: AnalysisPoint[], xField: 'x_ratio' | 'x_brew_time'): BrewDataPoint[] {
     return data
       .filter(item => item[xField] !== null && item.y_rating !== null)
       .map(item => ({
@@ -104,50 +152,90 @@
   $: ratioData = transformToScatterData(analysisData, 'x_ratio');
   $: brewTimeData = transformToScatterData(analysisData, 'x_brew_time');
 
-  // Chart configurations with proper domains
-  $: ratioChartConfig = {
-    ...chartConfig,
-    xLabel: 'Ratio (1:x)',
-    yLabel: 'Rating',
-    xDomain: ratioData.length > 0 ? undefined : [10, 20] as [number, number], // Let D3 calculate or use default
-    yDomain: [1, 5] as [number, number] // Rating is always 1-5
-  };
-
-  $: brewTimeChartConfig = {
-    ...chartConfig,
-    xLabel: 'Brew Time (s)',
-    yLabel: 'Rating',
-    xDomain: brewTimeData.length > 0 ? undefined : [20, 40] as [number, number], // Let D3 calculate or use default
-    yDomain: [1, 5] as [number, number] // Rating is always 1-5
-  };
-
   onMount(async () => {
     await loadInitialData();
+    initResizeObserver();
+    await tick();
+    syncRecencyIndicator(recencyFilter);
+    document.addEventListener('click', handleDocumentClick);
   });
+
+  onDestroy(() => {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
+    recencyResizeObserver?.disconnect();
+    recencyResizeObserver = null;
+    document.removeEventListener('click', handleDocumentClick);
+  });
+
+  function initResizeObserver() {
+    if (!chartsShell || resizeObserver || !('ResizeObserver' in window)) return;
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          chartsWidth = entry.contentRect.width;
+        }
+      }
+    });
+    resizeObserver.observe(chartsShell);
+  }
+
+  function initRecencyObserver() {
+    if (!recencyTrack || recencyResizeObserver || !('ResizeObserver' in window)) return;
+    recencyResizeObserver = new ResizeObserver(() => {
+      syncRecencyIndicator(recencyFilter);
+    });
+    recencyResizeObserver.observe(recencyTrack);
+  }
+
+  $: if (chartsShell) {
+    initResizeObserver();
+  }
+
+  $: if (recencyTrack) {
+    initRecencyObserver();
+  }
 
   async function loadInitialData() {
     try {
       loading = true;
       error = null;
 
+      const [beansResponse, bagsResponse] = await Promise.all([
+        apiClient.getBeans(),
+        apiClient.getBags()
+      ]);
+
+      availableBeans = beansResponse.data;
+      availableBags = bagsResponse.data;
+
       // Load user's last used bag as default selection
       const baristaId = $barista?.id;
-      if (baristaId) {
+      if (baristaId && !selectedBag && !selectedBean) {
         const brewsResponse = await apiClient.getBrews({ barista_id: baristaId });
         const recentBrews = brewsResponse.data;
-        
+
         if (recentBrews.length > 0) {
-          // Find the most recent brew's bag
           const mostRecentBrew = recentBrews[0];
-          const bagResponse = await apiClient.getBag(mostRecentBrew.bag_id);
-          lastUsedBag = bagResponse.data || null;
-          
-          // Set as default selection if no bag is already selected
-          if (!selectedBag) {
-            selectedBag = lastUsedBag;
+          let bag = availableBags.find(item => item.id === mostRecentBrew.bag_id) || null;
+
+          if (!bag) {
+            const bagResponse = await apiClient.getBag(mostRecentBrew.bag_id);
+            bag = bagResponse.data || null;
+          }
+
+          if (bag) {
+            selectedBag = bag;
+            selectedBean = availableBeans.find(item => item.id === bag.bean_id) || null;
             dispatch('bagChange', { bag: selectedBag });
+            dispatch('beanChange', { bean: selectedBean });
           }
         }
+      }
+
+      if (selectedBag && !selectedBean) {
+        selectedBean = availableBeans.find(item => item.id === selectedBag.bean_id) || null;
+        dispatch('beanChange', { bean: selectedBean });
       }
 
       // Load analysis data with current selection
@@ -162,6 +250,11 @@
 
   async function loadAnalysisData() {
     try {
+      if (!selectedBag && !selectedBean) {
+        analysisData = [];
+        return;
+      }
+
       const params: any = { recency: recencyFilter };
       
       if (selectedBag) {
@@ -178,25 +271,151 @@
     }
   }
 
-  function handleBeanChange(event: CustomEvent<{ bean: Bean | null }>) {
-    selectedBean = event.detail.bean;
-    selectedBag = null; // Clear bag selection when bean changes
+  async function handleRecencyChange(period: RecencyPeriod) {
+    if (recencyFilter === period) return;
+    recencyFilter = period;
+    await tick();
+    recencyAnimating = true;
+    animateRecencyIndicator(period);
+    loadAnalysisData();
+  }
+
+  function handleDocumentClick(event: MouseEvent) {
+    if (!selectorRoot) return;
+    const path = event.composedPath() as EventTarget[];
+    if (!path.includes(selectorRoot)) {
+      beanMenuOpen = false;
+      bagMenuOpen = false;
+    }
+  }
+
+  function toggleBeanMenu() {
+    beanMenuOpen = !beanMenuOpen;
+    if (beanMenuOpen) {
+      bagMenuOpen = false;
+    }
+  }
+
+  function toggleBagMenu() {
+    if (!selectedBean) return;
+    bagMenuOpen = !bagMenuOpen;
+    if (bagMenuOpen) {
+      beanMenuOpen = false;
+    }
+  }
+
+  function selectBean(bean: Bean | null) {
+    beanMenuOpen = false;
+    bagMenuOpen = false;
+    selectedBean = bean;
+    selectedBag = null;
     dispatch('beanChange', { bean: selectedBean });
     dispatch('bagChange', { bag: null });
     loadAnalysisData();
   }
 
-  function handleBagChange(event: CustomEvent<{ bag: Bag | null }>) {
-    selectedBag = event.detail.bag;
+  function selectBag(bag: Bag | null) {
+    bagMenuOpen = false;
+    selectedBag = bag;
+    if (bag) {
+      selectedBean = availableBeans.find(item => item.id === bag.bean_id) || selectedBean;
+      dispatch('beanChange', { bean: selectedBean });
+    }
     dispatch('bagChange', { bag: selectedBag });
     loadAnalysisData();
   }
 
-  function handleRecencyChange(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    recencyFilter = target.value as RecencyPeriod;
-    loadAnalysisData();
+  const recencyButtonAction = (node: HTMLButtonElement, period: RecencyPeriod) => {
+    recencyButtons.set(period, node);
+    if (!recencyHasPositioned) {
+      tick().then(() => {
+        syncRecencyIndicator(recencyFilter);
+        recencyHasPositioned = true;
+      });
+    }
+    return {
+      destroy() {
+        recencyButtons.delete(period);
+      }
+    };
+  };
+
+  function syncRecencyIndicator(period: RecencyPeriod, force = false) {
+    if (!recencyTrack || !recencyIndicator) return;
+    if (recencyAnimating && !force) return;
+    const button = recencyButtons.get(period);
+    if (!button) return;
+    const left = button.offsetLeft;
+    const top = button.offsetTop;
+    gsap.set(recencyIndicator, {
+      x: left,
+      y: top,
+      width: button.offsetWidth,
+      height: button.offsetHeight,
+      scaleX: 1,
+      scaleY: 1
+    });
   }
+
+  function animateRecencyIndicator(period: RecencyPeriod) {
+    if (!recencyTrack || !recencyIndicator) return;
+    const button = recencyButtons.get(period);
+    if (!button) return;
+    const left = button.offsetLeft;
+    const top = button.offsetTop;
+
+    gsap.killTweensOf(recencyIndicator);
+    const tl = gsap.timeline({
+      onComplete: () => {
+        recencyAnimating = false;
+        syncRecencyIndicator(period, true);
+      }
+    });
+    tl.to(recencyIndicator, {
+      scaleX: 0.92,
+      scaleY: 0.78,
+      duration: 0.12,
+      ease: 'power2.out'
+    });
+    tl.to(recencyIndicator, {
+      x: left,
+      y: top,
+      width: button.offsetWidth,
+      height: button.offsetHeight,
+      duration: 0.28,
+      ease: 'power3.out'
+    }, 0);
+    tl.to(recencyIndicator, {
+      scaleX: 1,
+      scaleY: 1,
+      duration: 0.16,
+      ease: 'back.out(2)'
+    }, '-=0.08');
+  }
+
+  function formatBeanLabel(bean: Bean | null) {
+    return bean ? bean.name : 'Select a bean';
+  }
+
+  function formatBagLabel(bag: Bag | null) {
+    if (!bag) return 'All bags';
+    if (bag.name) return bag.name;
+    if (bag.roast_date) {
+      return `Roast ${new Date(bag.roast_date).toLocaleDateString()}`;
+    }
+    return 'Bag';
+  }
+
+  $: beanBags = selectedBean
+    ? availableBags.filter(bag => bag.bean_id === selectedBean?.id)
+    : [];
+
+  $: chartColumns = chartsWidth < 720 ? 1 : 2;
+  $: chartGap = chartColumns === 1 ? 0 : 32;
+  $: chartWidth = chartsWidth
+    ? Math.max(280, Math.floor((chartsWidth - chartGap) / chartColumns))
+    : chartConfig.width;
+  $: chartHeight = Math.round(chartWidth * 0.68);
 
   // Voice message for empty state
   $: emptyStateMessage = getEmptyStateMessage();
@@ -210,6 +429,26 @@
       return "Select a bean or bag to see brewing patterns.";
     }
   }
+
+  $: ratioChartConfig = {
+    ...chartConfig,
+    width: chartWidth,
+    height: chartHeight,
+    xLabel: 'Ratio (1:x)',
+    yLabel: 'Rating',
+    xDomain: ratioData.length > 0 ? undefined : [10, 20] as [number, number],
+    yDomain: [1, 5] as [number, number]
+  };
+
+  $: brewTimeChartConfig = {
+    ...chartConfig,
+    width: chartWidth,
+    height: chartHeight,
+    xLabel: 'Brew Time (s)',
+    yLabel: 'Rating',
+    xDomain: brewTimeData.length > 0 ? undefined : [20, 40] as [number, number],
+    yDomain: [1, 5] as [number, number]
+  };
 </script>
 
 <section class="bean-analysis-section">
@@ -226,38 +465,119 @@
     {:else if error}
       <ErrorDisplay {error} />
     {:else}
-      <div class="analysis-controls">
+      <div class="analysis-controls" style={selectorStyle} bind:this={selectorRoot}>
         <div class="selector-row">
           <div class="selector-group">
-            <label for="bean-selector">Bean</label>
-            <BeanSelector 
-              value={selectedBean?.id || ''}
-              on:change={handleBeanChange}
-            />
+            <label>Bean</label>
+            <div class="cascade-select">
+              <button
+                type="button"
+                class="cascade-trigger"
+                on:click={toggleBeanMenu}
+              >
+                <span class:selection-placeholder={!selectedBean}>{formatBeanLabel(selectedBean)}</span>
+                <span class="chevron" aria-hidden="true">
+                  <ChevronDown size={16} />
+                </span>
+              </button>
+              {#if beanMenuOpen}
+                <div class="cascade-panel">
+                  <button
+                    type="button"
+                    class="cascade-option"
+                    on:click={() => selectBean(null)}
+                  >
+                    <span class="option-title">Clear selection</span>
+                    <span class="option-meta">Pause the analysis view</span>
+                  </button>
+                  {#if availableBeans.length === 0}
+                    <div class="cascade-empty">No beans yet.</div>
+                  {:else}
+                    {#each availableBeans as bean (bean.id)}
+                      <button
+                        type="button"
+                        class="cascade-option"
+                        on:click={() => selectBean(bean)}
+                      >
+                        <span class="option-title">{bean.name}</span>
+                        <span class="option-meta">{bean.roast_level}</span>
+                      </button>
+                    {/each}
+                  {/if}
+                </div>
+              {/if}
+            </div>
           </div>
           
           <div class="selector-group">
-            <label for="bag-selector">Bag</label>
-            <BagSelector 
-              value={selectedBag?.id || ''}
-              on:bagSelected={handleBagChange}
-            />
+            <label>Bag</label>
+            {#if selectedBean}
+              <div class="cascade-select">
+                <button
+                  type="button"
+                  class="cascade-trigger"
+                  on:click={toggleBagMenu}
+                >
+                  <span>{formatBagLabel(selectedBag)}</span>
+                  <span class="chevron" aria-hidden="true">
+                    <ChevronDown size={16} />
+                  </span>
+                </button>
+                {#if bagMenuOpen}
+                  <div class="cascade-panel">
+                    <button
+                      type="button"
+                      class="cascade-option"
+                      on:click={() => selectBag(null)}
+                    >
+                      <span class="option-title">All bags</span>
+                      <span class="option-meta">Show every bag for this bean</span>
+                    </button>
+                    {#if beanBags.length === 0}
+                      <div class="cascade-empty">No bags for this bean yet.</div>
+                    {:else}
+                      {#each beanBags as bag (bag.id)}
+                        <button
+                          type="button"
+                          class="cascade-option"
+                          on:click={() => selectBag(bag)}
+                        >
+                          <span class="option-title">{formatBagLabel(bag)}</span>
+                          <span class="option-meta">
+                            {bag.roast_date ? new Date(bag.roast_date).toLocaleDateString() : 'No roast date'}
+                          </span>
+                        </button>
+                      {/each}
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+            {:else}
+              <div class="bag-hint">Choose a bean to reveal its bags.</div>
+            {/if}
           </div>
         </div>
 
         <div class="filter-row">
           <div class="filter-group">
-            <label for="recency-filter">Time Period</label>
-            <select 
-              id="recency-filter"
-              bind:value={recencyFilter}
-              on:change={handleRecencyChange}
-              class="recency-select"
-            >
+            <label>Time Period</label>
+            <div class="recency-tabs" role="tablist" aria-label="Recency filter" bind:this={recencyTrack}>
+              <span class="recency-indicator" bind:this={recencyIndicator} aria-hidden="true"></span>
               {#each recencyOptions as option}
-                <option value={option.value}>{option.label}</option>
+                <button
+                  type="button"
+                  class="recency-tab"
+                  class:active={recencyFilter === option.value}
+                  role="tab"
+                  aria-selected={recencyFilter === option.value}
+                  title={option.label}
+                  on:click={() => handleRecencyChange(option.value)}
+                  use:recencyButtonAction={option.value}
+                >
+                  {option.value}
+                </button>
               {/each}
-            </select>
+            </div>
           </div>
         </div>
       </div>
@@ -267,7 +587,7 @@
           <p class="voice-text" style={voiceLineStyle}>{emptyStateMessage}</p>
         </div>
       {:else}
-        <div class="charts-container">
+        <div class="charts-container" bind:this={chartsShell}>
           <div class="chart-wrapper">
             <h3 style={chartTitleStyle}>Rating vs Ratio</h3>
             <ScatterPlot 
@@ -329,6 +649,102 @@
     gap: 1rem;
   }
 
+  .cascade-select {
+    position: relative;
+    width: 100%;
+  }
+
+  .cascade-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: var(--selector-trigger-padding);
+    border: 1px solid var(--selector-trigger-border);
+    border-radius: var(--selector-trigger-radius);
+    background: var(--selector-trigger-bg);
+    color: var(--selector-trigger-color);
+    font-size: var(--selector-trigger-font-size);
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-ui);
+  }
+
+  .cascade-trigger:focus-visible {
+    outline: var(--selector-trigger-focus);
+    outline-offset: var(--selector-trigger-focus-offset);
+  }
+
+  .selection-placeholder {
+    color: var(--text-ink-placeholder);
+  }
+
+  .chevron {
+    display: inline-flex;
+    transition: transform 0.2s ease;
+  }
+
+  .cascade-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    background: var(--selector-panel-bg);
+    border: 1px solid var(--selector-panel-border);
+    border-radius: var(--selector-panel-radius);
+    box-shadow: var(--selector-panel-shadow);
+    padding: var(--selector-panel-padding);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .cascade-option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: var(--selector-option-padding);
+    border-radius: var(--selector-option-radius);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--selector-option-color);
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-ui);
+  }
+
+  .cascade-option:hover,
+  .cascade-option:focus-visible {
+    background: var(--selector-option-hover-bg);
+    border-color: var(--selector-option-hover-border);
+  }
+
+  .option-title {
+    font-size: var(--selector-option-title-size);
+    font-weight: 500;
+  }
+
+  .option-meta {
+    color: var(--selector-meta-color);
+    font-size: var(--selector-meta-size);
+  }
+
+  .cascade-empty {
+    color: var(--selector-empty-color);
+    font-size: var(--selector-meta-size);
+    padding: 0.4rem 0.2rem;
+  }
+
+  .bag-hint {
+    font-size: 0.9rem;
+    color: var(--text-ink-muted);
+    padding: 0.6rem 0.2rem;
+  }
+
   .selector-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -337,7 +753,7 @@
 
   .filter-row {
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .selector-group,
@@ -345,6 +761,11 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    align-items: center;
+  }
+
+  .selector-group {
+    align-items: stretch;
   }
 
   .selector-group label,
@@ -354,20 +775,50 @@
     color: var(--text-ink-secondary);
   }
 
-  .recency-select {
-    padding: 0.6rem 0.75rem;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
-    background: var(--bg-surface-paper);
-    color: var(--text-ink-primary);
-    font-size: 0.9rem;
-    cursor: pointer;
-    min-width: 120px;
+  .recency-tabs {
+    display: inline-flex;
+    gap: 0.35rem;
+    padding: 0.3rem;
+    border-radius: 999px;
+    border: 1px solid rgba(123, 94, 58, 0.3);
+    background: rgba(123, 94, 58, 0.12);
+    position: relative;
   }
 
-  .recency-select:focus {
-    outline: 2px solid var(--accent-primary);
-    outline-offset: 2px;
+  .recency-tab {
+    border: none;
+    background: transparent;
+    color: var(--text-ink-secondary);
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    font-family: var(--font-ui);
+    transition: background var(--motion-fast) ease, color var(--motion-fast) ease;
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .recency-tab:hover {
+    background: rgba(123, 94, 58, 0.2);
+  }
+
+  .recency-tab.active {
+    color: var(--text-ink-inverted);
+  }
+
+  .recency-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: var(--accent-primary);
+    border-radius: 999px;
+    z-index: 0;
   }
 
   .empty-state {
@@ -405,6 +856,16 @@
     .charts-container {
       grid-template-columns: 1fr;
       gap: 1.5rem;
+    }
+
+    .recency-tabs {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .recency-tab {
+      flex: 1;
+      text-align: center;
     }
   }
 </style>
