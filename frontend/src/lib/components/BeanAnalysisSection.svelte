@@ -61,13 +61,6 @@
     margin: '0 0 0.5rem 0'
   });
 
-  const chartTitleStyle = toStyleString({
-    ...textStyles.headingTertiary,
-    color: colorCss.text.ink.primary,
-    margin: 0,
-    textAlign: 'center'
-  });
-
   const voiceLineStyle = toStyleString({
     ...textStyles.voice,
     color: colorCss.text.ink.muted,
@@ -122,7 +115,7 @@
   const chartConfig: ScatterPlotConfig = {
     width: 320,
     height: 220,
-    margin: { top: 20, right: 20, bottom: 40, left: 20 },
+    margin: { top: 10, right: 18, bottom: 28, left: 18 },
     showYAxisLabels: false, // Per requirements: omit vertical axis labels
     responsive: true
   };
@@ -406,15 +399,76 @@
     return 'Bag';
   }
 
+  function formatRatioValue(value: number) {
+    return `1:${value.toFixed(1)}`;
+  }
+
+  function formatTimeValue(value: number) {
+    return `${Math.round(value)}s`;
+  }
+
+  function median(values: number[]): number | null {
+    if (values.length === 0) return null;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
+  }
+
+  function percentile(values: number[], pct: number): number | null {
+    if (values.length === 0) return null;
+    const sorted = [...values].sort((a, b) => a - b);
+    const index = (sorted.length - 1) * pct;
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    if (lower === upper) return sorted[lower];
+    const weight = index - lower;
+    return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+  }
+
+  function buildTicks(values: number[], target: number, fallback: [number, number, number], step: number) {
+    if (values.length === 0) return fallback;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    if (min === max) {
+      return [min - step, min, min + step];
+    }
+    return [min, target, max];
+  }
+
+  function calculateTarget(points: BrewDataPoint[], fallback: number, fallbackBand: number) {
+    if (points.length === 0) {
+      return { target: fallback, bandWidth: fallbackBand };
+    }
+
+    const ratings = points.map(point => point.y);
+    const threshold = percentile(ratings, 0.75);
+    const topPoints = threshold === null
+      ? points
+      : points.filter(point => point.y >= threshold);
+    const pool = topPoints.length >= 3 ? topPoints : points;
+    const poolValues = pool.map(point => point.x);
+    const target = median(poolValues) ?? fallback;
+
+    const p10 = percentile(poolValues, 0.1) ?? target;
+    const p90 = percentile(poolValues, 0.9) ?? target;
+    const spread = Math.max(p90 - p10, fallbackBand);
+
+    return { target, bandWidth: spread };
+  }
+
   $: beanBags = selectedBean
     ? availableBags.filter(bag => bag.bean_id === selectedBean?.id)
     : [];
 
   $: chartColumns = chartsWidth < 720 ? 1 : 2;
+  const chartCardPadding = 16;
   $: chartGap = chartColumns === 1 ? 0 : 32;
-  $: chartWidth = chartsWidth
-    ? Math.max(280, Math.floor((chartsWidth - chartGap) / chartColumns))
+  $: chartColumnWidth = chartsWidth
+    ? Math.floor((chartsWidth - chartGap) / chartColumns)
     : chartConfig.width;
+  $: chartWidth = Math.max(240, chartColumnWidth - chartCardPadding * 2);
   $: chartHeight = Math.round(chartWidth * 0.68);
 
   // Voice message for empty state
@@ -430,24 +484,64 @@
     }
   }
 
+  $: ratioValues = ratioData.map(point => point.x);
+  $: ratioTargetData = calculateTarget(ratioData, 2.0, 0.12);
+  $: ratioTarget = ratioTargetData.target;
+  $: ratioBandWidth = ratioTargetData.bandWidth;
+  $: ratioTicks = buildTicks(ratioValues, ratioTarget, [1.5, 2.0, 2.5], 0.1);
+
   $: ratioChartConfig = {
     ...chartConfig,
     width: chartWidth,
     height: chartHeight,
-    xLabel: 'Ratio (1:x)',
-    yLabel: 'Rating',
-    xDomain: ratioData.length > 0 ? undefined : [10, 20] as [number, number],
-    yDomain: [1, 5] as [number, number]
+    showYAxis: false,
+    xDomain: ratioData.length > 0 ? undefined : [1.4, 2.6] as [number, number],
+    yDomain: [1, 5] as [number, number],
+    xTickValues: ratioTicks,
+    xTickFormat: (value: number) => `1:${value.toFixed(1)}`,
+    pointRadius: 5,
+    hoverRadius: 7,
+    targetBand: {
+      value: ratioTarget,
+      width: ratioBandWidth,
+      color: colorCss.semantic.success,
+      opacity: 0.28
+    },
+    trendLine: {
+      enabled: ratioData.length > 2,
+      color: colorCss.text.ink.secondary,
+      opacity: 0.55
+    }
   };
+
+  $: timeValues = brewTimeData.map(point => point.x);
+  $: timeTargetData = calculateTarget(brewTimeData, 30, 2.5);
+  $: timeTarget = timeTargetData.target;
+  $: timeBandWidth = timeTargetData.bandWidth;
+  $: timeTicks = buildTicks(timeValues, timeTarget, [23, 30, 35], 2);
 
   $: brewTimeChartConfig = {
     ...chartConfig,
     width: chartWidth,
     height: chartHeight,
-    xLabel: 'Brew Time (s)',
-    yLabel: 'Rating',
-    xDomain: brewTimeData.length > 0 ? undefined : [20, 40] as [number, number],
-    yDomain: [1, 5] as [number, number]
+    showYAxis: false,
+    xDomain: brewTimeData.length > 0 ? undefined : [22, 36] as [number, number],
+    yDomain: [1, 5] as [number, number],
+    xTickValues: timeTicks,
+    xTickFormat: (value: number) => `${Math.round(value)}s`,
+    pointRadius: 5,
+    hoverRadius: 7,
+    targetBand: {
+      value: timeTarget,
+      width: timeBandWidth,
+      color: colorCss.semantic.success,
+      opacity: 0.28
+    },
+    trendLine: {
+      enabled: brewTimeData.length > 2,
+      color: colorCss.text.ink.secondary,
+      opacity: 0.55
+    }
   };
 </script>
 
@@ -589,7 +683,10 @@
       {:else}
         <div class="charts-container" bind:this={chartsShell}>
           <div class="chart-wrapper">
-            <h3 style={chartTitleStyle}>Rating vs Ratio</h3>
+            <div class="chart-header">
+              <span class="chart-label">Ratio</span>
+              <span class="chart-value">{formatRatioValue(ratioTarget)}</span>
+            </div>
             <ScatterPlot 
               data={ratioData}
               config={ratioChartConfig}
@@ -598,7 +695,10 @@
           </div>
           
           <div class="chart-wrapper">
-            <h3 style={chartTitleStyle}>Rating vs Brew Time</h3>
+            <div class="chart-header">
+              <span class="chart-label">Brew Time</span>
+              <span class="chart-value">{formatTimeValue(timeTarget)}</span>
+            </div>
             <ScatterPlot 
               data={brewTimeData}
               config={brewTimeChartConfig}
@@ -841,7 +941,31 @@
   .chart-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
+    padding: 1rem 1rem 0.85rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    background: var(--bg-surface-paper);
+  }
+
+  .chart-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .chart-label {
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-ink-muted);
+  }
+
+  .chart-value {
+    font-family: "Libre Baskerville", serif;
+    font-size: 1.4rem;
+    color: var(--text-ink-primary);
   }
 
   @media (max-width: 768px) {

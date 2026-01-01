@@ -61,6 +61,22 @@ export interface ScatterPlotConfig {
   showXAxis?: boolean;
   showYAxis?: boolean;
   showYAxisLabels?: boolean; // Per requirements: omit vertical axis labels
+  xTickValues?: number[];
+  xTickFormat?: (value: number) => string;
+  pointRadius?: number;
+  hoverRadius?: number;
+  targetBand?: {
+    value: number;
+    width?: number;
+    color?: string;
+    opacity?: number;
+  };
+  trendLine?: {
+    enabled: boolean;
+    color?: string;
+    width?: number;
+    opacity?: number;
+  };
   responsive?: boolean;
 }
 
@@ -215,6 +231,14 @@ export class ScatterPlot {
       const xAxis = d3.axisBottom(this.xScale)
         .tickSize(axisDefaults.tickSize)
         .tickPadding(axisDefaults.tickPadding);
+
+      if (this.config.xTickValues) {
+        xAxis.tickValues(this.config.xTickValues);
+      }
+
+      if (this.config.xTickFormat) {
+        xAxis.tickFormat(this.config.xTickFormat as any);
+      }
       
       chartArea.append('g')
         .attr('class', 'axis x-axis')
@@ -224,6 +248,9 @@ export class ScatterPlot {
         .style('font-family', axisDefaults.tickLabel.fontFamily)
         .style('font-size', axisDefaults.tickLabel.fontSize)
         .style('fill', axisDefaults.tickLabel.color);
+
+      chartArea.selectAll('.x-axis .domain').remove();
+      chartArea.selectAll('.x-axis line').remove();
       
       // X axis label
       if (this.config.xLabel) {
@@ -279,6 +306,60 @@ export class ScatterPlot {
     
     // Create axes
     this.createAxes();
+
+    // Target band
+    chartArea.selectAll('.target-band').remove();
+    if (this.config.targetBand) {
+      const domain = this.xScale.domain();
+      const bandWidth = this.config.targetBand.width ?? (domain[1] - domain[0]) * 0.08;
+      const bandValue = this.config.targetBand.value;
+      const bandStart = this.xScale(bandValue - bandWidth / 2);
+      const bandEnd = this.xScale(bandValue + bandWidth / 2);
+      const bandHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+      
+      chartArea.append('rect')
+        .attr('class', 'target-band')
+        .attr('x', bandStart)
+        .attr('y', 0)
+        .attr('width', Math.max(0, bandEnd - bandStart))
+        .attr('height', bandHeight)
+        .attr('fill', this.config.targetBand.color ?? 'rgba(123, 94, 58, 0.22)')
+        .attr('opacity', this.config.targetBand.opacity ?? 1);
+    }
+
+    // Trend line
+    chartArea.selectAll('.trend-line').remove();
+    if (this.config.trendLine?.enabled && this.data.length > 2) {
+      const domain = this.xScale.domain();
+      const binCount = Math.min(6, Math.max(3, Math.round(this.data.length / 4)));
+      const bins = d3.bin<BrewDataPoint, number>()
+        .domain(domain as [number, number])
+        .thresholds(binCount)
+        .value(d => d.x)(this.data);
+      
+      const points = bins
+        .filter(bin => bin.length > 0)
+        .map(bin => {
+          const avgX = d3.mean(bin, d => d.x) ?? 0;
+          const avgY = d3.mean(bin, d => d.y) ?? 0;
+          return [avgX, avgY] as [number, number];
+        });
+      
+      if (points.length > 1) {
+        const line = d3.line<[number, number]>()
+          .x(d => this.xScale(d[0]))
+          .y(d => this.yScale(d[1]))
+          .curve(d3.curveCatmullRom.alpha(0.7));
+        
+        chartArea.append('path')
+          .attr('class', 'trend-line')
+          .attr('d', line(points))
+          .attr('fill', 'none')
+          .attr('stroke', this.config.trendLine.color ?? 'rgba(123, 94, 58, 0.5)')
+          .attr('stroke-width', this.config.trendLine.width ?? 2)
+          .attr('opacity', this.config.trendLine.opacity ?? 0.7);
+      }
+    }
     
     // Bind data to circles
     const circles = chartArea.selectAll('.data-point')
@@ -294,7 +375,7 @@ export class ScatterPlot {
       .attr('fill', d => this.colorScale(d.bagId || 'default'))
       .attr('stroke', vizTheme.palette.neutral)
       .attr('stroke-width', 1)
-      .attr('opacity', 0.8)
+      .attr('opacity', 0.85)
       .style('cursor', 'pointer');
     
     // Add hover interactions
@@ -304,7 +385,7 @@ export class ScatterPlot {
         d3.select(event.currentTarget)
           .transition()
           .duration(150)
-          .attr('r', 6)
+          .attr('r', this.config.hoverRadius ?? 6)
           .attr('opacity', 1);
         
         // Show tooltip
@@ -323,8 +404,8 @@ export class ScatterPlot {
         d3.select(event.currentTarget)
           .transition()
           .duration(150)
-          .attr('r', 4)
-          .attr('opacity', 0.8);
+          .attr('r', this.config.pointRadius ?? 4)
+          .attr('opacity', 0.85);
         
         // Hide tooltip
         this.tooltip.style('visibility', 'hidden');
@@ -336,7 +417,7 @@ export class ScatterPlot {
       .duration(200)
       .delay((d, i) => i * 20) // Staggered entrance
       .ease(d3.easeBackOut.overshoot(1.7))
-      .attr('r', 4);
+      .attr('r', this.config.pointRadius ?? 4);
     
     // Update existing points
     circles.transition()
@@ -414,7 +495,7 @@ export class ScatterPlot {
     chartArea.selectAll('.data-point')
       .transition()
       .duration(200)
-      .attr('opacity', bagId ? (d: any) => d.bagId === bagId ? 1 : 0.3 : 0.8)
+      .attr('opacity', bagId ? (d: any) => d.bagId === bagId ? 1 : 0.3 : 0.85)
       .attr('stroke-width', bagId ? (d: any) => d.bagId === bagId ? 2 : 1 : 1);
   }
 
