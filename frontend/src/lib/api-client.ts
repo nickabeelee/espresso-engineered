@@ -292,11 +292,12 @@ class ApiClient {
     });
   }
 
-  async getBags(params?: { bean_id?: string; active_only?: boolean; inventory_status?: string }): Promise<ListResponse<Bag>> {
+  async getBags(params?: { bean_id?: string; active_only?: boolean; inventory_status?: string; include_community?: boolean }): Promise<ListResponse<Bag>> {
     const searchParams = new URLSearchParams();
     if (params?.bean_id) searchParams.append('bean_id', params.bean_id);
     if (params?.active_only) searchParams.append('active_only', 'true');
     if (params?.inventory_status) searchParams.append('inventory_status', params.inventory_status);
+    if (params?.include_community) searchParams.append('include_community', 'true');
     
     const queryString = searchParams.toString();
     const url = queryString ? `/bags?${queryString}` : '/bags';
@@ -310,15 +311,19 @@ class ApiClient {
   async getBrewAnalysis(params?: { 
     bean_id?: string; 
     bag_id?: string; 
-    recency?: '2D' | 'W' | 'M' | '3M' | 'Y' 
+    recency?: '2D' | 'W' | 'M' | '3M' | 'Y';
+    include_community?: boolean;
   }): Promise<{
     data: Array<{
       id: string;
+      barista_id: string;
+      name?: string;
       x_ratio: number | null;
       x_brew_time: number | null;
       y_rating: number | null;
       bag_id: string;
       bag_name?: string;
+      grind_setting?: string;
       date: string;
     }>;
     count: number;
@@ -330,17 +335,21 @@ class ApiClient {
     if (params?.bean_id) searchParams.append('bean_id', params.bean_id);
     if (params?.bag_id) searchParams.append('bag_id', params.bag_id);
     if (params?.recency) searchParams.append('recency', params.recency);
+    if (params?.include_community) searchParams.append('include_community', 'true');
     
     const queryString = searchParams.toString();
     const url = queryString ? `/brews/analysis?${queryString}` : '/brews/analysis';
     return this.makeRequest<{
       data: Array<{
         id: string;
+        barista_id: string;
+        name?: string;
         x_ratio: number | null;
         x_brew_time: number | null;
         y_rating: number | null;
         bag_id: string;
         bag_name?: string;
+        grind_setting?: string;
         date: string;
       }>;
       count: number;

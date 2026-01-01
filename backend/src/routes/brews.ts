@@ -86,10 +86,11 @@ export async function brewRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const authRequest = request as AuthenticatedRequest;
-      const { bean_id, bag_id, recency } = request.query as { 
+      const { bean_id, bag_id, recency, include_community } = request.query as { 
         bean_id?: string;
         bag_id?: string;
         recency?: '2D' | 'W' | 'M' | '3M' | 'Y';
+        include_community?: string;
       };
 
       // Validate recency parameter
@@ -104,7 +105,8 @@ export async function brewRoutes(fastify: FastifyInstance) {
         bean_id,
         bag_id,
         recency,
-        barista_id: authRequest.barista!.id
+        barista_id: authRequest.barista!.id,
+        include_community: include_community === 'true'
       });
 
       return {

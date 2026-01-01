@@ -296,14 +296,18 @@ export class BrewRepository extends BaseRepository<Brew> {
     bag_id?: string;
     recency?: '2D' | 'W' | 'M' | '3M' | 'Y';
     barista_id?: string;
+    include_community?: boolean;
   }): Promise<{
     brews: Array<{
       id: string;
+      barista_id: string;
+      name?: string;
       x_ratio: number | null;
       x_brew_time: number | null;
       y_rating: number | null;
       bag_id: string;
       bag_name?: string;
+      grind_setting?: string;
       date: string;
     }>;
     bean?: any;
@@ -313,9 +317,12 @@ export class BrewRepository extends BaseRepository<Brew> {
       .from('brew')
       .select(`
         id,
+        barista_id,
+        name,
         ratio,
         brew_time_s,
         rating,
+        grind_setting,
         created_at,
         bag_id,
         bag:bag_id (
@@ -334,7 +341,7 @@ export class BrewRepository extends BaseRepository<Brew> {
       `);
 
     // Apply filters
-    if (filters.barista_id) {
+    if (filters.barista_id && !filters.include_community) {
       query = query.eq('barista_id', filters.barista_id);
     }
 
@@ -400,11 +407,14 @@ export class BrewRepository extends BaseRepository<Brew> {
     // Transform data for D3 scatter plots
     const transformedBrews = brews.map(brew => ({
       id: brew.id,
+      barista_id: brew.barista_id,
+      name: brew.name,
       x_ratio: brew.ratio,
       x_brew_time: brew.brew_time_s,
       y_rating: brew.rating,
       bag_id: brew.bag_id,
       bag_name: brew.bag?.name,
+      grind_setting: brew.grind_setting,
       date: brew.created_at
     }));
 

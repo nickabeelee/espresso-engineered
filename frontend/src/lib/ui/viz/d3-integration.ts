@@ -65,6 +65,8 @@ export interface ScatterPlotConfig {
   xTickFormat?: (value: number) => string;
   pointRadius?: number;
   hoverRadius?: number;
+  pointFill?: string | ((point: BrewDataPoint) => string);
+  pointStroke?: string | ((point: BrewDataPoint) => string);
   targetBand?: {
     value: number;
     width?: number;
@@ -73,6 +75,7 @@ export interface ScatterPlotConfig {
   };
   trendLine?: {
     enabled: boolean;
+    type?: 'linear';
     color?: string;
     width?: number;
     opacity?: number;
@@ -303,6 +306,21 @@ export class ScatterPlot {
 
   private render() {
     const chartArea = this.svg.select('.chart-area');
+    const chartWidth = Math.max(0, this.config.width - this.config.margin.left - this.config.margin.right);
+    const chartHeight = Math.max(0, this.config.height - this.config.margin.top - this.config.margin.bottom);
+
+    // Anchor chart area geometry so it spans the full plot region.
+    const frame = chartArea.selectAll<SVGRectElement, null>('.chart-frame').data([null]);
+    frame.enter()
+      .append('rect')
+      .attr('class', 'chart-frame')
+      .attr('fill', 'transparent')
+      .attr('pointer-events', 'none');
+    chartArea.select<SVGRectElement>('.chart-frame')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', chartWidth)
+      .attr('height', chartHeight);
     
     // Create axes
     this.createAxes();
@@ -331,34 +349,31 @@ export class ScatterPlot {
     chartArea.selectAll('.trend-line').remove();
     if (this.config.trendLine?.enabled && this.data.length > 2) {
       const domain = this.xScale.domain();
-      const binCount = Math.min(6, Math.max(3, Math.round(this.data.length / 4)));
-      const bins = d3.bin<BrewDataPoint, number>()
-        .domain(domain as [number, number])
-        .thresholds(binCount)
-        .value(d => d.x)(this.data);
+      const xValues = this.data.map(point => point.x);
+      const yValues = this.data.map(point => point.y);
+      const xMean = d3.mean(xValues) ?? 0;
+      const yMean = d3.mean(yValues) ?? 0;
+      const numerator = d3.sum(this.data, point => (point.x - xMean) * (point.y - yMean));
+      const denominator = d3.sum(this.data, point => Math.pow(point.x - xMean, 2)) || 1;
+      const slope = numerator / denominator;
+      const intercept = yMean - slope * xMean;
       
-      const points = bins
-        .filter(bin => bin.length > 0)
-        .map(bin => {
-          const avgX = d3.mean(bin, d => d.x) ?? 0;
-          const avgY = d3.mean(bin, d => d.y) ?? 0;
-          return [avgX, avgY] as [number, number];
-        });
+      const linePoints: [number, number][] = [
+        [domain[0], slope * domain[0] + intercept],
+        [domain[1], slope * domain[1] + intercept]
+      ];
       
-      if (points.length > 1) {
-        const line = d3.line<[number, number]>()
-          .x(d => this.xScale(d[0]))
-          .y(d => this.yScale(d[1]))
-          .curve(d3.curveCatmullRom.alpha(0.7));
-        
-        chartArea.append('path')
-          .attr('class', 'trend-line')
-          .attr('d', line(points))
-          .attr('fill', 'none')
-          .attr('stroke', this.config.trendLine.color ?? 'rgba(123, 94, 58, 0.5)')
-          .attr('stroke-width', this.config.trendLine.width ?? 2)
-          .attr('opacity', this.config.trendLine.opacity ?? 0.7);
-      }
+      const line = d3.line<[number, number]>()
+        .x(d => this.xScale(d[0]))
+        .y(d => this.yScale(d[1]));
+      
+      chartArea.append('path')
+        .attr('class', 'trend-line')
+        .attr('d', line(linePoints))
+        .attr('fill', 'none')
+        .attr('stroke', this.config.trendLine.color ?? 'rgba(123, 94, 58, 0.5)')
+        .attr('stroke-width', this.config.trendLine.width ?? 2)
+        .attr('opacity', this.config.trendLine.opacity ?? 0.7);
     }
     
     // Bind data to circles
@@ -366,14 +381,28 @@ export class ScatterPlot {
       .data(this.data, (d: any) => d.id);
     
     // Enter new points
+    const resolveFill = (point: BrewDataPoint) => {
+      if (typeof this.config.pointFill === 'function') {
+        return this.config.pointFill(point);
+      }
+      return this.config.pointFill ?? this.colorScale(point.bagId || 'default');
+    };
+
+    const resolveStroke = (point: BrewDataPoint) => {
+      if (typeof this.config.pointStroke === 'function') {
+        return this.config.pointStroke(point);
+      }
+      return this.config.pointStroke ?? vizTheme.palette.neutral;
+    };
+
     const enterCircles = circles.enter()
       .append('circle')
       .attr('class', 'data-point')
       .attr('cx', d => this.xScale(d.x))
       .attr('cy', d => this.yScale(d.y))
-      .attr('r', 0)
-      .attr('fill', d => this.colorScale(d.bagId || 'default'))
-      .attr('stroke', vizTheme.palette.neutral)
+      .attr('r', this.config.pointRadius ?? 4)
+      .attr('fill', d => resolveFill(d))
+      .attr('stroke', d => resolveStroke(d))
       .attr('stroke-width', 1)
       .attr('opacity', 0.85)
       .style('cursor', 'pointer');
@@ -424,7 +453,9 @@ export class ScatterPlot {
       .duration(300)
       .attr('cx', d => this.xScale(d.x))
       .attr('cy', d => this.yScale(d.y))
-      .attr('fill', d => this.colorScale(d.bagId || 'default'));
+      .attr('r', this.config.pointRadius ?? 4)
+      .attr('fill', d => resolveFill(d))
+      .attr('stroke', d => resolveStroke(d));
     
     // Remove old points
     circles.exit()
@@ -511,6 +542,16 @@ export class ScatterPlot {
         .attr('height', this.config.height);
       
       this.initializeScales();
+
+      if (!this.config.xDomain && this.data.length > 0) {
+        const xExtent = d3.extent(this.data, d => d.x) as [number, number];
+        this.xScale.domain(xExtent).nice();
+      }
+      
+      if (!this.config.yDomain && this.data.length > 0) {
+        const yExtent = d3.extent(this.data, d => d.y) as [number, number];
+        this.yScale.domain(yExtent).nice();
+      }
     }
     
     if (this.data.length > 0) {

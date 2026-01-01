@@ -30,30 +30,40 @@
   let error: string | null = null;
   type AnalysisPoint = {
     id: string;
+    barista_id: string;
+    name?: string;
     x_ratio: number | null;
     x_brew_time: number | null;
     y_rating: number | null;
     bag_id: string;
     bag_name?: string;
+    grind_setting?: string;
     date: string;
   };
 
   let analysisData: AnalysisPoint[] = [];
   let recencyFilter: RecencyPeriod = 'M'; // Default to 1 month
+  let includeCommunity = false;
   let availableBags: Bag[] = [];
   let availableBeans: Bean[] = [];
+  let lastUsedByBagId: Record<string, number> = {};
+  let lastUsedByBeanId: Record<string, number> = {};
   let selectorRoot: HTMLDivElement | null = null;
   let beanMenuOpen = false;
   let bagMenuOpen = false;
-  let chartsShell: HTMLDivElement | null = null;
-  let chartsWidth = 0;
-  let resizeObserver: ResizeObserver | null = null;
+  let ratioChartCard: HTMLDivElement | null = null;
+  let chartCardWidth = 0;
+  let cardResizeObserver: ResizeObserver | null = null;
   let recencyTrack: HTMLDivElement | null = null;
   let recencyIndicator: HTMLDivElement | null = null;
   let recencyResizeObserver: ResizeObserver | null = null;
   const recencyButtons = new Map<RecencyPeriod, HTMLButtonElement>();
   let recencyHasPositioned = false;
   let recencyAnimating = false;
+  let ratioValues: number[] = [];
+  let timeValues: number[] = [];
+  let ratioRange = '—';
+  let timeRange = '—';
 
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
@@ -115,30 +125,42 @@
   const chartConfig: ScatterPlotConfig = {
     width: 320,
     height: 220,
-    margin: { top: 10, right: 18, bottom: 28, left: 18 },
-    showYAxisLabels: false, // Per requirements: omit vertical axis labels
-    responsive: true
+    margin: { top: 12, right: 16, bottom: 32, left: 36 },
+    showYAxisLabels: true,
+    responsive: false
   };
 
   // Transform analysis data to scatter plot format
   function transformToScatterData(data: AnalysisPoint[], xField: 'x_ratio' | 'x_brew_time'): BrewDataPoint[] {
-    return data
-      .filter(item => item[xField] !== null && item.y_rating !== null)
-      .map(item => ({
+    return data.flatMap((item) => {
+      const rawX = item[xField];
+      const rawY = item.y_rating;
+      if (rawX === null || rawX === undefined || rawY === null || rawY === undefined) {
+        return [];
+      }
+      const x = Number(rawX);
+      const y = Number(rawY);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        return [];
+      }
+      return [{
         id: item.id,
-        x: item[xField],
-        y: item.y_rating,
+        x,
+        y,
         bagId: item.bag_id,
         date: new Date(item.date),
         brew: {
           id: item.id,
           created_at: item.date,
+          barista_id: item.barista_id,
           rating: item.y_rating,
           ratio: item.x_ratio,
           brew_time_s: item.x_brew_time,
-          name: item.bag_name || 'Brew'
+          grind_setting: item.grind_setting,
+          name: item.name || item.bag_name || 'Brew'
         } as Brew
-      }));
+      }];
+    });
   }
 
   // Reactive data transformations
@@ -147,30 +169,30 @@
 
   onMount(async () => {
     await loadInitialData();
-    initResizeObserver();
+    initCardObserver();
     await tick();
     syncRecencyIndicator(recencyFilter);
     document.addEventListener('click', handleDocumentClick);
   });
 
   onDestroy(() => {
-    resizeObserver?.disconnect();
-    resizeObserver = null;
+    cardResizeObserver?.disconnect();
+    cardResizeObserver = null;
     recencyResizeObserver?.disconnect();
     recencyResizeObserver = null;
     document.removeEventListener('click', handleDocumentClick);
   });
 
-  function initResizeObserver() {
-    if (!chartsShell || resizeObserver || !('ResizeObserver' in window)) return;
-    resizeObserver = new ResizeObserver((entries) => {
+  function initCardObserver() {
+    if (!ratioChartCard || cardResizeObserver || !('ResizeObserver' in window)) return;
+    cardResizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.contentRect.width > 0) {
-          chartsWidth = entry.contentRect.width;
+          chartCardWidth = entry.contentRect.width;
         }
       }
     });
-    resizeObserver.observe(chartsShell);
+    cardResizeObserver.observe(ratioChartCard);
   }
 
   function initRecencyObserver() {
@@ -181,8 +203,8 @@
     recencyResizeObserver.observe(recencyTrack);
   }
 
-  $: if (chartsShell) {
-    initResizeObserver();
+  $: if (ratioChartCard) {
+    initCardObserver();
   }
 
   $: if (recencyTrack) {
@@ -194,21 +216,17 @@
       loading = true;
       error = null;
 
-      const [beansResponse, bagsResponse] = await Promise.all([
-        apiClient.getBeans(),
-        apiClient.getBags()
-      ]);
-
-      availableBeans = beansResponse.data;
-      availableBags = bagsResponse.data;
+      await loadSelectorData();
 
       // Load user's last used bag as default selection
       const baristaId = $barista?.id;
-      if (baristaId && !selectedBag && !selectedBean) {
-        const brewsResponse = await apiClient.getBrews({ barista_id: baristaId });
+      if (baristaId) {
+        const brewsResponse = await apiClient.getBrews({ barista_id: baristaId }, { limit: 250 });
         const recentBrews = brewsResponse.data;
+        lastUsedByBagId = getLastUseByBagId(recentBrews);
+        lastUsedByBeanId = getLastUseByBeanId(recentBrews, availableBags);
 
-        if (recentBrews.length > 0) {
+        if (!selectedBag && !selectedBean && recentBrews.length > 0) {
           const mostRecentBrew = recentBrews[0];
           let bag = availableBags.find(item => item.id === mostRecentBrew.bag_id) || null;
 
@@ -241,14 +259,28 @@
     }
   }
 
+  async function loadSelectorData() {
+    const [beansResponse, bagsResponse] = await Promise.all([
+      apiClient.getBeans(includeCommunity ? undefined : { my_beans: true }),
+      apiClient.getBags({ include_community: includeCommunity })
+    ]);
+
+    availableBeans = beansResponse.data;
+    availableBags = bagsResponse.data;
+
+    if (!includeCommunity && $barista?.id) {
+      availableBags = availableBags.filter(bag => bag.owner_id === $barista?.id);
+    }
+  }
+
   async function loadAnalysisData() {
     try {
-      if (!selectedBag && !selectedBean) {
-        analysisData = [];
-        return;
-      }
+    if (!selectedBag && !selectedBean) {
+      analysisData = [];
+      return;
+    }
 
-      const params: any = { recency: recencyFilter };
+    const params: any = { recency: recencyFilter };
       
       if (selectedBag) {
         params.bag_id = selectedBag.id;
@@ -256,9 +288,12 @@
         params.bean_id = selectedBean.id;
       }
 
-      const response = await apiClient.getBrewAnalysis(params);
-      analysisData = response.data;
-    } catch (err) {
+    const response = await apiClient.getBrewAnalysis({
+      ...params,
+      include_community: includeCommunity
+    });
+    analysisData = response.data;
+  } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load analysis data';
       console.error('Failed to load analysis data:', err);
     }
@@ -270,6 +305,24 @@
     await tick();
     recencyAnimating = true;
     animateRecencyIndicator(period);
+    loadAnalysisData();
+  }
+
+  async function handleCommunityToggle() {
+    await loadSelectorData();
+    if (!includeCommunity && $barista?.id) {
+      if (selectedBag && selectedBag.owner_id !== $barista?.id) {
+        selectedBag = null;
+        dispatch('bagChange', { bag: null });
+      }
+      if (selectedBean) {
+        const hasOwnedBag = availableBags.some(bag => bag.bean_id === selectedBean?.id);
+        if (!hasOwnedBag) {
+          selectedBean = null;
+          dispatch('beanChange', { bean: null });
+        }
+      }
+    }
     loadAnalysisData();
   }
 
@@ -399,12 +452,66 @@
     return 'Bag';
   }
 
+  function formatRelativeTime(timestamp: number | null): string | null {
+    if (timestamp === null) return null;
+    const diff = Date.now() - timestamp;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  }
+
+  function getLastUseByBagId(brews: Brew[]): Record<string, number> {
+    return brews.reduce<Record<string, number>>((acc, brew) => {
+      if (!brew.bag_id || !brew.created_at) return acc;
+      const brewedAt = new Date(brew.created_at).getTime();
+      if (!acc[brew.bag_id] || brewedAt > acc[brew.bag_id]) {
+        acc[brew.bag_id] = brewedAt;
+      }
+      return acc;
+    }, {});
+  }
+
+  function getLastUseByBeanId(brews: Brew[], bags: Bag[]): Record<string, number> {
+    const bagById = new Map(bags.map(bag => [bag.id, bag]));
+    return brews.reduce<Record<string, number>>((acc, brew) => {
+      const bag = bagById.get(brew.bag_id);
+      if (!bag || !brew.created_at) return acc;
+      const brewedAt = new Date(brew.created_at).getTime();
+      if (!acc[bag.bean_id] || brewedAt > acc[bag.bean_id]) {
+        acc[bag.bean_id] = brewedAt;
+      }
+      return acc;
+    }, {});
+  }
+
+  function formatRange(values: number[], suffix = '') {
+    if (values.length === 0) return 'No points';
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return 'No points';
+    if (min === max) return `${min}${suffix}`;
+    return `${min}${suffix}–${max}${suffix}`;
+  }
+
   function formatRatioValue(value: number) {
     return `1:${value.toFixed(1)}`;
   }
 
   function formatTimeValue(value: number) {
     return `${Math.round(value)}s`;
+  }
+
+  function formatRating(value: number | null) {
+    return value === null ? '—' : value.toString();
+  }
+
+  function formatRatio(value: number | null) {
+    return value === null ? '—' : `1:${value.toFixed(2)}`;
+  }
+
+  function formatBrewTime(value: number | null) {
+    return value === null ? '—' : `${Math.round(value)}s`;
   }
 
   function median(values: number[]): number | null {
@@ -425,16 +532,6 @@
     if (lower === upper) return sorted[lower];
     const weight = index - lower;
     return sorted[lower] * (1 - weight) + sorted[upper] * weight;
-  }
-
-  function buildTicks(values: number[], target: number, fallback: [number, number, number], step: number) {
-    if (values.length === 0) return fallback;
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    if (min === max) {
-      return [min - step, min, min + step];
-    }
-    return [min, target, max];
   }
 
   function calculateTarget(points: BrewDataPoint[], fallback: number, fallbackBand: number) {
@@ -462,13 +559,21 @@
     ? availableBags.filter(bag => bag.bean_id === selectedBean?.id)
     : [];
 
-  $: chartColumns = chartsWidth < 720 ? 1 : 2;
-  const chartCardPadding = 16;
-  $: chartGap = chartColumns === 1 ? 0 : 32;
-  $: chartColumnWidth = chartsWidth
-    ? Math.floor((chartsWidth - chartGap) / chartColumns)
-    : chartConfig.width;
-  $: chartWidth = Math.max(240, chartColumnWidth - chartCardPadding * 2);
+  $: sortedBeans = [...availableBeans].sort((a, b) => {
+    const lastA = lastUsedByBeanId[a.id] || 0;
+    const lastB = lastUsedByBeanId[b.id] || 0;
+    if (lastA !== lastB) return lastB - lastA;
+    return a.name.localeCompare(b.name);
+  });
+
+  $: sortedBeanBags = [...beanBags].sort((a, b) => {
+    const lastA = lastUsedByBagId[a.id] || 0;
+    const lastB = lastUsedByBagId[b.id] || 0;
+    if (lastA !== lastB) return lastB - lastA;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
+  $: chartWidth = Math.max(240, chartCardWidth || chartConfig.width);
   $: chartHeight = Math.round(chartWidth * 0.68);
 
   // Voice message for empty state
@@ -485,62 +590,68 @@
   }
 
   $: ratioValues = ratioData.map(point => point.x);
+  $: ratioRange = formatRange(ratioValues);
   $: ratioTargetData = calculateTarget(ratioData, 2.0, 0.12);
   $: ratioTarget = ratioTargetData.target;
   $: ratioBandWidth = ratioTargetData.bandWidth;
-  $: ratioTicks = buildTicks(ratioValues, ratioTarget, [1.5, 2.0, 2.5], 0.1);
+  $: ratioDomain = ratioValues.length > 0 ? undefined : [1.5, 2.5] as [number, number];
+  $: ratioTicks = ratioValues.length > 0
+    ? [Math.min(...ratioValues), ratioTarget, Math.max(...ratioValues)]
+    : [1.5, ratioTarget, 2.5];
 
   $: ratioChartConfig = {
     ...chartConfig,
     width: chartWidth,
     height: chartHeight,
-    showYAxis: false,
-    xDomain: ratioData.length > 0 ? undefined : [1.4, 2.6] as [number, number],
-    yDomain: [1, 5] as [number, number],
+    xLabel: 'Ratio',
+    yLabel: 'Rating',
+    yDomain: [0, 10] as [number, number],
     xTickValues: ratioTicks,
+    xDomain: ratioDomain,
     xTickFormat: (value: number) => `1:${value.toFixed(1)}`,
     pointRadius: 5,
     hoverRadius: 7,
+    pointFill: (point: BrewDataPoint) =>
+      point.brew.barista_id === $barista?.id ? colorCss.accent.primary : colorCss.text.ink.muted,
+    pointStroke: 'none',
     targetBand: {
       value: ratioTarget,
       width: ratioBandWidth,
       color: colorCss.semantic.success,
-      opacity: 0.28
-    },
-    trendLine: {
-      enabled: ratioData.length > 2,
-      color: colorCss.text.ink.secondary,
-      opacity: 0.55
+      opacity: 0.22
     }
   };
 
   $: timeValues = brewTimeData.map(point => point.x);
+  $: timeRange = formatRange(timeValues, 's');
   $: timeTargetData = calculateTarget(brewTimeData, 30, 2.5);
   $: timeTarget = timeTargetData.target;
   $: timeBandWidth = timeTargetData.bandWidth;
-  $: timeTicks = buildTicks(timeValues, timeTarget, [23, 30, 35], 2);
+  $: timeDomain = timeValues.length > 0 ? undefined : [25, 35] as [number, number];
+  $: timeTicks = timeValues.length > 0
+    ? [Math.min(...timeValues), timeTarget, Math.max(...timeValues)]
+    : [25, timeTarget, 35];
 
   $: brewTimeChartConfig = {
     ...chartConfig,
     width: chartWidth,
     height: chartHeight,
-    showYAxis: false,
-    xDomain: brewTimeData.length > 0 ? undefined : [22, 36] as [number, number],
-    yDomain: [1, 5] as [number, number],
+    xLabel: 'Brew Time',
+    yLabel: 'Rating',
+    yDomain: [0, 10] as [number, number],
     xTickValues: timeTicks,
+    xDomain: timeDomain,
     xTickFormat: (value: number) => `${Math.round(value)}s`,
     pointRadius: 5,
     hoverRadius: 7,
+    pointFill: (point: BrewDataPoint) =>
+      point.brew.barista_id === $barista?.id ? colorCss.accent.primary : colorCss.text.ink.muted,
+    pointStroke: 'none',
     targetBand: {
       value: timeTarget,
       width: timeBandWidth,
       color: colorCss.semantic.success,
-      opacity: 0.28
-    },
-    trendLine: {
-      enabled: brewTimeData.length > 2,
-      color: colorCss.text.ink.secondary,
-      opacity: 0.55
+      opacity: 0.22
     }
   };
 </script>
@@ -587,14 +698,16 @@
                   {#if availableBeans.length === 0}
                     <div class="cascade-empty">No beans yet.</div>
                   {:else}
-                    {#each availableBeans as bean (bean.id)}
+                    {#each sortedBeans as bean (bean.id)}
                       <button
                         type="button"
                         class="cascade-option"
                         on:click={() => selectBean(bean)}
                       >
                         <span class="option-title">{bean.name}</span>
-                        <span class="option-meta">{bean.roast_level}</span>
+                        <span class="option-meta">
+                          Roast: {bean.roast_level} | Last used {formatRelativeTime(lastUsedByBeanId[bean.id] ?? null) ?? 'never'}
+                        </span>
                       </button>
                     {/each}
                   {/if}
@@ -630,7 +743,7 @@
                     {#if beanBags.length === 0}
                       <div class="cascade-empty">No bags for this bean yet.</div>
                     {:else}
-                      {#each beanBags as bag (bag.id)}
+                      {#each sortedBeanBags as bag (bag.id)}
                         <button
                           type="button"
                           class="cascade-option"
@@ -638,7 +751,7 @@
                         >
                           <span class="option-title">{formatBagLabel(bag)}</span>
                           <span class="option-meta">
-                            {bag.roast_date ? new Date(bag.roast_date).toLocaleDateString() : 'No roast date'}
+                            Roast: {bag.roast_date ? new Date(bag.roast_date).toLocaleDateString() : 'Unknown'} | Last used {formatRelativeTime(lastUsedByBagId[bag.id] ?? null) ?? 'never'}
                           </span>
                         </button>
                       {/each}
@@ -650,6 +763,19 @@
               <div class="bag-hint">Choose a bean to reveal its bags.</div>
             {/if}
           </div>
+        </div>
+
+        <div class="filter-row">
+          <label class="quick-toggle">
+            <input
+              type="checkbox"
+              bind:checked={includeCommunity}
+              on:change={handleCommunityToggle}
+              disabled={!$barista?.id}
+            />
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span class="toggle-label">Include community data</span>
+          </label>
         </div>
 
         <div class="filter-row">
@@ -681,11 +807,12 @@
           <p class="voice-text" style={voiceLineStyle}>{emptyStateMessage}</p>
         </div>
       {:else}
-        <div class="charts-container" bind:this={chartsShell}>
-          <div class="chart-wrapper">
+        <div class="charts-container">
+          <div class="chart-wrapper" bind:this={ratioChartCard}>
             <div class="chart-header">
               <span class="chart-label">Ratio</span>
               <span class="chart-value">{formatRatioValue(ratioTarget)}</span>
+              <span class="chart-debug">Range: {ratioRange}</span>
             </div>
             <ScatterPlot 
               data={ratioData}
@@ -698,6 +825,7 @@
             <div class="chart-header">
               <span class="chart-label">Brew Time</span>
               <span class="chart-value">{formatTimeValue(timeTarget)}</span>
+              <span class="chart-debug">Range: {timeRange}</span>
             </div>
             <ScatterPlot 
               data={brewTimeData}
@@ -705,6 +833,31 @@
               highlightedBagId={selectedBag?.id || null}
             />
           </div>
+        </div>
+
+        <div class="analysis-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Brew</th>
+                <th>Rating</th>
+                <th>Ratio</th>
+                <th>Brew Time</th>
+                <th>Grind Setting</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each analysisData as brew}
+                <tr>
+                  <td>{brew.name || brew.bag_name || 'Brew'}</td>
+                  <td>{formatRating(brew.y_rating)}</td>
+                  <td>{formatRatio(brew.x_ratio)}</td>
+                  <td>{formatBrewTime(brew.x_brew_time)}</td>
+                  <td>{brew.grind_setting || '—'}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
         </div>
       {/if}
     {/if}
@@ -875,6 +1028,69 @@
     color: var(--text-ink-secondary);
   }
 
+  .quick-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-ink-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .quick-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .toggle-track {
+    width: 44px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(123, 94, 58, 0.2);
+    border: 1px solid rgba(123, 94, 58, 0.35);
+    position: relative;
+    transition: background var(--motion-fast), border-color var(--motion-fast);
+  }
+
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--bg-surface-paper);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: transform var(--motion-fast);
+  }
+
+  .quick-toggle input:checked + .toggle-track {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+  }
+
+  .quick-toggle input:checked + .toggle-track::after {
+    transform: translateX(20px);
+  }
+
+  .quick-toggle input:focus-visible + .toggle-track {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+
+  .quick-toggle input:disabled + .toggle-track {
+    opacity: 0.5;
+  }
+
+  .quick-toggle input:disabled ~ .toggle-label {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   .recency-tabs {
     display: inline-flex;
     gap: 0.35rem;
@@ -933,15 +1149,17 @@
 
   .charts-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    align-items: start;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: clamp(1.25rem, 2vw, 2rem);
+    align-items: stretch;
   }
 
   .chart-wrapper {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    width: 100%;
+    min-width: 0;
     padding: 1rem 1rem 0.85rem;
     border-radius: var(--radius-md);
     border: 1px solid rgba(123, 94, 58, 0.2);
@@ -966,6 +1184,47 @@
     font-family: "Libre Baskerville", serif;
     font-size: 1.4rem;
     color: var(--text-ink-primary);
+  }
+
+  .chart-debug {
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 0.75rem;
+    color: var(--text-ink-muted);
+  }
+
+  .analysis-table {
+    margin-top: 1.5rem;
+    background: var(--bg-surface-paper);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    overflow-x: auto;
+  }
+
+  .analysis-table table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 520px;
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  }
+
+  .analysis-table th,
+  .analysis-table td {
+    padding: 0.75rem 0.9rem;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--text-ink-secondary);
+    border-bottom: 1px solid rgba(123, 94, 58, 0.12);
+  }
+
+  .analysis-table th {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.75rem;
+    color: var(--text-ink-muted);
+  }
+
+  .analysis-table tbody tr:last-child td {
+    border-bottom: none;
   }
 
   @media (max-width: 768px) {

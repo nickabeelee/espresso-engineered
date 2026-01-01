@@ -67,6 +67,47 @@ export class BagRepository extends BaseRepository<Bag> {
   }
 
   /**
+   * Find all bags with bean and roaster information included
+   * Community view (no ownership filter)
+   */
+  async findAllWithDetails(filters: Record<string, any> = {}): Promise<Bag[]> {
+    let query = supabase
+      .from(this.tableName)
+      .select(`
+        *,
+        bean:bean_id (
+          id,
+          name,
+          roast_level,
+          country_of_origin,
+          tasting_notes,
+          roaster:roaster_id (
+            id,
+            name,
+            website_url
+          )
+        )
+      `);
+
+    // Apply filters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        query = query.eq(key, value);
+      }
+    });
+
+    query = query.order('created_at', { ascending: false });
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    return (data as Bag[]) || [];
+  }
+
+  /**
    * Find bag by ID with bean and roaster details
    */
   async findByIdWithDetails(

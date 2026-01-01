@@ -18,6 +18,10 @@
   let scatterPlot: ScatterPlot | null = null;
   
   // Reactive updates
+  $: if (scatterPlot && config) {
+    scatterPlot.updateConfig(config);
+  }
+
   $: if (scatterPlot && data) {
     scatterPlot.updateData(data);
   }
@@ -26,16 +30,15 @@
     scatterPlot.highlightBag(highlightedBagId);
   }
   
-  $: if (scatterPlot && config) {
-    scatterPlot.updateConfig(config);
-  }
-  
   onMount(() => {
     if (containerElement) {
       // Create scatter plot instance
       scatterPlot = new ScatterPlot(containerElement, config);
       
-      // Initialize with data if available
+      // Initialize with config + data if available
+      if (config) {
+        scatterPlot.updateConfig(config);
+      }
       if (data.length > 0) {
         scatterPlot.updateData(data);
       }
@@ -53,7 +56,7 @@
 <div 
   bind:this={containerElement}
   class="scatter-plot-container"
-  style="width: {config.width}px; height: {config.height}px;"
+  style="width: 100%; height: {config.height}px;"
 >
   <!-- D3 chart will be rendered here -->
 </div>
@@ -62,6 +65,7 @@
   .scatter-plot-container {
     position: relative;
     overflow: visible;
+    width: 100%;
   }
   
   /* Ensure proper styling for D3 elements */

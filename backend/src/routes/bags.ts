@@ -46,10 +46,11 @@ export async function bagRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const authRequest = request as AuthenticatedRequest;
-      const { bean_id, active_only, inventory_status } = request.query as { 
+      const { bean_id, active_only, inventory_status, include_community } = request.query as { 
         bean_id?: string;
         active_only?: string;
         inventory_status?: string;
+        include_community?: string;
       };
       
       let bags;
@@ -65,6 +66,12 @@ export async function bagRoutes(fastify: FastifyInstance) {
         if (inventory_status) {
           bags = bags.filter(bag => bag.inventory_status === inventory_status);
         }
+      } else if (include_community === 'true') {
+        const filters: Record<string, any> = {};
+        if (inventory_status) {
+          filters.inventory_status = inventory_status;
+        }
+        bags = await bagRepository.findAllWithDetails(filters);
       } else if (active_only === 'true') {
         bags = await bagRepository.findActiveBags(authRequest.barista!.id);
       } else {
