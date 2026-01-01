@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { createEventDispatcher } from 'svelte';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
   import { barista } from '$lib/auth';
@@ -23,16 +23,17 @@
   let baristasById: Record<string, BaristaType> = {};
   let loading = true;
   let error: string | null = null;
-  let currentWeekStart: string | null = null;
-
   // Horizontal scrolling elements
-  let scrollContainer: HTMLElement;
+  let scrollContainer: HTMLElement | null = null;
   let bagCards: HTMLElement[] = [];
   let canScrollLeft = false;
   let canScrollRight = false;
 
   // Animation cleanup functions
-  let cleanupFunctions: (() => void)[] = [];
+  let scrollCleanup: (() => void) | null = null;
+  let hoverCleanups: Array<() => void> = [];
+  let lastBagSignature = '';
+  let resizeObserver: ResizeObserver | null = null;
 
   const getBagCards = () => bagCards.filter((card): card is HTMLElement => Boolean(card));
 
@@ -57,14 +58,16 @@
     '--record-list-padding': recordListShell.padding
   });
 
-  onMount(async () => {
-    await loadInventoryData();
-    setupScrolling();
-    setupAnimations();
+  onMount(() => {
+    loadInventoryData();
   });
 
   onDestroy(() => {
-    cleanupFunctions.forEach(cleanup => cleanup());
+    clearAnimations();
+    scrollCleanup?.();
+    scrollCleanup = null;
+    resizeObserver?.disconnect();
+    resizeObserver = null;
   });
 
   async function loadInventoryData() {
@@ -87,19 +90,9 @@
         [$barista.id]: $barista
       };
 
-      currentWeekStart = response.current_week_start;
-
-      // Animate in the new content after data loads
-      setTimeout(() => {
-        const cards = getBagCards();
-        if (cards.length > 0) {
-          animations.fadeInUp(cards, {
-            duration: 0.3,
-            ease: 'power2.out',
-            stagger: 0.1
-          });
-        }
-      }, 50);
+      await tick();
+      initScrollTracking();
+      initAnimations();
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load inventory';
       console.error('Failed to load bag inventory:', err);
@@ -108,70 +101,108 @@
     }
   }
 
-  function setupScrolling() {
+  function updateScrollButtons() {
     if (!scrollContainer) return;
+    const cards = getBagCards();
+    const lastCard = cards[cards.length - 1];
+    const contentWidth = lastCard ? lastCard.offsetLeft + lastCard.offsetWidth : 0;
 
-    const updateScrollButtons = () => {
-      canScrollLeft = scrollContainer.scrollLeft > 0;
-      canScrollRight = scrollContainer.scrollLeft < (scrollContainer.scrollWidth - scrollContainer.clientWidth);
-    };
-
-    scrollContainer.addEventListener('scroll', updateScrollButtons);
-    updateScrollButtons();
-
-    // Cleanup function
-    cleanupFunctions.push(() => {
-      scrollContainer?.removeEventListener('scroll', updateScrollButtons);
-    });
+    canScrollLeft = scrollContainer.scrollLeft > 4;
+    canScrollRight = contentWidth - scrollContainer.clientWidth > 4;
   }
 
-  function setupAnimations() {
+  function initScrollTracking() {
+    if (!scrollContainer || scrollCleanup) return;
+
+    scrollContainer.addEventListener('scroll', updateScrollButtons, { passive: true });
+    updateScrollButtons();
+    requestAnimationFrame(updateScrollButtons);
+
+    if (!resizeObserver && 'ResizeObserver' in window) {
+      resizeObserver = new ResizeObserver(() => {
+        updateScrollButtons();
+      });
+      resizeObserver.observe(scrollContainer);
+      const list = scrollContainer.querySelector('.bag-list');
+      if (list) {
+        resizeObserver.observe(list);
+      }
+    }
+
+    scrollCleanup = () => {
+      scrollContainer?.removeEventListener('scroll', updateScrollButtons);
+    };
+  }
+
+  function clearAnimations() {
+    hoverCleanups.forEach(cleanup => cleanup());
+    hoverCleanups = [];
+  }
+
+  function initAnimations() {
     const cards = getBagCards();
     if (cards.length === 0) return;
 
-    // Animate cards on load with staggered entrance
-    const timeline = animations.horizontalScroll(cards, {
-      duration: 0.4,
-      ease: 'power2.out',
-      stagger: 0.08
+    clearAnimations();
+
+    animations.fadeInUp(cards, {
+      duration: 0.18,
+      ease: 'power1.out',
+      stagger: 0.04
     });
     
     // Add hover effects to each card with enhanced lift
     cards.forEach(card => {
       const cleanup = animationUtils.createHoverLift(card);
-      cleanupFunctions.push(cleanup);
+      hoverCleanups.push(cleanup);
     });
-
-    // Add momentum scrolling effect
-    if (scrollContainer) {
-      const momentumCleanup = animationUtils.createMomentumScroll(scrollContainer, cards);
-      cleanupFunctions.push(momentumCleanup);
-    }
   }
 
   function scrollLeft() {
     if (!scrollContainer) return;
     
-    const scrollAmount = scrollContainer.clientWidth * 0.8;
+    const cards = getBagCards();
+    if (cards.length === 0) return;
+
+    const current = scrollContainer.scrollLeft;
+    const offsets = cards.map((card) => card.offsetLeft);
+    const previousTarget = [...offsets].reverse().find((offset) => offset < current - 1) ?? 0;
+    const previousSnap = scrollContainer.style.scrollSnapType || getComputedStyle(scrollContainer).scrollSnapType;
+    scrollContainer.style.scrollSnapType = 'none';
     
     // Add smooth GSAP animation for scroll
     gsap.to(scrollContainer, {
-      scrollLeft: scrollContainer.scrollLeft - scrollAmount,
-      duration: 0.5,
-      ease: 'power2.out'
+      scrollLeft: previousTarget,
+      duration: 0.24,
+      ease: 'power2.out',
+      overwrite: 'auto',
+      onComplete: () => {
+        scrollContainer?.style.setProperty('scroll-snap-type', previousSnap || 'x mandatory');
+      }
     });
   }
 
   function scrollRight() {
     if (!scrollContainer) return;
     
-    const scrollAmount = scrollContainer.clientWidth * 0.8;
+    const cards = getBagCards();
+    if (cards.length === 0) return;
+
+    const current = scrollContainer.scrollLeft;
+    const offsets = cards.map((card) => card.offsetLeft);
+    const nextTarget = offsets.find((offset) => offset > current + 1) ?? offsets[offsets.length - 1];
+    const previousSnap = scrollContainer.style.scrollSnapType || getComputedStyle(scrollContainer).scrollSnapType;
+    scrollContainer.style.scrollSnapType = 'none';
     
     // Add smooth GSAP animation for scroll
     gsap.to(scrollContainer, {
-      scrollLeft: scrollContainer.scrollLeft + scrollAmount,
-      duration: 0.5,
-      ease: 'power2.out'
+      scrollLeft: nextTarget,
+      duration: 0.24,
+      ease: 'power2.out',
+      overwrite: 'auto',
+      onComplete: () => {
+        scrollContainer?.style.setProperty('scroll-snap-type', previousSnap || 'x mandatory');
+      }
     });
   }
 
@@ -188,19 +219,21 @@
     dispatch('bagUpdated', updatedBag);
   }
 
-  // Re-setup animations when bags change
-  $: if (bags.length > 0 && bagCards.length > 0) {
-    // Clean up previous animations
-    cleanupFunctions.forEach(cleanup => cleanup());
-    cleanupFunctions = [];
-    
-    // Setup new animations
-    setTimeout(() => setupAnimations(), 100);
+  $: if (bags.length > 0) {
+    const signature = bags.map((bag) => bag.id).join('|');
+    if (signature !== lastBagSignature) {
+      lastBagSignature = signature;
+      void tick().then(() => {
+        initScrollTracking();
+        initAnimations();
+        updateScrollButtons();
+      });
+    }
   }
 
-  // Update scroll buttons when bags change
-  $: if (bags.length > 0 && scrollContainer) {
-    setTimeout(() => setupScrolling(), 100);
+  $: if (scrollContainer) {
+    initScrollTracking();
+    updateScrollButtons();
   }
 </script>
 
@@ -210,28 +243,30 @@
       <h2 style={sectionTitleStyle}>Your Bean Inventory</h2>
       <p class="voice-text" style={voiceLineStyle}>Keep the shelves honest.</p>
     </div>
-    {#if bags.length > 0}
-      <div class="scroll-controls">
-        <IconButton
-          on:click={scrollLeft}
-          ariaLabel="Scroll left"
-          title="Scroll left"
-          variant="neutral"
-          size="sm"
-          disabled={!canScrollLeft}
-        >
-          <ChevronLeft />
-        </IconButton>
-        <IconButton
-          on:click={scrollRight}
-          ariaLabel="Scroll right"
-          title="Scroll right"
-          variant="neutral"
-          size="sm"
-          disabled={!canScrollRight}
-        >
-          <ChevronRight />
-        </IconButton>
+    {#if !loading && !error && bags.length > 0}
+      <div class="inventory-controls">
+        <div class="scroll-controls">
+          <IconButton
+            on:click={scrollLeft}
+            ariaLabel="Scroll left"
+            title="Scroll left"
+            variant="neutral"
+            size="sm"
+            disabled={!canScrollLeft}
+          >
+            <ChevronLeft />
+          </IconButton>
+          <IconButton
+            on:click={scrollRight}
+            ariaLabel="Scroll right"
+            title="Scroll right"
+            variant="neutral"
+            size="sm"
+            disabled={!canScrollRight}
+          >
+            <ChevronRight />
+          </IconButton>
+        </div>
       </div>
     {/if}
   </div>
@@ -288,9 +323,10 @@
   .section-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 1.5rem;
     gap: 1.5rem;
+    flex-wrap: wrap;
   }
 
   .section-header-text {
@@ -308,6 +344,13 @@
   .scroll-controls :global(.icon-button:disabled) {
     opacity: 0.4;
     transition: opacity var(--motion-fast);
+  }
+
+  .inventory-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-self: flex-end;
+    padding-top: 0.5rem;
   }
 
   .loading-container {
@@ -349,6 +392,7 @@
     scrollbar-width: thin;
     scrollbar-color: var(--border-subtle) transparent;
     padding-bottom: 0.5rem;
+    scroll-snap-type: x mandatory;
   }
 
   .bag-scroll-container::-webkit-scrollbar {
@@ -380,10 +424,7 @@
     width: 320px;
     min-width: 320px;
     transition: transform var(--motion-fast), opacity var(--motion-fast);
-  }
-
-  .bag-card-wrapper:hover {
-    transform: translateY(-2px);
+    scroll-snap-align: start;
   }
 
   /* Responsive adjustments */

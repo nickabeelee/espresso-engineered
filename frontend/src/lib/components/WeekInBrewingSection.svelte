@@ -92,21 +92,31 @@
 
   const getBrewCountText = (count: number) => (count === 1 ? '1 brew' : `${count} brews`);
 
-  const getStackDepth = (group: LayeredBrewGroup) => {
-    const desiredDepth = Number.isFinite(group.stackDepth) && group.stackDepth > 0
-      ? group.stackDepth
-      : maxStackDepth;
-    return Math.min(group.brews.length, desiredDepth);
+  const getGroupAverageRating = (group: LayeredBrewGroup) => {
+    const ratings = group.brews
+      .map((brew) => brew.rating)
+      .filter((rating): rating is number => typeof rating === 'number');
+
+    if (ratings.length === 0) return null;
+
+    const total = ratings.reduce((sum, rating) => sum + rating, 0);
+    return total / ratings.length;
   };
 
-  const getActiveIndex = (groupIndex: number) => stackOrders[groupIndex]?.[0] ?? 0;
+  const getStackDepth = (group: LayeredBrewGroup) => {
+    return Math.min(group.brews.length, maxStackDepth);
+  };
 
-  const getStackedBrews = (group: LayeredBrewGroup, groupIndex: number) => {
+  const getActiveIndex = (groupIndex: number, orders: number[][]) => orders[groupIndex]?.[0] ?? 0;
+
+  const getStackedBrews = (group: LayeredBrewGroup, groupIndex: number, orders: number[][]) => {
     const totalBrews = group.brews.length;
     if (totalBrews === 0) return [] as Array<{ brew: Brew; index: number; offset: number }>;
 
     const depth = getStackDepth(group);
-    const order = stackOrders[groupIndex] ?? group.brews.map((_, index) => index);
+    const order = orders[groupIndex]?.length === totalBrews
+      ? orders[groupIndex]
+      : group.brews.map((_, index) => index);
 
     return Array.from({ length: depth }, (_, offset) => {
       const index = order[offset % order.length] ?? 0;
@@ -116,6 +126,34 @@
         offset
       };
     });
+  };
+
+  const getNormalizedOrder = (groupIndex: number, group: LayeredBrewGroup) => {
+    return stackOrders[groupIndex]?.length === group.brews.length
+      ? stackOrders[groupIndex]
+      : group.brews.map((_, index) => index);
+  };
+
+  const updateStackOrder = async (groupIndex: number, order: number[]) => {
+    stackOrders = stackOrders.map((current, index) => (index === groupIndex ? order : current));
+    await tick();
+
+    const groupElement = groupElements[groupIndex];
+    if (!groupElement) return;
+
+    const stackCards = Array.from(groupElement.querySelectorAll('.stack-card'));
+    if (stackCards.length > 0) {
+      gsap.set(stackCards, { clearProps: 'transform' });
+    }
+
+    const activeCard = groupElement.querySelector('.stack-card.is-active') as HTMLElement | null;
+    if (activeCard) {
+      gsap.fromTo(
+        activeCard,
+        { scale: 0.98, opacity: 0.92, y: 0, transformOrigin: 'top center' },
+        { scale: 1, opacity: 1, y: 0, duration: 0.14, ease: 'power2.out', transformOrigin: 'top center', clearProps: 'transform' }
+      );
+    }
   };
 
   // Load week brewing data
@@ -174,11 +212,18 @@
     const gap = 24;
     const scrollAmount = groupWidth + gap;
     const target = scrollContainer.scrollLeft + direction * scrollAmount;
+    const previousSnap = scrollContainer.style.scrollSnapType;
+
+    scrollContainer.style.scrollSnapType = 'none';
 
     gsap.to(scrollContainer, {
       scrollLeft: target,
-      duration: 0.16,
-      ease: 'power1.out'
+      duration: 0.24,
+      ease: 'power2.out',
+      overwrite: 'auto',
+      onComplete: () => {
+        scrollContainer?.style.setProperty('scroll-snap-type', previousSnap || 'x mandatory');
+      }
     });
   }
 
@@ -190,42 +235,24 @@
     if (total === 0) return;
 
     const nextIndex = ((brewIndex % total) + total) % total;
-    const currentOrder = stackOrders[groupIndex]?.length === total
-      ? stackOrders[groupIndex]
-      : group.brews.map((_, index) => index);
+    const currentOrder = getNormalizedOrder(groupIndex, group);
     const position = currentOrder.indexOf(nextIndex);
     const rotated = position === -1
       ? currentOrder
       : currentOrder.slice(position).concat(currentOrder.slice(0, position));
 
-    stackOrders[groupIndex] = rotated;
-    stackOrders = [...stackOrders];
-    await tick();
-    const groupElement = groupElements[groupIndex];
-    if (!groupElement) return;
-
-    const activeCard = groupElement.querySelector('.stack-card.is-active') as HTMLElement | null;
-    if (activeCard) {
-      gsap.fromTo(
-        activeCard,
-        { scale: 0.98, opacity: 0.92 },
-        { scale: 1, opacity: 1, duration: 0.14, ease: 'power1.out' }
-      );
-    }
+    await updateStackOrder(groupIndex, rotated);
   }
 
   function navigateBrew(groupIndex: number, direction: -1 | 1) {
     const group = brewGroups[groupIndex];
     if (!group || group.brews.length < 2) return;
-    const total = group.brews.length;
-    const currentOrder = stackOrders[groupIndex]?.length === total
-      ? stackOrders[groupIndex]
-      : group.brews.map((_, index) => index);
-    const nextIndex = direction === 1
-      ? currentOrder[1] ?? currentOrder[0]
-      : currentOrder[currentOrder.length - 1] ?? currentOrder[0];
+    const currentOrder = getNormalizedOrder(groupIndex, group);
+    const rotated = direction === 1
+      ? [...currentOrder.slice(1), currentOrder[0]]
+      : [currentOrder[currentOrder.length - 1], ...currentOrder.slice(0, -1)];
 
-    setActiveBrew(groupIndex, nextIndex ?? 0);
+    updateStackOrder(groupIndex, rotated);
   }
 
   function handleStackPointerDown(groupIndex: number, event: PointerEvent) {
@@ -287,22 +314,8 @@
       <h2 class="section-title" style={sectionTitleStyle}>Week in Brewing</h2>
       <p class="voice-text" style={voiceLineStyle}>Shared rhythms, small details.</p>
     </div>
-  </div>
-
-  {#if loading}
-    <div class="loading-container">
-      <LoadingIndicator />
-    </div>
-  {:else if error}
-    <ErrorDisplay message={error} onRetry={loadWeekBrews} />
-  {:else if brewGroups.length === 0}
-    <div class="empty-state">
-      <p class="voice-text" style={voiceLineStyle}>The week is just beginning. Check back soon to see what everyone's brewing!</p>
-    </div>
-  {:else}
-    <div class="brewing-shell" style={stackShellStyle}>
+    {#if !loading && !error && brewGroups.length > 0}
       <div class="scroll-header">
-        <p class="scroll-hint" style={groupMetaStyle}>Scroll to explore each barista and bean pairing.</p>
         <div class="scroll-controls">
           <IconButton
             on:click={() => scrollByGroup(-1)}
@@ -324,10 +337,25 @@
           </IconButton>
         </div>
       </div>
+    {/if}
+  </div>
 
+  {#if loading}
+    <div class="loading-container">
+      <LoadingIndicator />
+    </div>
+  {:else if error}
+    <ErrorDisplay message={error} onRetry={loadWeekBrews} />
+  {:else if brewGroups.length === 0}
+    <div class="empty-state">
+      <p class="voice-text" style={voiceLineStyle}>The week is just beginning. Check back soon to see what everyone's brewing!</p>
+    </div>
+  {:else}
+    <div class="brewing-shell" style={stackShellStyle}>
       <div class="group-scroll" bind:this={scrollContainer}>
         <div class="group-row">
           {#each brewGroups as group, groupIndex (getGroupKey(group))}
+            {@const averageRating = getGroupAverageRating(group)}
             <article
               class="group-stack"
               bind:this={groupElements[groupIndex]}
@@ -339,7 +367,10 @@
                 <div class="group-heading">
                   <h3 class="group-title" style={groupTitleStyle}>{group.bean.name}</h3>
                   <p class="group-meta" style={groupMetaStyle}>
-                    {group.barista.display_name} • {group.bean.roaster.name} • {group.bean.roast_level}
+                    {group.barista.display_name}
+                    {#if averageRating !== null}
+                      • Avg rating {averageRating.toFixed(1)}/10
+                    {/if}
                   </p>
                 </div>
                 <p class="group-count" style={groupMetaStyle}>{getBrewCountText(group.brews.length)}</p>
@@ -351,7 +382,7 @@
                 on:pointerup={(event) => handleStackPointerUp(groupIndex, event)}
                 on:pointercancel={() => swipeStates.delete(groupIndex)}
               >
-                {#each getStackedBrews(group, groupIndex) as stackItem (stackItem.brew.id)}
+                {#each getStackedBrews(group, groupIndex, stackOrders) as stackItem (stackItem.brew.id)}
                   <div
                     class="stack-card"
                     class:is-active={stackItem.offset === 0}
@@ -375,7 +406,7 @@
                     <ChevronLeft />
                   </IconButton>
                   <span class="stack-count" style={groupMetaStyle}>
-                    {getActiveIndex(groupIndex) + 1} / {group.brews.length}
+                    {getActiveIndex(groupIndex, stackOrders) + 1} / {group.brews.length}
                   </span>
                   <IconButton
                     on:click={() => navigateBrew(groupIndex, 1)}
@@ -392,9 +423,9 @@
                   {#each group.brews as brew, brewIndex (brew.id)}
                     <button
                       class="brew-indicator"
-                      class:active={brewIndex === getActiveIndex(groupIndex)}
+                      class:active={brewIndex === getActiveIndex(groupIndex, stackOrders)}
                       aria-label={`View brew ${brewIndex + 1} of ${group.brews.length}`}
-                      aria-pressed={brewIndex === getActiveIndex(groupIndex) ? 'true' : 'false'}
+                      aria-pressed={brewIndex === getActiveIndex(groupIndex, stackOrders) ? 'true' : 'false'}
                       on:click={() => setActiveBrew(groupIndex, brewIndex)}
                     >
                       <span class="indicator-line"></span>
@@ -419,9 +450,10 @@
     margin-bottom: 1.5rem;
     text-align: left;
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: flex-start;
-    gap: 0.35rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
   }
 
   .section-header-text {
@@ -456,12 +488,10 @@
   .scroll-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 1rem;
-  }
-
-  .scroll-hint {
-    max-width: 360px;
+    align-self: flex-end;
+    padding-top: 0.5rem;
   }
 
   .scroll-controls {
@@ -531,7 +561,9 @@
 
   .stack-area {
     position: relative;
-    min-height: 300px;
+    min-height: 320px;
+    overflow: hidden;
+    border-radius: var(--radius-md);
   }
 
   .stack-card {
@@ -539,6 +571,7 @@
     inset: 0;
     transform: translateY(calc(var(--stack-offset) * 10px))
       scale(calc(1 - var(--stack-offset) * 0.02));
+    transform-origin: top center;
     transition: transform 160ms ease, opacity 160ms ease;
     pointer-events: none;
   }
@@ -550,7 +583,7 @@
   .stack-footer {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.4rem;
     align-items: center;
   }
 
@@ -606,7 +639,7 @@
   }
 
   @media (max-width: 720px) {
-    .scroll-header {
+    .section-header {
       flex-direction: column;
       align-items: flex-start;
     }
