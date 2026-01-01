@@ -277,6 +277,8 @@ export class BagRepository extends BaseRepository<Bag> {
       `)
       .eq('owner_id', baristaId)
       .or(`inventory_status.neq.empty,and(inventory_status.eq.empty,emptied_on_date.gte.${currentWeekStart.toISOString()})`)
+      .order('created_at', { ascending: false, foreignTable: 'brew' })
+      .limit(1, { foreignTable: 'brew' })
       .order('created_at', { ascending: false }); // Fallback ordering by bag creation
 
     if (error) {

@@ -3,7 +3,6 @@
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import ScatterPlot from './ScatterPlot.svelte';
-  import LoadingIndicator from './LoadingIndicator.svelte';
   import ErrorDisplay from './ErrorDisplay.svelte';
   import { ChevronDown } from '$lib/icons';
   import { gsap } from '$lib/ui/animations';
@@ -13,6 +12,7 @@
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles, fontFamilies } from '$lib/ui/foundations/typography';
   import { toStyleString } from '$lib/ui/style';
+  import { vizTheme } from '$lib/ui/viz/theme';
   import type { BrewDataPoint, ScatterPlotConfig, RecencyPeriod } from '$lib/ui/viz/d3-integration';
 
   // Props
@@ -595,20 +595,15 @@
   $: ratioTarget = ratioTargetData.target;
   $: ratioBandWidth = ratioTargetData.bandWidth;
   $: ratioDomain = ratioValues.length > 0 ? undefined : [1.5, 2.5] as [number, number];
-  $: ratioTicks = ratioValues.length > 0
-    ? [Math.min(...ratioValues), ratioTarget, Math.max(...ratioValues)]
-    : [1.5, ratioTarget, 2.5];
-
   $: ratioChartConfig = {
     ...chartConfig,
     width: chartWidth,
     height: chartHeight,
-    xLabel: 'Ratio',
-    yLabel: 'Rating',
     yDomain: [0, 10] as [number, number],
-    xTickValues: ratioTicks,
     xDomain: ratioDomain,
     xTickFormat: (value: number) => `1:${value.toFixed(1)}`,
+    xTickCount: 4,
+    xDomainPadding: 0.15,
     pointRadius: 5,
     hoverRadius: 7,
     pointFill: (point: BrewDataPoint) =>
@@ -619,6 +614,20 @@
       width: ratioBandWidth,
       color: colorCss.semantic.success,
       opacity: 0.22
+    },
+    targetLine: {
+      value: ratioTarget,
+      color: colorCss.semantic.success,
+      width: 1.6,
+      opacity: 0.85,
+      dashArray: '5 4'
+    },
+    trendLine: {
+      enabled: true,
+      type: 'quadratic',
+      color: vizTheme.trendLine.color,
+      width: 2,
+      opacity: 0.6
     }
   };
 
@@ -628,20 +637,15 @@
   $: timeTarget = timeTargetData.target;
   $: timeBandWidth = timeTargetData.bandWidth;
   $: timeDomain = timeValues.length > 0 ? undefined : [25, 35] as [number, number];
-  $: timeTicks = timeValues.length > 0
-    ? [Math.min(...timeValues), timeTarget, Math.max(...timeValues)]
-    : [25, timeTarget, 35];
-
   $: brewTimeChartConfig = {
     ...chartConfig,
     width: chartWidth,
     height: chartHeight,
-    xLabel: 'Brew Time',
-    yLabel: 'Rating',
     yDomain: [0, 10] as [number, number],
-    xTickValues: timeTicks,
     xDomain: timeDomain,
     xTickFormat: (value: number) => `${Math.round(value)}s`,
+    xTickCount: 4,
+    xDomainPadding: 0.15,
     pointRadius: 5,
     hoverRadius: 7,
     pointFill: (point: BrewDataPoint) =>
@@ -652,6 +656,20 @@
       width: timeBandWidth,
       color: colorCss.semantic.success,
       opacity: 0.22
+    },
+    targetLine: {
+      value: timeTarget,
+      color: colorCss.semantic.success,
+      width: 1.6,
+      opacity: 0.85,
+      dashArray: '5 4'
+    },
+    trendLine: {
+      enabled: true,
+      type: 'quadratic',
+      color: vizTheme.trendLine.color,
+      width: 2,
+      opacity: 0.6
     }
   };
 </script>
@@ -666,11 +684,27 @@
 
   <div class="analysis-shell" style={analysisShellStyle}>
     {#if loading}
-      <LoadingIndicator message="Loading analysis data..." />
+      <div class="analysis-loading">
+        <div class="loading-circle" aria-hidden="true"></div>
+        <p class="voice-text loading-message" style={voiceLineStyle}>Loading analysis data...</p>
+      </div>
     {:else if error}
       <ErrorDisplay {error} />
     {:else}
       <div class="analysis-controls" style={selectorStyle} bind:this={selectorRoot}>
+        <div class="filter-row filter-row-left">
+          <label class="quick-toggle">
+            <input
+              type="checkbox"
+              bind:checked={includeCommunity}
+              on:change={handleCommunityToggle}
+              disabled={!$barista?.id}
+            />
+            <span class="toggle-track" aria-hidden="true"></span>
+            <span class="toggle-label">Include community data</span>
+          </label>
+        </div>
+
         <div class="selector-row">
           <div class="selector-group">
             <label>Bean</label>
@@ -766,19 +800,6 @@
         </div>
 
         <div class="filter-row">
-          <label class="quick-toggle">
-            <input
-              type="checkbox"
-              bind:checked={includeCommunity}
-              on:change={handleCommunityToggle}
-              disabled={!$barista?.id}
-            />
-            <span class="toggle-track" aria-hidden="true"></span>
-            <span class="toggle-label">Include community data</span>
-          </label>
-        </div>
-
-        <div class="filter-row">
           <div class="filter-group">
             <label>Time Period</label>
             <div class="recency-tabs" role="tablist" aria-label="Recency filter" bind:this={recencyTrack}>
@@ -810,7 +831,7 @@
         <div class="charts-container">
           <div class="chart-wrapper" bind:this={ratioChartCard}>
             <div class="chart-header">
-              <span class="chart-label">Ratio</span>
+              <span class="chart-label">Rating vs. Ratio</span>
               <span class="chart-value">{formatRatioValue(ratioTarget)}</span>
               <span class="chart-debug">Range: {ratioRange}</span>
             </div>
@@ -823,7 +844,7 @@
           
           <div class="chart-wrapper">
             <div class="chart-header">
-              <span class="chart-label">Brew Time</span>
+              <span class="chart-label">Rating vs. Brew Time</span>
               <span class="chart-value">{formatTimeValue(timeTarget)}</span>
               <span class="chart-debug">Range: {timeRange}</span>
             </div>
@@ -877,6 +898,37 @@
     background: var(--record-list-bg, var(--bg-surface-paper-secondary));
     border-radius: var(--record-list-radius, var(--radius-md));
     border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
+  }
+
+  .analysis-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 2.5rem 1rem;
+    text-align: center;
+  }
+
+  .loading-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 3px solid rgba(214, 199, 174, 0.25);
+    border-top-color: var(--accent-primary);
+    animation: spin 0.9s linear infinite;
+  }
+
+  .loading-message {
+    font-size: 0.95rem;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .section-header {
@@ -1007,6 +1059,11 @@
   .filter-row {
     display: flex;
     justify-content: center;
+    align-items: center;
+  }
+
+  .filter-row-left {
+    justify-content: flex-start;
   }
 
   .selector-group,
@@ -1096,8 +1153,8 @@
     gap: 0.35rem;
     padding: 0.3rem;
     border-radius: 999px;
-    border: 1px solid rgba(123, 94, 58, 0.3);
     background: rgba(123, 94, 58, 0.12);
+    border: 1px solid rgba(123, 94, 58, 0.3);
     position: relative;
   }
 
@@ -1245,6 +1302,7 @@
       width: 100%;
       justify-content: space-between;
     }
+
 
     .recency-tab {
       flex: 1;

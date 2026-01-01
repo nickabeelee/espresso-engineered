@@ -3,7 +3,6 @@
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
   import { isAuthenticated, barista } from '$lib/auth';
-  import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import { apiClient } from '$lib/api-client';
   import { colorCss } from '$lib/ui/foundations/color';
@@ -218,8 +217,8 @@
     <!-- Voice Greeting Section -->
     {#if loading}
       <div class="loading-container">
-        <LoadingIndicator />
-        <p class="voice-text" style={voiceLineStyle}>Preparing your brewing dashboard...</p>
+        <div class="loading-circle" aria-hidden="true"></div>
+        <p class="voice-text loading-message" style={voiceLineStyle}>Preparing your brewing dashboard...</p>
       </div>
     {:else if error}
       <ErrorDisplay 
@@ -352,6 +351,28 @@
     align-items: center;
     gap: 1rem;
     padding: 3rem 1rem;
+  }
+
+  .loading-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid rgba(214, 199, 174, 0.25);
+    border-top-color: var(--accent-primary);
+    animation: spin 0.9s linear infinite;
+  }
+
+  .loading-message {
+    font-size: 0.95rem;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
 

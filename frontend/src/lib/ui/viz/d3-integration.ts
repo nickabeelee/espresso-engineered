@@ -63,6 +63,9 @@ export interface ScatterPlotConfig {
   showYAxisLabels?: boolean; // Per requirements: omit vertical axis labels
   xTickValues?: number[];
   xTickFormat?: (value: number) => string;
+  xTickCount?: number;
+  xDomainPadding?: number;
+  yDomainPadding?: number;
   pointRadius?: number;
   hoverRadius?: number;
   pointFill?: string | ((point: BrewDataPoint) => string);
@@ -73,9 +76,16 @@ export interface ScatterPlotConfig {
     color?: string;
     opacity?: number;
   };
+  targetLine?: {
+    value: number;
+    color?: string;
+    width?: number;
+    opacity?: number;
+    dashArray?: string;
+  };
   trendLine?: {
     enabled: boolean;
-    type?: 'linear';
+    type?: 'linear' | 'quadratic';
     color?: string;
     width?: number;
     opacity?: number;
@@ -111,10 +121,12 @@ export class ScatterPlot {
   private tooltip: d3.Selection<HTMLDivElement, unknown, null, undefined>;
   private resizeObserver?: ResizeObserver;
   private data: BrewDataPoint[] = [];
+  private clipId: string;
 
   constructor(container: HTMLElement, config: ScatterPlotConfig) {
     this.container = container;
     this.config = { ...config };
+    this.clipId = `chart-clip-${Math.random().toString(36).slice(2, 9)}`;
     
     // Initialize color scale with UI framework palette
     this.colorScale = d3.scaleOrdinal<string>()
@@ -161,6 +173,11 @@ export class ScatterPlot {
       .attr('width', this.config.width)
       .attr('height', this.config.height)
       .style('background', vizTheme.background);
+
+    const defs = this.svg.append('defs');
+    defs.append('clipPath')
+      .attr('id', this.clipId)
+      .append('rect');
     
     // Create main chart group
     this.svg.append('g')
@@ -175,14 +192,11 @@ export class ScatterPlot {
     this.xScale = d3.scaleLinear()
       .domain(this.config.xDomain || [0, 1])
       .range([0, width - margin.left - margin.right])
-      .nice(scaleDefaults.linear.nice)
       .clamp(scaleDefaults.linear.clamp);
-    
     // Y scale
     this.yScale = d3.scaleLinear()
       .domain(this.config.yDomain || [0, 1])
       .range([height - margin.top - margin.bottom, 0])
-      .nice(scaleDefaults.linear.nice)
       .clamp(scaleDefaults.linear.clamp);
   }
 
@@ -231,13 +245,17 @@ export class ScatterPlot {
     
     // X axis
     if (this.config.showXAxis !== false) {
-      const xAxis = d3.axisBottom(this.xScale)
-        .tickSize(axisDefaults.tickSize)
-        .tickPadding(axisDefaults.tickPadding);
+    const xAxis = d3.axisBottom(this.xScale)
+      .tickSize(axisDefaults.tickSize)
+      .tickPadding(axisDefaults.tickPadding);
 
-      if (this.config.xTickValues) {
-        xAxis.tickValues(this.config.xTickValues);
-      }
+    if (this.config.xTickValues) {
+      xAxis.tickValues(this.config.xTickValues);
+    }
+    
+    if (this.config.xTickCount && !this.config.xTickValues) {
+      xAxis.ticks(this.config.xTickCount);
+    }
 
       if (this.config.xTickFormat) {
         xAxis.tickFormat(this.config.xTickFormat as any);
@@ -252,21 +270,7 @@ export class ScatterPlot {
         .style('font-size', axisDefaults.tickLabel.fontSize)
         .style('fill', axisDefaults.tickLabel.color);
 
-      chartArea.selectAll('.x-axis .domain').remove();
-      chartArea.selectAll('.x-axis line').remove();
-      
-      // X axis label
-      if (this.config.xLabel) {
-        chartArea.append('text')
-          .attr('class', 'axis-label x-label')
-          .attr('x', (this.config.width - this.config.margin.left - this.config.margin.right) / 2)
-          .attr('y', this.config.height - this.config.margin.top - this.config.margin.bottom + 40)
-          .style('text-anchor', 'middle')
-          .style('font-family', axisDefaults.label.fontFamily)
-          .style('font-size', axisDefaults.label.fontSize)
-          .style('fill', axisDefaults.label.color)
-          .text(this.config.xLabel);
-      }
+      // Keep axis line and tick marks visible.
     }
     
     // Y axis (without labels per requirements)
@@ -309,6 +313,10 @@ export class ScatterPlot {
     const chartWidth = Math.max(0, this.config.width - this.config.margin.left - this.config.margin.right);
     const chartHeight = Math.max(0, this.config.height - this.config.margin.top - this.config.margin.bottom);
 
+    this.svg.select(`#${this.clipId} rect`)
+      .attr('width', chartWidth)
+      .attr('height', chartHeight);
+
     // Anchor chart area geometry so it spans the full plot region.
     const frame = chartArea.selectAll<SVGRectElement, null>('.chart-frame').data([null]);
     frame.enter()
@@ -342,38 +350,82 @@ export class ScatterPlot {
         .attr('width', Math.max(0, bandEnd - bandStart))
         .attr('height', bandHeight)
         .attr('fill', this.config.targetBand.color ?? 'rgba(123, 94, 58, 0.22)')
-        .attr('opacity', this.config.targetBand.opacity ?? 1);
+        .attr('opacity', this.config.targetBand.opacity ?? 1)
+        .attr('pointer-events', 'none');
+    }
+
+    // Target line
+    chartArea.selectAll('.target-line').remove();
+    if (this.config.targetLine) {
+      const lineHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+      const lineX = this.xScale(this.config.targetLine.value);
+      chartArea.append('line')
+        .attr('class', 'target-line')
+        .attr('x1', lineX)
+        .attr('x2', lineX)
+        .attr('y1', 0)
+        .attr('y2', lineHeight)
+        .attr('stroke', this.config.targetLine.color ?? 'rgba(123, 94, 58, 0.6)')
+        .attr('stroke-width', this.config.targetLine.width ?? 1.5)
+        .attr('stroke-dasharray', this.config.targetLine.dashArray ?? '4 4')
+        .attr('opacity', this.config.targetLine.opacity ?? 0.8)
+        .attr('pointer-events', 'none');
     }
 
     // Trend line
     chartArea.selectAll('.trend-line').remove();
     if (this.config.trendLine?.enabled && this.data.length > 2) {
       const domain = this.xScale.domain();
-      const xValues = this.data.map(point => point.x);
-      const yValues = this.data.map(point => point.y);
-      const xMean = d3.mean(xValues) ?? 0;
-      const yMean = d3.mean(yValues) ?? 0;
-      const numerator = d3.sum(this.data, point => (point.x - xMean) * (point.y - yMean));
-      const denominator = d3.sum(this.data, point => Math.pow(point.x - xMean, 2)) || 1;
-      const slope = numerator / denominator;
-      const intercept = yMean - slope * xMean;
-      
-      const linePoints: [number, number][] = [
-        [domain[0], slope * domain[0] + intercept],
-        [domain[1], slope * domain[1] + intercept]
-      ];
-      
+      const trendType = this.config.trendLine.type ?? 'linear';
       const line = d3.line<[number, number]>()
         .x(d => this.xScale(d[0]))
         .y(d => this.yScale(d[1]));
-      
+
+      if (trendType === 'quadratic' && this.data.length > 3) {
+        const coeffs = this.fitQuadratic(this.data);
+        if (coeffs) {
+          const [a, b, c] = coeffs;
+          const step = (domain[1] - domain[0]) / 48;
+          const curvePoints: [number, number][] = [];
+          for (let x = domain[0]; x <= domain[1]; x += step) {
+            const y = a * x * x + b * x + c;
+            if (Number.isFinite(y)) {
+              curvePoints.push([x, y]);
+            }
+          }
       chartArea.append('path')
         .attr('class', 'trend-line')
-        .attr('d', line(linePoints))
+        .attr('d', line(curvePoints))
+        .attr('clip-path', `url(#${this.clipId})`)
         .attr('fill', 'none')
         .attr('stroke', this.config.trendLine.color ?? 'rgba(123, 94, 58, 0.5)')
         .attr('stroke-width', this.config.trendLine.width ?? 2)
         .attr('opacity', this.config.trendLine.opacity ?? 0.7);
+        }
+      } else {
+        const xValues = this.data.map(point => point.x);
+        const yValues = this.data.map(point => point.y);
+        const xMean = d3.mean(xValues) ?? 0;
+        const yMean = d3.mean(yValues) ?? 0;
+        const numerator = d3.sum(this.data, point => (point.x - xMean) * (point.y - yMean));
+        const denominator = d3.sum(this.data, point => Math.pow(point.x - xMean, 2)) || 1;
+        const slope = numerator / denominator;
+        const intercept = yMean - slope * xMean;
+        
+        const linePoints: [number, number][] = [
+          [domain[0], slope * domain[0] + intercept],
+          [domain[1], slope * domain[1] + intercept]
+        ];
+        
+        chartArea.append('path')
+          .attr('class', 'trend-line')
+          .attr('d', line(linePoints))
+          .attr('clip-path', `url(#${this.clipId})`)
+          .attr('fill', 'none')
+          .attr('stroke', this.config.trendLine.color ?? 'rgba(123, 94, 58, 0.5)')
+          .attr('stroke-width', this.config.trendLine.width ?? 2)
+          .attr('opacity', this.config.trendLine.opacity ?? 0.7);
+      }
     }
     
     // Bind data to circles
@@ -466,6 +518,14 @@ export class ScatterPlot {
       .remove();
   }
 
+  private applyDomainPadding(domain: [number, number], paddingRatio?: number): [number, number] {
+    if (!paddingRatio || paddingRatio <= 0) return domain;
+    const span = domain[1] - domain[0];
+    const base = span > 0 ? span : Math.max(Math.abs(domain[0]) || 1, 1);
+    const pad = base * paddingRatio;
+    return [domain[0] - pad, domain[1] + pad];
+  }
+
   private formatTooltip(d: BrewDataPoint): string {
     const brew = d.brew;
     const date = new Date(brew.created_at).toLocaleDateString();
@@ -481,7 +541,11 @@ export class ScatterPlot {
     if (brew.brew_time_s) {
       content += `Time: ${brew.brew_time_s}s<br/>`;
     }
-    
+
+    if (brew.grind_setting) {
+      content += `Grind: ${brew.grind_setting}<br/>`;
+    }
+
     if (brew.dose_g) {
       content += `Dose: ${brew.dose_g}g<br/>`;
     }
@@ -493,6 +557,66 @@ export class ScatterPlot {
     return content;
   }
 
+  private fitQuadratic(data: BrewDataPoint[]): [number, number, number] | null {
+    const n = data.length;
+    if (n < 4) return null;
+    let sumX = 0;
+    let sumX2 = 0;
+    let sumX3 = 0;
+    let sumX4 = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumX2Y = 0;
+
+    for (const point of data) {
+      const x = point.x;
+      const y = point.y;
+      sumX += x;
+      sumX2 += x * x;
+      sumX3 += x * x * x;
+      sumX4 += x * x * x * x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2Y += x * x * y;
+    }
+
+    const matrix = [
+      [sumX4, sumX3, sumX2],
+      [sumX3, sumX2, sumX],
+      [sumX2, sumX, n]
+    ];
+    const vector = [sumX2Y, sumXY, sumY];
+    const det = (m: number[][]) =>
+      m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+      m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+      m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+    const detMain = det(matrix);
+    if (Math.abs(detMain) < 1e-12) return null;
+
+    const replaceColumn = (colIndex: number, values: number[]) =>
+      matrix.map((row, i) => row.map((value, j) => (j === colIndex ? values[i] : value)));
+    const detA = det(replaceColumn(0, vector));
+    const detB = det(replaceColumn(1, vector));
+    const detC = det(replaceColumn(2, vector));
+    let a = detA / detMain;
+    let b = detB / detMain;
+    let c = detC / detMain;
+    if (![a, b, c].every(Number.isFinite)) return null;
+
+    if (a > 0) {
+      const forcedA = a === 0 ? -1e-6 : -Math.abs(a);
+      const sumYPrime = sumY - forcedA * sumX2;
+      const sumXYPrime = sumXY - forcedA * sumX3;
+      const denom = n * sumX2 - sumX * sumX;
+      if (Math.abs(denom) < 1e-12) return [forcedA, b, c];
+      b = (n * sumXYPrime - sumX * sumYPrime) / denom;
+      c = (sumYPrime - b * sumX) / n;
+      a = forcedA;
+    }
+
+    return [a, b, c];
+  }
+
   /**
    * Update the chart with new data
    */
@@ -502,12 +626,14 @@ export class ScatterPlot {
     // Update domains if not explicitly set
     if (!this.config.xDomain && data.length > 0) {
       const xExtent = d3.extent(data, d => d.x) as [number, number];
-      this.xScale.domain(xExtent).nice();
+      const paddedExtent = this.applyDomainPadding(xExtent, this.config.xDomainPadding);
+      this.xScale.domain(paddedExtent);
     }
     
     if (!this.config.yDomain && data.length > 0) {
       const yExtent = d3.extent(data, d => d.y) as [number, number];
-      this.yScale.domain(yExtent).nice();
+      const paddedExtent = this.applyDomainPadding(yExtent, this.config.yDomainPadding);
+      this.yScale.domain(paddedExtent);
     }
     
     // Update color scale domain
@@ -545,12 +671,14 @@ export class ScatterPlot {
 
       if (!this.config.xDomain && this.data.length > 0) {
         const xExtent = d3.extent(this.data, d => d.x) as [number, number];
-        this.xScale.domain(xExtent).nice();
+        const paddedExtent = this.applyDomainPadding(xExtent, this.config.xDomainPadding);
+        this.xScale.domain(paddedExtent);
       }
       
       if (!this.config.yDomain && this.data.length > 0) {
         const yExtent = d3.extent(this.data, d => d.y) as [number, number];
-        this.yScale.domain(yExtent).nice();
+        const paddedExtent = this.applyDomainPadding(yExtent, this.config.yDomainPadding);
+        this.yScale.domain(paddedExtent);
       }
     }
     

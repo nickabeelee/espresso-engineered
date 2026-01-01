@@ -40,7 +40,7 @@
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
     color: colorCss.text.ink.primary,
-    margin: 0
+    margin: '0 0 0.5rem 0'
   });
 
   const voiceLineStyle = toStyleString({
@@ -94,7 +94,7 @@
       initScrollTracking();
       initAnimations();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load inventory';
+      error = err instanceof Error ? err.message : 'Failed to load the coffee shelf';
       console.error('Failed to load bag inventory:', err);
     } finally {
       loading = false;
@@ -240,8 +240,8 @@
 <div class="bean-inventory-section">
   <div class="section-header">
     <div class="section-header-text">
-      <h2 style={sectionTitleStyle}>Your Bean Inventory</h2>
-      <p class="voice-text" style={voiceLineStyle}>Keep the shelves honest.</p>
+      <h2 style={sectionTitleStyle}>Your Coffee Shelf</h2>
+      <p class="voice-text" style={voiceLineStyle}>Keep the bar stocked and the labels honest.</p>
     </div>
     {#if !loading && !error && bags.length > 0}
       <div class="inventory-controls">
@@ -274,7 +274,7 @@
   {#if loading}
     <div class="loading-container">
       <LoadingIndicator />
-      <p class="voice-text" style={voiceLineStyle}>Loading your coffee collection...</p>
+      <p class="voice-text" style={voiceLineStyle}>Setting out your bar shelf...</p>
     </div>
   {:else if error}
     <ErrorDisplay 
@@ -283,8 +283,8 @@
     />
   {:else if bags.length === 0}
     <div class="empty-state">
-      <p class="voice-text" style={voiceLineStyle}>Your coffee collection is empty.</p>
-      <p class="voice-text" style={voiceLineStyle}>Add some bags to get started with tracking your inventory.</p>
+      <p class="voice-text" style={voiceLineStyle}>Your shelf is quiet.</p>
+      <p class="voice-text" style={voiceLineStyle}>Add a bag to start your bar shelf.</p>
     </div>
   {:else}
     <div class="inventory-shell" style={inventoryShellStyle}>
