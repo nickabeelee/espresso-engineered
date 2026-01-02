@@ -76,6 +76,9 @@ export interface Bag {
   price?: number;
   purchase_location?: string;
   inventory_status?: InventoryStatus; // Status-based inventory tracking
+  average_rating?: number;
+  rating_count?: number;
+  brew_count?: number;
 }
 
 export interface BagWithBarista extends Bag {

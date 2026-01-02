@@ -74,6 +74,9 @@ export interface Bag {
   purchase_location?: string;
   inventory_status?: InventoryStatus; // Status-based inventory tracking
   emptied_on_date?: string | null; // ISO date string when bag was marked as empty
+  average_rating?: number;
+  rating_count?: number;
+  brew_count?: number;
 }
 
 export interface BagWithBarista extends Bag {

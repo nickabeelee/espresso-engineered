@@ -202,6 +202,9 @@ export class BagRepository extends BaseRepository<Bag> {
             name
           )
         ),
+        brews:brew!brew_bag_id_fkey (
+          rating
+        ),
         barista:owner_id (
           id,
           display_name
@@ -214,7 +217,25 @@ export class BagRepository extends BaseRepository<Bag> {
       throw new Error(`Database error: ${error.message}`);
     }
 
-    return (data as BagWithBarista[]) || [];
+    const bags = (data as any[]) || [];
+    return bags.map((bag) => {
+      const { brews, ...cleanBag } = bag;
+      const brewsList = brews || [];
+      const ratings = brewsList
+        .map((entry: { rating: number | null }) => entry.rating)
+        .filter((rating: number | null): rating is number => rating !== null && rating !== undefined);
+      const ratingCount = ratings.length;
+      const brewCount = brewsList.length;
+      const averageRating = ratingCount > 0
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratingCount
+        : null;
+      return {
+        ...cleanBag,
+        average_rating: averageRating ?? undefined,
+        rating_count: ratingCount,
+        brew_count: brewCount
+      } as BagWithBarista;
+    });
   }
 
   /**
@@ -278,14 +299,13 @@ export class BagRepository extends BaseRepository<Bag> {
             website_url
           )
         ),
-        last_brew:brew!bag_id (
-          created_at
+        brews:brew!brew_bag_id_fkey (
+          created_at,
+          rating
         )
       `)
       .eq('owner_id', baristaId)
       .or(`inventory_status.neq.empty,and(inventory_status.eq.empty,emptied_on_date.gte.${currentWeekStart.toISOString()})`)
-      .order('created_at', { ascending: false, foreignTable: 'brew' })
-      .limit(1, { foreignTable: 'brew' })
       .order('created_at', { ascending: false }); // Fallback ordering by bag creation
 
     if (error) {
@@ -296,8 +316,16 @@ export class BagRepository extends BaseRepository<Bag> {
 
     // Sort by most recent brew date, then by bag creation date
     bags.sort((a, b) => {
-      const aLastBrew = a.last_brew?.[0]?.created_at;
-      const bLastBrew = b.last_brew?.[0]?.created_at;
+      const aLastBrew = a.brews?.reduce((latest: string | null, brew: { created_at?: string | null }) => {
+        if (!brew?.created_at) return latest;
+        if (!latest) return brew.created_at;
+        return new Date(brew.created_at).getTime() > new Date(latest).getTime() ? brew.created_at : latest;
+      }, null);
+      const bLastBrew = b.brews?.reduce((latest: string | null, brew: { created_at?: string | null }) => {
+        if (!brew?.created_at) return latest;
+        if (!latest) return brew.created_at;
+        return new Date(brew.created_at).getTime() > new Date(latest).getTime() ? brew.created_at : latest;
+      }, null);
       
       if (aLastBrew && bLastBrew) {
         return new Date(bLastBrew).getTime() - new Date(aLastBrew).getTime();
@@ -313,8 +341,22 @@ export class BagRepository extends BaseRepository<Bag> {
 
     // Clean up the response to remove the temporary last_brew field
     return bags.map(bag => {
-      const { last_brew, ...cleanBag } = bag;
-      return cleanBag as Bag;
+      const { brews, ...cleanBag } = bag;
+      const brewsList = brews || [];
+      const ratings = brewsList
+        .map((entry: { rating: number | null }) => entry.rating)
+        .filter((rating: number | null): rating is number => rating !== null && rating !== undefined);
+      const ratingCount = ratings.length;
+      const brewCount = brewsList.length;
+      const averageRating = ratingCount > 0
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratingCount
+        : null;
+      return {
+        ...cleanBag,
+        average_rating: averageRating ?? undefined,
+        rating_count: ratingCount,
+        brew_count: brewCount
+      } as Bag;
     });
   }
 }

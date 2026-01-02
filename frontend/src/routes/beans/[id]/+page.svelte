@@ -682,6 +682,7 @@
               beanName={bean.name}
               beanImagePath={bean.image_path || null}
               beanRoastLevel={bean.roast_level || null}
+              tastingNotes={bean.tasting_notes || null}
               isNewBag={true}
               on:created={handleBagCreated}
               on:cancel={handleNewBagCancel}
@@ -701,6 +702,7 @@
                   beanName={bean.name}
                   beanImagePath={bean.image_path || null}
                   beanRoastLevel={bean.roast_level || null}
+                  tastingNotes={bean.tasting_notes || null}
                   {baristasById}
                   on:updated={handleBagUpdated}
                 />
