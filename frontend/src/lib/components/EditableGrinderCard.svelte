@@ -9,7 +9,8 @@
   import { PencilSquare, CheckCircle, XMark, Plus, Trash } from '$lib/icons';
   import { editableCard, editableCardVariants } from '$lib/ui/components/editable-card';
   import { toStyleString } from '$lib/ui/style';
-  import { getImageUrl } from '$lib/utils/image-utils';
+  import { imageSizes } from '$lib/ui/components/image';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import { formatMostUsedBy } from '$lib/utils/usage-stats';
   import type { Grinder, CreateGrinderRequest, Barista } from '@shared/types';
 
@@ -96,7 +97,9 @@
     '--editable-card-input-border-width': editableCard.input.borderWidth,
     '--editable-card-input-radius': editableCard.input.borderRadius,
     '--editable-card-input-padding': editableCard.input.padding,
-    '--editable-card-input-focus': editableCard.input.focusRing
+    '--editable-card-input-focus': editableCard.input.focusRing,
+    '--editable-card-image-width': `${imageSizes.card.width}px`,
+    '--editable-card-image-height': `${imageSizes.card.height}px`
   });
 
   const commonManufacturers = [
@@ -280,22 +283,163 @@
   }
 </script>
 
-<div class="grinder-card" class:editing={isEditing} class:new-grinder={isNewGrinder} on:keydown={handleKeydown} role="region" tabindex="-1" style={style}>
-  <div class="grinder-header">
-    <div class="grinder-title">
-      {#if isNewGrinder}
-        <h4>New Grinder</h4>
-        <span class="grinder-info">Add a new coffee grinder</span>
-      {:else if grinder}
-        <h4>{grinder.manufacturer} {grinder.model}</h4>
-        <div class="grinder-meta">
-          <span>{grinder.manufacturer}</span>
-          <span class="separator">/</span>
-          <span>{grinder.model}</span>
+<div
+  class="grinder-card"
+  class:editing={isEditing}
+  class:new-grinder={isNewGrinder}
+  class:has-media={!isEditing}
+  on:keydown={handleKeydown}
+  role="region"
+  tabindex="-1"
+  style={style}
+>
+  <div class="grinder-card-body">
+      <div class="grinder-header">
+        <div class="grinder-header-top">
+          <div class="grinder-title">
+            {#if isNewGrinder}
+              <h4>New Grinder</h4>
+              <span class="grinder-info">Add a new coffee grinder</span>
+            {:else if grinder}
+              <h4>{grinder.manufacturer} {grinder.model}</h4>
+            {/if}
+          </div>
+          <div class="grinder-header-status">
+            {#if !isEditing && !isNewGrinder && usageCount > 0}
+              <Chip variant="neutral" size="sm">{usageCount} brews</Chip>
+            {/if}
+            {#if !isEditing && !isNewGrinder && mostUsedBy}
+              <Chip variant="accent" size="sm">Most used by {mostUsedBy.display_name}</Chip>
+            {/if}
+          </div>
+        </div>
+      </div>
+
+  {#if error}
+    <div class="error-message">
+      {error}
+    </div>
+  {/if}
+  
+  <div class="grinder-content">
+    {#if !isEditing}
+      <div class="grinder-media">
+        <div
+          class="card-media"
+          class:placeholder={!grinder?.image_path}
+          aria-hidden={!grinder?.image_path ? 'true' : undefined}
+        >
+          {#if grinder?.image_path}
+            <img 
+              src={getTransformedImageUrl(grinder.image_path, 'grinder', imageSizes.card)} 
+              alt="{grinder.manufacturer} {grinder.model}"
+              loading="lazy"
+              on:error={(e) => e.currentTarget.style.display = 'none'}
+            />
+          {/if}
+        </div>
+      </div>
+    {/if}
+    <div class="grinder-details">
+      <div class="grinder-detail">
+        <span class="detail-label">Manufacturer</span>
+        {#if isEditing}
+          <div class="manufacturer-input-group">
+            <input
+              type="text"
+              bind:value={formData.manufacturer}
+              class="detail-input"
+              class:error={validationErrors.manufacturer}
+              placeholder="e.g., Weber Workshops"
+              disabled={isSaving}
+            />
+            {#if validationErrors.manufacturer}
+              <span class="validation-error">{validationErrors.manufacturer}</span>
+            {/if}
+            <div class="manufacturer-suggestions">
+              {#each commonManufacturers as name}
+                <Chip variant="neutral" size="sm">
+                  <button
+                    type="button"
+                    class="manufacturer-suggestion-button"
+                    on:click={() => selectManufacturer(name)}
+                    disabled={isSaving}
+                  >
+                    {name}
+                  </button>
+                </Chip>
+              {/each}
+            </div>
+          </div>
+        {:else if grinder?.manufacturer}
+          <span class="detail-value">{grinder.manufacturer}</span>
+        {:else}
+          <span class="detail-value detail-empty">Not specified</span>
+        {/if}
+      </div>
+      
+      <div class="grinder-detail">
+        <span class="detail-label">Model</span>
+        {#if isEditing}
+          <input
+            type="text"
+            bind:value={formData.model}
+            class="detail-input"
+            class:error={validationErrors.model}
+            placeholder="e.g., EG-1"
+            disabled={isSaving}
+          />
+          {#if validationErrors.model}
+            <span class="validation-error">{validationErrors.model}</span>
+          {/if}
+        {:else if grinder?.model}
+          <span class="detail-value">{grinder.model}</span>
+        {:else}
+          <span class="detail-value detail-empty">Not specified</span>
+        {/if}
+      </div>
+      
+      <div class="grinder-detail">
+        <span class="detail-label">Setting Guide</span>
+        {#if isEditing}
+          <input
+            type="url"
+            bind:value={formData.setting_guide_chart_url}
+            class="detail-input"
+            class:error={validationErrors.setting_guide_chart_url}
+            placeholder="https://example.com/setting-guide"
+            disabled={isSaving}
+          />
+          {#if validationErrors.setting_guide_chart_url}
+            <span class="validation-error">{validationErrors.setting_guide_chart_url}</span>
+          {/if}
+        {:else if grinder?.setting_guide_chart_url}
+          <a href={grinder.setting_guide_chart_url} target="_blank" rel="noopener noreferrer" class="detail-link">
+            View Guide
+          </a>
+        {:else}
+          <span class="detail-value detail-empty">Not specified</span>
+        {/if}
+      </div>
+
+      {#if isEditing}
+        <div class="grinder-detail image-detail">
+          <span class="detail-label">Image</span>
+          <ImageUpload
+            currentImageUrl={formData.image_path}
+            entityType="grinder"
+            entityId={grinder?.id || ''}
+            on:upload={handleImageUpload}
+            on:delete={handleImageDelete}
+            on:error={handleImageError}
+            disabled={isSaving}
+          />
         </div>
       {/if}
     </div>
-    
+  </div>
+
+  <div class="grinder-actions-row">
     <div class="grinder-actions">
       {#if canEdit && !isEditing && !isNewGrinder}
         <IconButton 
@@ -318,7 +462,6 @@
           <Trash />
         </IconButton>
       {/if}
-      
       {#if isEditing}
         <div class="edit-actions">
           <IconButton 
@@ -346,131 +489,7 @@
     </div>
   </div>
 
-  {#if error}
-    <div class="error-message">
-      {error}
     </div>
-  {/if}
-  
-  <div class="grinder-details">
-    <div class="grinder-detail">
-      <span class="detail-label">Manufacturer</span>
-      {#if isEditing}
-        <div class="manufacturer-input-group">
-          <input
-            type="text"
-            bind:value={formData.manufacturer}
-            class="detail-input"
-            class:error={validationErrors.manufacturer}
-            placeholder="e.g., Weber Workshops"
-            disabled={isSaving}
-          />
-          {#if validationErrors.manufacturer}
-            <span class="validation-error">{validationErrors.manufacturer}</span>
-          {/if}
-          <div class="manufacturer-suggestions">
-            {#each commonManufacturers as name}
-              <Chip variant="neutral" size="sm">
-                <button
-                  type="button"
-                  class="manufacturer-suggestion-button"
-                  on:click={() => selectManufacturer(name)}
-                  disabled={isSaving}
-                >
-                  {name}
-                </button>
-              </Chip>
-            {/each}
-          </div>
-        </div>
-      {:else if grinder?.manufacturer}
-        <span class="detail-value">{grinder.manufacturer}</span>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-    
-    <div class="grinder-detail">
-      <span class="detail-label">Model</span>
-      {#if isEditing}
-        <input
-          type="text"
-          bind:value={formData.model}
-          class="detail-input"
-          class:error={validationErrors.model}
-          placeholder="e.g., EG-1"
-          disabled={isSaving}
-        />
-        {#if validationErrors.model}
-          <span class="validation-error">{validationErrors.model}</span>
-        {/if}
-      {:else if grinder?.model}
-        <span class="detail-value">{grinder.model}</span>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-    
-    <div class="grinder-detail">
-      <span class="detail-label">Setting Guide</span>
-      {#if isEditing}
-        <input
-          type="url"
-          bind:value={formData.setting_guide_chart_url}
-          class="detail-input"
-          class:error={validationErrors.setting_guide_chart_url}
-          placeholder="https://example.com/setting-guide"
-          disabled={isSaving}
-        />
-        {#if validationErrors.setting_guide_chart_url}
-          <span class="validation-error">{validationErrors.setting_guide_chart_url}</span>
-        {/if}
-      {:else if grinder?.setting_guide_chart_url}
-        <a href={grinder.setting_guide_chart_url} target="_blank" rel="noopener noreferrer" class="detail-link">
-          View Guide
-        </a>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-
-    {#if isEditing}
-      <div class="grinder-detail image-detail">
-        <span class="detail-label">Image</span>
-        <ImageUpload
-          currentImageUrl={formData.image_path}
-          entityType="grinder"
-          entityId={grinder?.id || ''}
-          on:upload={handleImageUpload}
-          on:delete={handleImageDelete}
-          on:error={handleImageError}
-          disabled={isSaving}
-        />
-      </div>
-    {:else if grinder?.image_path}
-      <div class="grinder-detail image-detail">
-        <span class="detail-label">Image</span>
-        <img 
-          src={getImageUrl(grinder.image_path, 'grinder')} 
-          alt="{grinder.manufacturer} {grinder.model}"
-          class="grinder-image"
-        />
-      </div>
-    {/if}
-  </div>
-
-  {#if !isEditing && !isNewGrinder && (usageCount > 0 || mostUsedBy)}
-    <div class="usage-stats">
-      <div class="equipment-chips">
-        {#if usageCount > 0}
-          <Chip variant="neutral" size="sm">{usageCount} brews</Chip>
-        {/if}
-        {#if mostUsedBy}
-          <Chip variant="accent" size="sm">Most used by {mostUsedBy.display_name}</Chip>
-        {/if}
-      </div>
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -500,12 +519,47 @@
     margin-bottom: var(--editable-card-new-edit-margin, 1.5rem);
   }
 
+  .card-media {
+    width: min(100%, var(--editable-card-image-width, 200px));
+    aspect-ratio: 1 / 1;
+    border-radius: var(--editable-card-radius, var(--radius-sm));
+    border: 1px solid var(--editable-card-border, var(--border-subtle));
+    overflow: hidden;
+    background: rgba(123, 94, 58, 0.06);
+  }
+
+  .card-media.placeholder {
+    background: rgba(123, 94, 58, 0.04);
+    border-style: dashed;
+  }
+
+  .card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
   .grinder-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: var(--editable-card-header-gap, 1rem);
+    flex-direction: column;
+    gap: 0.35rem;
     margin-bottom: var(--editable-card-header-margin, 0.75rem);
+  }
+
+  .grinder-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .grinder-header-status {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
   .grinder-title {
@@ -541,13 +595,6 @@
     color: var(--text-ink-muted);
   }
 
-  .grinder-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--editable-card-actions-gap, 0.5rem);
-    flex-shrink: 0;
-  }
-
   .edit-actions {
     display: flex;
     gap: var(--editable-card-edit-actions-gap, 0.25rem);
@@ -564,10 +611,32 @@
     font-size: var(--editable-card-error-size, 0.9rem);
   }
 
+  .grinder-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .grinder-card.has-media .grinder-content {
+    grid-template-columns: var(--editable-card-image-width, 200px) minmax(240px, 1fr);
+  }
+
+  .grinder-media {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
   .grinder-details {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--editable-card-detail-min-col, 200px), 1fr));
     gap: var(--editable-card-grid-gap, 0.75rem);
+  }
+
+  .grinder-card.has-media .grinder-details {
+    grid-template-columns: 1fr;
   }
 
   .grinder-detail {
@@ -676,21 +745,37 @@
     font-size: 0.8rem;
   }
 
-  .grinder-image {
-    max-width: 200px;
-    max-height: 150px;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-subtle);
-  }
-
-  .usage-stats {
-    margin-top: 0.75rem;
-  }
-
-  .equipment-chips {
+  .grinder-actions-row {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--editable-card-section-divider, rgba(123, 94, 58, 0.15));
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    justify-content: flex-end;
   }
+
+  .grinder-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--editable-card-actions-gap, 0.5rem);
+  }
+
+  @media (max-width: 768px) {
+    .grinder-header-top {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .grinder-content {
+      grid-template-columns: 1fr;
+    }
+
+    .grinder-card.has-media .grinder-content {
+      grid-template-columns: 1fr;
+    }
+
+    .card-media {
+      width: min(100%, var(--editable-card-image-width, 200px));
+    }
+  }
+
 </style>

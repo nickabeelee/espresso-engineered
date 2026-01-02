@@ -21,6 +21,7 @@
   $: canUpdate = permissions.canEdit && !disabled;
 
   const statusOptions = [
+    { value: 'unopened', label: 'Unopened', variant: 'neutral' },
     { value: 'plenty', label: 'Plenty', variant: 'success' },
     { value: 'getting_low', label: 'Getting Low', variant: 'warning' },
     { value: 'empty', label: 'Empty', variant: 'danger' }
@@ -93,17 +94,18 @@
 
   <div class="status-buttons">
     {#each statusOptions as option}
-      <button
-        type="button"
-        class="status-btn status-btn--{option.variant}"
-        class:active={bag.inventory_status === option.value}
-        class:updating={updating}
-        disabled={!canUpdate || updating}
-        on:click={() => updateStatus(option.value)}
-        title="Set status to {option.label}"
-      >
-        {option.label}
-      </button>
+      {#if option.value !== bag.inventory_status}
+        <button
+          type="button"
+          class="status-btn status-btn--{option.variant}"
+          class:updating={updating}
+          disabled={!canUpdate || updating}
+          on:click={() => updateStatus(option.value)}
+          title="Set status to {option.label}"
+        >
+          {option.label}
+        </button>
+      {/if}
     {/each}
   </div>
 
@@ -193,6 +195,14 @@
     --button-hover-bg: rgba(122, 62, 47, 0.28);
     --button-active-bg: rgba(122, 62, 47, 0.36);
     --button-hover-border: rgba(122, 62, 47, 0.65);
+  }
+
+  .status-btn--neutral {
+    --button-border: var(--border-subtle);
+    --button-ink: var(--text-ink-secondary);
+    --button-hover-bg: rgba(123, 94, 58, 0.16);
+    --button-active-bg: rgba(123, 94, 58, 0.24);
+    --button-hover-border: rgba(123, 94, 58, 0.35);
   }
 
   .status-btn:disabled {

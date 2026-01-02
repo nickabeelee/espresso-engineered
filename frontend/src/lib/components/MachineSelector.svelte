@@ -1,13 +1,15 @@
 <script lang="ts">
   import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
   import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
   import { selector } from '$lib/ui/components/selector';
   import { toStyleString } from '$lib/ui/style';
 
   import InlineMachineCreator from './InlineMachineCreator.svelte';
-  import { getImageUrl } from '$lib/utils/image-utils';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
+  import { imageSizes } from '$lib/ui/components/image';
 
   export let value: string = '';
   export let disabled = false;
@@ -17,6 +19,8 @@
   }>();
 
   let machines: Machine[] = [];
+  let brewHistory: Brew[] = [];
+  let lastUseByMachineId: Record<string, number> = {};
   let loading = true;
   let error: string | null = null;
   let showCreateForm = false;
@@ -48,6 +52,7 @@
     '--selector-option-title-size': selector.option.titleSize,
     '--selector-meta-color': selector.meta.textColor,
     '--selector-meta-size': selector.meta.fontSize,
+    '--selector-meta-secondary-size': selector.meta.secondarySize,
     '--selector-empty-color': selector.empty.textColor,
     '--selector-detail-bg': selector.detailCard.background,
     '--selector-detail-border': selector.detailCard.borderColor,
@@ -67,11 +72,22 @@
       loading = true;
       error = null;
 
-      const response = await apiClient.getMachines();
-      machines = response.data;
+      const baristaId = $barista?.id;
+      const brewsPromise = baristaId
+        ? apiClient.getBrews({ barista_id: baristaId })
+        : Promise.resolve({ data: [], count: 0 });
+
+      const [machinesResponse, brewsResponse] = await Promise.all([
+        apiClient.getMachines(),
+        brewsPromise
+      ]);
+
+      machines = machinesResponse.data;
+      brewHistory = brewsResponse.data;
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load machines';
       console.error('Failed to load machines:', err);
+      brewHistory = [];
     } finally {
       loading = false;
     }
@@ -89,6 +105,30 @@
     return `${machine.manufacturer} ${machine.model}`;
   }
 
+  function getLastUseByMachineId(brews: Brew[]): Record<string, number> {
+    return brews.reduce<Record<string, number>>((acc, brew) => {
+      if (!brew.machine_id || !brew.created_at) return acc;
+      const brewedAt = new Date(brew.created_at).getTime();
+      if (!acc[brew.machine_id] || brewedAt > acc[brew.machine_id]) {
+        acc[brew.machine_id] = brewedAt;
+      }
+      return acc;
+    }, {});
+  }
+
+  function getLastUsedTimestamp(machine: Machine): number | null {
+    return lastUseByMachineId[machine.id] ?? null;
+  }
+
+  function formatRelativeTime(timestamp: number | null): string | null {
+    if (timestamp === null) return null;
+    const diff = Date.now() - timestamp;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  }
+
   $: selectedMachine = machines.find((machine) => machine.id === value) || null;
   $: selectedLabel = selectedMachine ? formatMachineDisplay(selectedMachine) : 'Select a machine...';
 
@@ -102,7 +142,17 @@
     );
   });
 
-  $: sortedMachines = filteredMachines.sort((a, b) => {
+  $: lastUseByMachineId = getLastUseByMachineId(brewHistory);
+
+  $: sortedMachines = [...filteredMachines].sort((a, b) => {
+    const aLastUsed = getLastUsedTimestamp(a);
+    const bLastUsed = getLastUsedTimestamp(b);
+    if (aLastUsed !== bLastUsed) {
+      if (aLastUsed === null) return 1;
+      if (bLastUsed === null) return -1;
+      return bLastUsed - aLastUsed;
+    }
+
     const manufacturerCompare = a.manufacturer.localeCompare(b.manufacturer);
     if (manufacturerCompare !== 0) return manufacturerCompare;
     return a.model.localeCompare(b.model);
@@ -226,6 +276,7 @@
             {:else}
               <ul class="machine-options">
                 {#each sortedMachines as machine}
+                  {@const lastUsed = getLastUsedTimestamp(machine)}
                   <li>
                     <button
                       type="button"
@@ -234,6 +285,11 @@
                     >
                       <span class="option-title">{formatMachineDisplay(machine)}</span>
                       <span class="option-meta">{machine.manufacturer}</span>
+                      {#if lastUsed !== null}
+                        <span class="option-meta option-meta--secondary">Last used {formatRelativeTime(lastUsed)}</span>
+                      {:else}
+                        <span class="option-meta option-meta--secondary">Not used yet</span>
+                      {/if}
                     </button>
                   </li>
                 {/each}
@@ -257,37 +313,38 @@
     <!-- Selected Machine Details -->
     {#if selectedMachine}
       <div class="selected-machine-details">
-        <div class="machine-info">
-          <h4>{formatMachineDisplay(selectedMachine)}</h4>
-          
-          <div class="machine-meta">
-            <span class="manufacturer">{selectedMachine.manufacturer}</span>
-            <span class="model">{selectedMachine.model}</span>
-          </div>
-
-          <div class="machine-links">
-            {#if selectedMachine.user_manual_link}
-              <a 
-                href={selectedMachine.user_manual_link} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                class="manual-link"
-              >
-                User Manual
-              </a>
-            {/if}
-          </div>
-
+        <div class="selected-machine-row">
           {#if selectedMachine.image_path}
-            <div class="machine-image">
+            <div class="machine-thumb">
               <img 
-                src={getImageUrl(selectedMachine.image_path, 'machine')} 
+                src={getTransformedImageUrl(selectedMachine.image_path, 'machine', imageSizes.thumbnail)} 
                 alt={formatMachineDisplay(selectedMachine)}
                 loading="lazy"
                 on:error={(e) => e.currentTarget.style.display = 'none'}
               />
             </div>
           {/if}
+          <div class="machine-info">
+            <h4>{formatMachineDisplay(selectedMachine)}</h4>
+            
+            <div class="machine-meta">
+              <span class="manufacturer">{selectedMachine.manufacturer}</span>
+              <span class="model">{selectedMachine.model}</span>
+            </div>
+
+            <div class="machine-links">
+              {#if selectedMachine.user_manual_link}
+                <a 
+                  href={selectedMachine.user_manual_link} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="manual-link"
+                >
+                  User Manual
+                </a>
+              {/if}
+            </div>
+          </div>
         </div>
       </div>
     {/if}
@@ -452,6 +509,11 @@
     color: var(--selector-meta-color, var(--text-ink-muted));
   }
 
+  .option-meta--secondary {
+    font-size: var(--selector-meta-secondary-size, 0.78rem);
+    opacity: 0.75;
+  }
+
   .combobox-empty {
     text-align: center;
     color: var(--selector-empty-color, var(--text-ink-muted));
@@ -503,6 +565,29 @@
     margin-bottom: 0.75rem;
   }
 
+  .selected-machine-row {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .machine-thumb {
+    flex: 0 0 96px;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .machine-thumb img {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    object-fit: cover;
+  }
+
   .manual-link {
     display: inline-block;
     padding: 0.5rem 0.75rem;
@@ -519,20 +604,6 @@
     background: var(--accent-primary-dark);
   }
 
-  .machine-image {
-    margin-top: 0.75rem;
-  }
-
-  .machine-image img {
-    max-width: 200px;
-    max-height: 150px;
-    width: auto;
-    height: auto;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-subtle);
-    object-fit: cover;
-  }
-
   @media (max-width: 768px) {
     .selector-controls {
       flex-direction: column;
@@ -544,13 +615,24 @@
       min-width: auto;
     }
 
+    .selected-machine-row {
+      flex-direction: column;
+    }
+
+    .machine-thumb {
+      width: 100%;
+      height: auto;
+      max-width: 96px;
+    }
+
+    .machine-thumb img {
+      width: 96px;
+      height: 96px;
+    }
+
     .machine-meta {
       flex-direction: column;
       gap: 0.5rem;
-    }
-
-    .machine-image img {
-      max-width: 100%;
     }
   }
 </style>

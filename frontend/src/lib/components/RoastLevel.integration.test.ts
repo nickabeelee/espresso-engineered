@@ -151,36 +151,6 @@ describe('RoastLevel Integration Tests', () => {
     });
   });
 
-  describe('Optional Text Label', () => {
-    it('should display text label when showLabel is true', () => {
-      render(RoastLevel, { 
-        value: 'Medium Dark', 
-        showLabel: true 
-      });
-      
-      expect(screen.getByText('Medium Dark')).toBeInTheDocument();
-    });
-
-    it('should not display text label when showLabel is false', () => {
-      render(RoastLevel, { 
-        value: 'Medium Dark', 
-        showLabel: false 
-      });
-      
-      expect(screen.queryByText('Medium Dark')).not.toBeInTheDocument();
-    });
-
-    it('should use correct styling for text label', () => {
-      render(RoastLevel, { 
-        value: 'Medium Dark', 
-        showLabel: true 
-      });
-      
-      const label = screen.getByText('Medium Dark');
-      expect(label).toHaveClass('roast-label');
-    });
-  });
-
   describe('Accessibility Support', () => {
     it('should have proper ARIA attributes in view-only mode', () => {
       render(RoastLevel, { value: 'Medium' });

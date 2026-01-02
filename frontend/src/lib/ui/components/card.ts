@@ -1,6 +1,7 @@
 import { colorCss } from "../foundations/color";
 import { elevation } from "../foundations/elevation";
 import { radius } from "../foundations/radius";
+import { gap } from "../foundations/spacing";
 import { fontFamilies } from "../foundations/typography";
 
 const cardSurface = {
@@ -91,9 +92,36 @@ const recordListShell = {
   padding: "1.5rem",
 } as const;
 
-export { cardSurface, pageSurface, recordCard, recordListShell, secondarySurface };
+const sectionSurface = {
+  background: colorCss.bg.surface.paper.secondary,
+  borderColor: colorCss.border.subtle,
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderRadius: radius.md,
+  padding: "1.5rem",
+} as const;
+
+const detailGrid = {
+  minColumnWidth: "200px",
+  gap: gap.md,
+} as const;
+
+const equipmentCard = {
+  grid: {
+    minColumnWidth: "240px",
+    gap: gap.md,
+  },
+  layout: {
+    cardGap: gap.lg,
+  },
+} as const;
+
+export { cardSurface, detailGrid, equipmentCard, pageSurface, recordCard, recordListShell, secondarySurface, sectionSurface };
 export type CardSurfaceTokens = typeof cardSurface;
 export type PageSurfaceTokens = typeof pageSurface;
+export type DetailGridTokens = typeof detailGrid;
+export type EquipmentCardTokens = typeof equipmentCard;
+export type SectionSurfaceTokens = typeof sectionSurface;
 const cardVariants = {
   flat: {
     borderColor: "transparent",

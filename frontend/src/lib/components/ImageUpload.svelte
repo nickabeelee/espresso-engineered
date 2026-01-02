@@ -4,11 +4,12 @@
   import { Trash } from '$lib/icons';
   import { getAuthToken } from '$lib/supabase';
   import { upload } from '$lib/ui/components/upload';
-  import { getImageUploadUrl, getImageUrl } from '$lib/utils/image-utils';
+  import { imageSizes } from '$lib/ui/components/image';
+  import { getImageUploadUrl, getTransformedImageUrl } from '$lib/utils/image-utils';
   import { toStyleString } from '$lib/ui/style';
   
   export let currentImageUrl: string = '';
-  export let entityType: 'grinder' | 'machine';
+  export let entityType: 'grinder' | 'machine' | 'bean';
   export let entityId: string = '';
   export let disabled: boolean = false;
   export let maxSizeMB: number = 5;
@@ -58,7 +59,7 @@
   
   let resolvedImageUrl = '';
   $: resolvedImageUrl = currentImageUrl
-    ? getImageUrl(currentImageUrl, entityType)
+    ? getTransformedImageUrl(currentImageUrl, entityType, imageSizes.card)
     : '';
 
   async function handleFileSelect(file: File) {

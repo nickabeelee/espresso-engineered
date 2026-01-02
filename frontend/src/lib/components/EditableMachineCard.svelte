@@ -9,7 +9,8 @@
   import { PencilSquare, CheckCircle, XMark, Plus, Trash } from '$lib/icons';
   import { editableCard, editableCardVariants } from '$lib/ui/components/editable-card';
   import { toStyleString } from '$lib/ui/style';
-  import { getImageUrl } from '$lib/utils/image-utils';
+  import { imageSizes } from '$lib/ui/components/image';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import { formatMostUsedBy } from '$lib/utils/usage-stats';
   import type { Machine, CreateMachineRequest, Barista } from '@shared/types';
 
@@ -96,7 +97,9 @@
     '--editable-card-input-border-width': editableCard.input.borderWidth,
     '--editable-card-input-radius': editableCard.input.borderRadius,
     '--editable-card-input-padding': editableCard.input.padding,
-    '--editable-card-input-focus': editableCard.input.focusRing
+    '--editable-card-input-focus': editableCard.input.focusRing,
+    '--editable-card-image-width': `${imageSizes.card.width}px`,
+    '--editable-card-image-height': `${imageSizes.card.height}px`
   });
 
   const commonManufacturers = [
@@ -280,22 +283,163 @@
   }
 </script>
 
-<div class="machine-card" class:editing={isEditing} class:new-machine={isNewMachine} on:keydown={handleKeydown} role="region" tabindex="-1" style={style}>
-  <div class="machine-header">
-    <div class="machine-title">
-      {#if isNewMachine}
-        <h4>New Machine</h4>
-        <span class="machine-info">Add a new espresso machine</span>
-      {:else if machine}
-        <h4>{machine.manufacturer} {machine.model}</h4>
-        <div class="machine-meta">
-          <span>{machine.manufacturer}</span>
-          <span class="separator">/</span>
-          <span>{machine.model}</span>
+<div
+  class="machine-card"
+  class:editing={isEditing}
+  class:new-machine={isNewMachine}
+  class:has-media={!isEditing}
+  on:keydown={handleKeydown}
+  role="region"
+  tabindex="-1"
+  style={style}
+>
+  <div class="machine-card-body">
+      <div class="machine-header">
+        <div class="machine-header-top">
+          <div class="machine-title">
+            {#if isNewMachine}
+              <h4>New Machine</h4>
+              <span class="machine-info">Add a new espresso machine</span>
+            {:else if machine}
+              <h4>{machine.manufacturer} {machine.model}</h4>
+            {/if}
+          </div>
+          <div class="machine-header-status">
+            {#if !isEditing && !isNewMachine && usageCount > 0}
+              <Chip variant="neutral" size="sm">{usageCount} brews</Chip>
+            {/if}
+            {#if !isEditing && !isNewMachine && mostUsedBy}
+              <Chip variant="accent" size="sm">Most used by {mostUsedBy.display_name}</Chip>
+            {/if}
+          </div>
+        </div>
+      </div>
+
+  {#if error}
+    <div class="error-message">
+      {error}
+    </div>
+  {/if}
+  
+  <div class="machine-content">
+    {#if !isEditing}
+      <div class="machine-media">
+        <div
+          class="card-media"
+          class:placeholder={!machine?.image_path}
+          aria-hidden={!machine?.image_path ? 'true' : undefined}
+        >
+          {#if machine?.image_path}
+            <img 
+              src={getTransformedImageUrl(machine.image_path, 'machine', imageSizes.card)} 
+              alt="{machine.manufacturer} {machine.model}"
+              loading="lazy"
+              on:error={(e) => e.currentTarget.style.display = 'none'}
+            />
+          {/if}
+        </div>
+      </div>
+    {/if}
+    <div class="machine-details">
+      <div class="machine-detail">
+        <span class="detail-label">Manufacturer</span>
+        {#if isEditing}
+          <div class="manufacturer-input-group">
+            <input
+              type="text"
+              bind:value={formData.manufacturer}
+              class="detail-input"
+              class:error={validationErrors.manufacturer}
+              placeholder="e.g., La Marzocco"
+              disabled={isSaving}
+            />
+            {#if validationErrors.manufacturer}
+              <span class="validation-error">{validationErrors.manufacturer}</span>
+            {/if}
+            <div class="manufacturer-suggestions">
+              {#each commonManufacturers as name}
+                <Chip variant="neutral" size="sm">
+                  <button
+                    type="button"
+                    class="manufacturer-suggestion-button"
+                    on:click={() => selectManufacturer(name)}
+                    disabled={isSaving}
+                  >
+                    {name}
+                  </button>
+                </Chip>
+              {/each}
+            </div>
+          </div>
+        {:else if machine?.manufacturer}
+          <span class="detail-value">{machine.manufacturer}</span>
+        {:else}
+          <span class="detail-value detail-empty">Not specified</span>
+        {/if}
+      </div>
+      
+      <div class="machine-detail">
+        <span class="detail-label">Model</span>
+        {#if isEditing}
+          <input
+            type="text"
+            bind:value={formData.model}
+            class="detail-input"
+            class:error={validationErrors.model}
+            placeholder="e.g., Linea Mini"
+            disabled={isSaving}
+          />
+          {#if validationErrors.model}
+            <span class="validation-error">{validationErrors.model}</span>
+          {/if}
+        {:else if machine?.model}
+          <span class="detail-value">{machine.model}</span>
+        {:else}
+          <span class="detail-value detail-empty">Not specified</span>
+        {/if}
+      </div>
+      
+      <div class="machine-detail">
+        <span class="detail-label">User Manual</span>
+        {#if isEditing}
+          <input
+            type="url"
+            bind:value={formData.user_manual_link}
+            class="detail-input"
+            class:error={validationErrors.user_manual_link}
+            placeholder="https://example.com/manual.pdf"
+            disabled={isSaving}
+          />
+          {#if validationErrors.user_manual_link}
+            <span class="validation-error">{validationErrors.user_manual_link}</span>
+          {/if}
+        {:else if machine?.user_manual_link}
+          <a href={machine.user_manual_link} target="_blank" rel="noopener noreferrer" class="detail-link">
+            View Manual
+          </a>
+        {:else}
+          <span class="detail-value detail-empty">Not specified</span>
+        {/if}
+      </div>
+
+      {#if isEditing}
+        <div class="machine-detail image-detail">
+          <span class="detail-label">Image</span>
+          <ImageUpload
+            currentImageUrl={formData.image_path}
+            entityType="machine"
+            entityId={machine?.id || ''}
+            on:upload={handleImageUpload}
+            on:delete={handleImageDelete}
+            on:error={handleImageError}
+            disabled={isSaving}
+          />
         </div>
       {/if}
     </div>
-    
+  </div>
+
+  <div class="machine-actions-row">
     <div class="machine-actions">
       {#if canEdit && !isEditing && !isNewMachine}
         <IconButton 
@@ -318,7 +462,6 @@
           <Trash />
         </IconButton>
       {/if}
-      
       {#if isEditing}
         <div class="edit-actions">
           <IconButton 
@@ -346,131 +489,7 @@
     </div>
   </div>
 
-  {#if error}
-    <div class="error-message">
-      {error}
     </div>
-  {/if}
-  
-  <div class="machine-details">
-    <div class="machine-detail">
-      <span class="detail-label">Manufacturer</span>
-      {#if isEditing}
-        <div class="manufacturer-input-group">
-          <input
-            type="text"
-            bind:value={formData.manufacturer}
-            class="detail-input"
-            class:error={validationErrors.manufacturer}
-            placeholder="e.g., La Marzocco"
-            disabled={isSaving}
-          />
-          {#if validationErrors.manufacturer}
-            <span class="validation-error">{validationErrors.manufacturer}</span>
-          {/if}
-          <div class="manufacturer-suggestions">
-            {#each commonManufacturers as name}
-              <Chip variant="neutral" size="sm">
-                <button
-                  type="button"
-                  class="manufacturer-suggestion-button"
-                  on:click={() => selectManufacturer(name)}
-                  disabled={isSaving}
-                >
-                  {name}
-                </button>
-              </Chip>
-            {/each}
-          </div>
-        </div>
-      {:else if machine?.manufacturer}
-        <span class="detail-value">{machine.manufacturer}</span>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-    
-    <div class="machine-detail">
-      <span class="detail-label">Model</span>
-      {#if isEditing}
-        <input
-          type="text"
-          bind:value={formData.model}
-          class="detail-input"
-          class:error={validationErrors.model}
-          placeholder="e.g., Linea Mini"
-          disabled={isSaving}
-        />
-        {#if validationErrors.model}
-          <span class="validation-error">{validationErrors.model}</span>
-        {/if}
-      {:else if machine?.model}
-        <span class="detail-value">{machine.model}</span>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-    
-    <div class="machine-detail">
-      <span class="detail-label">User Manual</span>
-      {#if isEditing}
-        <input
-          type="url"
-          bind:value={formData.user_manual_link}
-          class="detail-input"
-          class:error={validationErrors.user_manual_link}
-          placeholder="https://example.com/manual.pdf"
-          disabled={isSaving}
-        />
-        {#if validationErrors.user_manual_link}
-          <span class="validation-error">{validationErrors.user_manual_link}</span>
-        {/if}
-      {:else if machine?.user_manual_link}
-        <a href={machine.user_manual_link} target="_blank" rel="noopener noreferrer" class="detail-link">
-          View Manual
-        </a>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-
-    {#if isEditing}
-      <div class="machine-detail image-detail">
-        <span class="detail-label">Image</span>
-        <ImageUpload
-          currentImageUrl={formData.image_path}
-          entityType="machine"
-          entityId={machine?.id || ''}
-          on:upload={handleImageUpload}
-          on:delete={handleImageDelete}
-          on:error={handleImageError}
-          disabled={isSaving}
-        />
-      </div>
-    {:else if machine?.image_path}
-      <div class="machine-detail image-detail">
-        <span class="detail-label">Image</span>
-        <img 
-          src={getImageUrl(machine.image_path, 'machine')} 
-          alt="{machine.manufacturer} {machine.model}"
-          class="machine-image"
-        />
-      </div>
-    {/if}
-  </div>
-
-  {#if !isEditing && !isNewMachine && (usageCount > 0 || mostUsedBy)}
-    <div class="usage-stats">
-      <div class="equipment-chips">
-        {#if usageCount > 0}
-          <Chip variant="neutral" size="sm">{usageCount} brews</Chip>
-        {/if}
-        {#if mostUsedBy}
-          <Chip variant="accent" size="sm">Most used by {mostUsedBy.display_name}</Chip>
-        {/if}
-      </div>
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -500,12 +519,47 @@
     margin-bottom: var(--editable-card-new-edit-margin, 1.5rem);
   }
 
+  .card-media {
+    width: min(100%, var(--editable-card-image-width, 200px));
+    aspect-ratio: 1 / 1;
+    border-radius: var(--editable-card-radius, var(--radius-sm));
+    border: 1px solid var(--editable-card-border, var(--border-subtle));
+    overflow: hidden;
+    background: rgba(123, 94, 58, 0.06);
+  }
+
+  .card-media.placeholder {
+    background: rgba(123, 94, 58, 0.04);
+    border-style: dashed;
+  }
+
+  .card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
   .machine-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: var(--editable-card-header-gap, 1rem);
+    flex-direction: column;
+    gap: 0.35rem;
     margin-bottom: var(--editable-card-header-margin, 0.75rem);
+  }
+
+  .machine-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .machine-header-status {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
   .machine-title {
@@ -541,13 +595,6 @@
     color: var(--text-ink-muted);
   }
 
-  .machine-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--editable-card-actions-gap, 0.5rem);
-    flex-shrink: 0;
-  }
-
   .edit-actions {
     display: flex;
     gap: var(--editable-card-edit-actions-gap, 0.25rem);
@@ -564,10 +611,32 @@
     font-size: var(--editable-card-error-size, 0.9rem);
   }
 
+  .machine-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .machine-card.has-media .machine-content {
+    grid-template-columns: var(--editable-card-image-width, 200px) minmax(240px, 1fr);
+  }
+
+  .machine-media {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
   .machine-details {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--editable-card-detail-min-col, 200px), 1fr));
     gap: var(--editable-card-grid-gap, 0.75rem);
+  }
+
+  .machine-card.has-media .machine-details {
+    grid-template-columns: 1fr;
   }
 
   .machine-detail {
@@ -676,21 +745,37 @@
     font-size: 0.8rem;
   }
 
-  .machine-image {
-    max-width: 200px;
-    max-height: 150px;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-subtle);
-  }
-
-  .usage-stats {
-    margin-top: 0.75rem;
-  }
-
-  .equipment-chips {
+  .machine-actions-row {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--editable-card-section-divider, rgba(123, 94, 58, 0.15));
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    justify-content: flex-end;
   }
+
+  .machine-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--editable-card-actions-gap, 0.5rem);
+  }
+
+  @media (max-width: 768px) {
+    .machine-header-top {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .machine-content {
+      grid-template-columns: 1fr;
+    }
+
+    .machine-card.has-media .machine-content {
+      grid-template-columns: 1fr;
+    }
+
+    .card-media {
+      width: min(100%, var(--editable-card-image-width, 200px));
+    }
+  }
+
 </style>

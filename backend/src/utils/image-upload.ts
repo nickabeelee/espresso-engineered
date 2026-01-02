@@ -97,19 +97,32 @@ function validateFileSignature(signature: Buffer, extension: string): boolean {
 /**
  * Generate unique filename for storage
  */
-export function generateImageFilename(originalFilename: string, entityType: 'grinder' | 'machine'): string {
-  const extension = path.extname(originalFilename).toLowerCase();
-  const uuid = randomUUID();
-  return `${entityType}/${uuid}${extension}`;
+type ImageEntityType = 'grinder' | 'machine' | 'bean';
+
+function resolveBucketName(entityType: ImageEntityType): string {
+  switch (entityType) {
+    case 'grinder':
+      return 'grinders';
+    case 'machine':
+      return 'machines';
+    case 'bean':
+      return 'beans';
+  }
 }
 
-function normalizeImagePath(imagePath: string, entityType: 'grinder' | 'machine'): string {
+export function generateImageFilename(originalFilename: string, entityType: ImageEntityType): string {
+  const extension = path.extname(originalFilename).toLowerCase();
+  const uuid = randomUUID();
+  return `${uuid}${extension}`;
+}
+
+function normalizeImagePath(imagePath: string, entityType: ImageEntityType): string {
   if (!imagePath) {
     return '';
   }
 
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    const bucketName = entityType === 'grinder' ? 'grinders' : 'machines';
+    const bucketName = resolveBucketName(entityType);
     const marker = `/storage/v1/object/public/${bucketName}/`;
     const markerIndex = imagePath.indexOf(marker);
 
@@ -118,7 +131,13 @@ function normalizeImagePath(imagePath: string, entityType: 'grinder' | 'machine'
     }
   }
 
-  return imagePath.replace(/^\/+/, '');
+  const normalized = imagePath.replace(/^\/+/, '');
+  const entityPrefix = `${entityType}/`;
+  if (normalized.startsWith(entityPrefix)) {
+    return normalized.slice(entityPrefix.length);
+  }
+
+  return normalized;
 }
 
 /**
@@ -127,7 +146,7 @@ function normalizeImagePath(imagePath: string, entityType: 'grinder' | 'machine'
 export async function uploadImage(
   file: Buffer,
   filename: string,
-  entityType: 'grinder' | 'machine'
+  entityType: ImageEntityType
 ): Promise<{ path: string; publicUrl: string }> {
   // Validate the image
   const validation = validateImageFile(file, filename);
@@ -139,7 +158,7 @@ export async function uploadImage(
   const storagePath = generateImageFilename(filename, entityType);
   
   // Determine bucket name based on entity type
-  const bucketName = entityType === 'grinder' ? 'grinders' : 'machines';
+  const bucketName = resolveBucketName(entityType);
 
   // Upload to Supabase Storage
   const { data, error } = await supabase.storage
@@ -167,14 +186,14 @@ export async function uploadImage(
 /**
  * Delete image from Supabase Storage
  */
-export async function deleteImage(imagePath: string, entityType: 'grinder' | 'machine'): Promise<void> {
+export async function deleteImage(imagePath: string, entityType: ImageEntityType): Promise<void> {
   const normalizedPath = normalizeImagePath(imagePath, entityType);
   if (!normalizedPath) {
     return;
   }
 
   // Determine bucket name based on entity type
-  const bucketName = entityType === 'grinder' ? 'grinders' : 'machines';
+  const bucketName = resolveBucketName(entityType);
 
   const { error } = await supabase.storage
     .from(bucketName)
@@ -192,7 +211,7 @@ export async function replaceImage(
   oldImagePath: string | null,
   newFile: Buffer,
   newFilename: string,
-  entityType: 'grinder' | 'machine'
+  entityType: ImageEntityType
 ): Promise<{ path: string; publicUrl: string }> {
   // Upload new image first
   const uploadResult = await uploadImage(newFile, newFilename, entityType);
@@ -213,7 +232,7 @@ export async function replaceImage(
 /**
  * Get public URL for stored image
  */
-export function getImagePublicUrl(imagePath: string, entityType: 'grinder' | 'machine'): string {
+export function getImagePublicUrl(imagePath: string, entityType: ImageEntityType): string {
   if (!imagePath) {
     return '';
   }
@@ -222,7 +241,7 @@ export function getImagePublicUrl(imagePath: string, entityType: 'grinder' | 'ma
   }
 
   // Determine bucket name based on entity type
-  const bucketName = entityType === 'grinder' ? 'grinders' : 'machines';
+  const bucketName = resolveBucketName(entityType);
 
   const normalizedPath = normalizeImagePath(imagePath, entityType);
   const { data } = supabase.storage

@@ -1,13 +1,15 @@
 <script lang="ts">
   import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
+  import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
   import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
   import { selector } from '$lib/ui/components/selector';
   import { toStyleString } from '$lib/ui/style';
 
   import InlineGrinderCreator from './InlineGrinderCreator.svelte';
-  import { getImageUrl } from '$lib/utils/image-utils';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
+  import { imageSizes } from '$lib/ui/components/image';
 
   export let value: string = '';
   export let disabled = false;
@@ -17,6 +19,8 @@
   }>();
 
   let grinders: Grinder[] = [];
+  let brewHistory: Brew[] = [];
+  let lastUseByGrinderId: Record<string, number> = {};
   let loading = true;
   let error: string | null = null;
   let showCreateForm = false;
@@ -48,6 +52,7 @@
     '--selector-option-title-size': selector.option.titleSize,
     '--selector-meta-color': selector.meta.textColor,
     '--selector-meta-size': selector.meta.fontSize,
+    '--selector-meta-secondary-size': selector.meta.secondarySize,
     '--selector-empty-color': selector.empty.textColor,
     '--selector-detail-bg': selector.detailCard.background,
     '--selector-detail-border': selector.detailCard.borderColor,
@@ -67,11 +72,22 @@
       loading = true;
       error = null;
 
-      const response = await apiClient.getGrinders();
-      grinders = response.data;
+      const baristaId = $barista?.id;
+      const brewsPromise = baristaId
+        ? apiClient.getBrews({ barista_id: baristaId })
+        : Promise.resolve({ data: [], count: 0 });
+
+      const [grindersResponse, brewsResponse] = await Promise.all([
+        apiClient.getGrinders(),
+        brewsPromise
+      ]);
+
+      grinders = grindersResponse.data;
+      brewHistory = brewsResponse.data;
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load grinders';
       console.error('Failed to load grinders:', err);
+      brewHistory = [];
     } finally {
       loading = false;
     }
@@ -89,6 +105,30 @@
     return `${grinder.manufacturer} ${grinder.model}`;
   }
 
+  function getLastUseByGrinderId(brews: Brew[]): Record<string, number> {
+    return brews.reduce<Record<string, number>>((acc, brew) => {
+      if (!brew.grinder_id || !brew.created_at) return acc;
+      const brewedAt = new Date(brew.created_at).getTime();
+      if (!acc[brew.grinder_id] || brewedAt > acc[brew.grinder_id]) {
+        acc[brew.grinder_id] = brewedAt;
+      }
+      return acc;
+    }, {});
+  }
+
+  function getLastUsedTimestamp(grinder: Grinder): number | null {
+    return lastUseByGrinderId[grinder.id] ?? null;
+  }
+
+  function formatRelativeTime(timestamp: number | null): string | null {
+    if (timestamp === null) return null;
+    const diff = Date.now() - timestamp;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  }
+
   $: selectedGrinder = grinders.find((grinder) => grinder.id === value) || null;
   $: selectedLabel = selectedGrinder ? formatGrinderDisplay(selectedGrinder) : 'Select a grinder...';
 
@@ -102,8 +142,18 @@
     );
   });
 
-  // Sort grinders by manufacturer, then model
-  $: sortedGrinders = filteredGrinders.sort((a, b) => {
+  $: lastUseByGrinderId = getLastUseByGrinderId(brewHistory);
+
+  // Sort grinders by last used, then manufacturer, then model
+  $: sortedGrinders = [...filteredGrinders].sort((a, b) => {
+    const aLastUsed = getLastUsedTimestamp(a);
+    const bLastUsed = getLastUsedTimestamp(b);
+    if (aLastUsed !== bLastUsed) {
+      if (aLastUsed === null) return 1;
+      if (bLastUsed === null) return -1;
+      return bLastUsed - aLastUsed;
+    }
+
     const manufacturerCompare = a.manufacturer.localeCompare(b.manufacturer);
     if (manufacturerCompare !== 0) return manufacturerCompare;
     return a.model.localeCompare(b.model);
@@ -227,6 +277,7 @@
             {:else}
               <ul class="grinder-options">
                 {#each sortedGrinders as grinder}
+                  {@const lastUsed = getLastUsedTimestamp(grinder)}
                   <li>
                     <button
                       type="button"
@@ -235,6 +286,11 @@
                     >
                       <span class="option-title">{formatGrinderDisplay(grinder)}</span>
                       <span class="option-meta">{grinder.manufacturer}</span>
+                      {#if lastUsed !== null}
+                        <span class="option-meta option-meta--secondary">Last used {formatRelativeTime(lastUsed)}</span>
+                      {:else}
+                        <span class="option-meta option-meta--secondary">Not used yet</span>
+                      {/if}
                     </button>
                   </li>
                 {/each}
@@ -257,37 +313,38 @@
 
     {#if selectedGrinder}
       <div class="selected-grinder-details">
-        <div class="grinder-info">
-          <h4>{formatGrinderDisplay(selectedGrinder)}</h4>
-          
-          <div class="grinder-meta">
-            <span class="manufacturer">{selectedGrinder.manufacturer}</span>
-            <span class="model">{selectedGrinder.model}</span>
-          </div>
-
-          <div class="grinder-links">
-            {#if selectedGrinder.setting_guide_chart_url}
-              <a 
-                href={selectedGrinder.setting_guide_chart_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                class="guide-link"
-              >
-                Setting Guide
-              </a>
-            {/if}
-          </div>
-
+        <div class="selected-grinder-row">
           {#if selectedGrinder.image_path}
-            <div class="grinder-image">
+            <div class="grinder-thumb">
               <img 
-                src={getImageUrl(selectedGrinder.image_path, 'grinder')} 
+                src={getTransformedImageUrl(selectedGrinder.image_path, 'grinder', imageSizes.thumbnail)} 
                 alt={formatGrinderDisplay(selectedGrinder)}
                 loading="lazy"
                 on:error={(e) => e.currentTarget.style.display = 'none'}
               />
             </div>
           {/if}
+          <div class="grinder-info">
+            <h4>{formatGrinderDisplay(selectedGrinder)}</h4>
+            
+            <div class="grinder-meta">
+              <span class="manufacturer">{selectedGrinder.manufacturer}</span>
+              <span class="model">{selectedGrinder.model}</span>
+            </div>
+
+            <div class="grinder-links">
+              {#if selectedGrinder.setting_guide_chart_url}
+                <a 
+                  href={selectedGrinder.setting_guide_chart_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="guide-link"
+                >
+                  Setting Guide
+                </a>
+              {/if}
+            </div>
+          </div>
         </div>
       </div>
     {/if}
@@ -452,6 +509,11 @@
     color: var(--selector-meta-color, var(--text-ink-muted));
   }
 
+  .option-meta--secondary {
+    font-size: var(--selector-meta-secondary-size, 0.78rem);
+    opacity: 0.75;
+  }
+
   .combobox-empty {
     text-align: center;
     color: var(--selector-empty-color, var(--text-ink-muted));
@@ -503,6 +565,29 @@
     margin-bottom: 0.75rem;
   }
 
+  .selected-grinder-row {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .grinder-thumb {
+    flex: 0 0 96px;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .grinder-thumb img {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    object-fit: cover;
+  }
+
   .guide-link {
     display: inline-block;
     padding: 0.5rem 0.75rem;
@@ -519,33 +604,30 @@
     background: var(--accent-primary-dark);
   }
 
-  .grinder-image {
-    margin-top: 0.75rem;
-  }
-
-  .grinder-image img {
-    max-width: 200px;
-    max-height: 150px;
-    width: auto;
-    height: auto;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-subtle);
-    object-fit: cover;
-  }
-
   @media (max-width: 768px) {
     .grinder-select-row {
       flex-direction: column;
       align-items: stretch;
     }
 
+    .selected-grinder-row {
+      flex-direction: column;
+    }
+
+    .grinder-thumb {
+      width: 100%;
+      height: auto;
+      max-width: 96px;
+    }
+
+    .grinder-thumb img {
+      width: 96px;
+      height: 96px;
+    }
+
     .grinder-meta {
       flex-direction: column;
       gap: 0.5rem;
-    }
-
-    .grinder-image img {
-      max-width: 100%;
     }
   }
 </style>

@@ -212,7 +212,15 @@
     // Update the bag in our local array
     const index = bags.findIndex(bag => bag.id === updatedBag.id);
     if (index !== -1) {
-      bags[index] = updatedBag;
+      const existingBag = bags[index];
+      const existingBean = (existingBag as any).bean;
+      const updatedBean = (updatedBag as any).bean;
+      const mergedBean = existingBean || updatedBean ? { ...(existingBean || {}), ...(updatedBean || {}) } : undefined;
+      const mergedBag = {
+        ...updatedBag,
+        ...(mergedBean ? { bean: mergedBean } : {})
+      };
+      bags[index] = mergedBag;
       bags = [...bags]; // Trigger reactivity
     }
 
@@ -302,6 +310,9 @@
                 <EditableBagCard
                   {bag}
                   beanName={bag.bean?.name || 'Unknown Bean'}
+                  beanImagePath={bag.bean?.image_path || null}
+                  beanRoastLevel={bag.bean?.roast_level || null}
+                  tastingNotes={bag.bean?.tasting_notes || null}
                   {baristasById}
                   on:updated={handleBagUpdated}
                 />
@@ -421,8 +432,8 @@
 
   .bag-card-wrapper {
     flex: 0 0 auto;
-    width: 320px;
-    min-width: 320px;
+    width: 420px;
+    min-width: 420px;
     transition: transform var(--motion-fast), opacity var(--motion-fast);
     scroll-snap-align: start;
   }
@@ -440,8 +451,8 @@
     }
 
     .bag-card-wrapper {
-      width: 280px;
-      min-width: 280px;
+      width: 320px;
+      min-width: 320px;
     }
 
     .bag-list {
@@ -451,6 +462,11 @@
 
   @media (max-width: 480px) {
     .bag-card-wrapper {
+      width: 260px;
+      min-width: 260px;
+    }
+
+    .bag-card-wrapper.with-image {
       width: 260px;
       min-width: 260px;
     }

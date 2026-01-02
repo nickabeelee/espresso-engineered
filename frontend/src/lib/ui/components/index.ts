@@ -9,6 +9,7 @@ export * from "./form";
 export * from "./icon-button";
 export * from "./input";
 export * from "./inline-creator";
+export * from "./image";
 export * from "./selector";
 export * from "./upload";
 export * from "./status";
