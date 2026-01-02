@@ -11,7 +11,6 @@
   import { toStyleString } from '$lib/ui/style';
   import { imageSizes } from '$lib/ui/components/image';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
-  import { imageSizes } from '$lib/ui/components/image';
   import { formatMostUsedBy } from '$lib/utils/usage-stats';
   import type { Grinder, CreateGrinderRequest, Barista } from '@shared/types';
 
@@ -288,6 +287,8 @@
     return null;
   }
 
+  $: usageStatus = getUsageStatus();
+
   // Initialize form data when component mounts or props change
   $: if (isNewGrinder || grinder) {
     initializeFormData();
@@ -299,22 +300,68 @@
       <div class="grinder-header">
         <div class="grinder-header-top">
           <div class="grinder-title">
-          {#if isNewGrinder}
-            <h4>New Grinder</h4>
-            <span class="grinder-info">Add a new coffee grinder</span>
-          {:else if grinder}
-            <h4>{grinder.manufacturer} {grinder.model}</h4>
-            <div class="grinder-meta">
-              <span>{grinder.manufacturer}</span>
-              <span class="separator">/</span>
-              <span>{grinder.model}</span>
-            </div>
-          {/if}
+            {#if isNewGrinder}
+              <h4>New Grinder</h4>
+              <span class="grinder-info">Add a new coffee grinder</span>
+            {:else if grinder}
+              <h4>{grinder.manufacturer} {grinder.model}</h4>
+              <div class="grinder-meta">
+                <span>{grinder.manufacturer}</span>
+                <span class="separator">/</span>
+                <span>{grinder.model}</span>
+              </div>
+            {/if}
           </div>
-          {@const usageStatus = getUsageStatus()}
-          {#if !isEditing && !isNewGrinder && usageStatus}
-            <Chip variant={usageStatus.variant} size="sm">{usageStatus.label}</Chip>
-          {/if}
+          <div class="grinder-header-actions">
+            {#if !isEditing && !isNewGrinder && usageStatus}
+              <Chip variant={usageStatus.variant} size="sm">{usageStatus.label}</Chip>
+            {/if}
+            {#if canEdit && !isEditing && !isNewGrinder}
+              <IconButton 
+                on:click={handleEdit} 
+                ariaLabel="Edit grinder" 
+                title="Edit grinder" 
+                variant="accent" 
+                size="sm"
+              >
+                <PencilSquare />
+              </IconButton>
+              <IconButton 
+                on:click={handleDelete} 
+                ariaLabel="Delete grinder" 
+                title="Delete grinder" 
+                variant="danger" 
+                size="sm"
+                disabled={isSaving}
+              >
+                <Trash />
+              </IconButton>
+            {/if}
+            {#if isEditing}
+              <div class="edit-actions">
+                <IconButton 
+                  on:click={handleCancel} 
+                  ariaLabel="Cancel" 
+                  title="Cancel" 
+                  variant="neutral" 
+                  size="sm"
+                  disabled={isSaving}
+                >
+                  <XMark />
+                </IconButton>
+                <IconButton 
+                  on:click={handleSave} 
+                  ariaLabel={isNewGrinder ? "Create grinder" : "Save changes"} 
+                  title={isNewGrinder ? "Create grinder" : "Save"} 
+                  variant="success" 
+                  size="sm"
+                  disabled={isSaving}
+                >
+                  <CheckCircle />
+                </IconButton>
+              </div>
+            {/if}
+          </div>
         </div>
         {#if grinder?.image_path && !isEditing}
           <div class="card-media">
@@ -326,55 +373,6 @@
             />
           </div>
         {/if}
-        
-        <div class="grinder-actions">
-          {#if canEdit && !isEditing && !isNewGrinder}
-            <IconButton 
-              on:click={handleEdit} 
-              ariaLabel="Edit grinder" 
-              title="Edit grinder" 
-              variant="accent" 
-              size="sm"
-            >
-              <PencilSquare />
-            </IconButton>
-            <IconButton 
-              on:click={handleDelete} 
-              ariaLabel="Delete grinder" 
-              title="Delete grinder" 
-              variant="danger" 
-              size="sm"
-              disabled={isSaving}
-            >
-              <Trash />
-            </IconButton>
-          {/if}
-          
-          {#if isEditing}
-            <div class="edit-actions">
-              <IconButton 
-                on:click={handleCancel} 
-                ariaLabel="Cancel" 
-                title="Cancel" 
-                variant="neutral" 
-                size="sm"
-                disabled={isSaving}
-              >
-                <XMark />
-              </IconButton>
-              <IconButton 
-                on:click={handleSave} 
-                ariaLabel={isNewGrinder ? "Create grinder" : "Save changes"} 
-                title={isNewGrinder ? "Create grinder" : "Save"} 
-                variant="success" 
-                size="sm"
-                disabled={isSaving}
-              >
-                <CheckCircle />
-              </IconButton>
-            </div>
-          {/if}
-        </div>
       </div>
 
       {#if !isEditing && !isNewGrinder && (usageCount > 0 || mostUsedBy)}
@@ -525,8 +523,8 @@
   }
 
   .card-media {
-    width: 100%;
-    height: var(--editable-card-image-height, 150px);
+    width: min(100%, var(--editable-card-image-width, 200px));
+    aspect-ratio: 1 / 1;
     border-radius: var(--editable-card-radius, var(--radius-sm));
     border: 1px solid var(--editable-card-border, var(--border-subtle));
     overflow: hidden;
@@ -550,9 +548,16 @@
 
   .grinder-header-top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem;
+  }
+
+  .grinder-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
   }
 
   .grinder-title {
@@ -586,13 +591,6 @@
 
   .grinder-meta .separator {
     color: var(--text-ink-muted);
-  }
-
-  .grinder-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--editable-card-actions-gap, 0.5rem);
-    flex-shrink: 0;
   }
 
   .edit-actions {
@@ -723,9 +721,6 @@
     font-size: 0.8rem;
   }
 
-  .grinder-actions {
-    justify-content: flex-end;
-  }
 
   .usage-stats {
     margin-top: 0.5rem;
@@ -737,10 +732,4 @@
     gap: 0.5rem;
   }
 
-  @media (max-width: 768px) {
-    .card-media {
-      height: auto;
-      max-height: var(--editable-card-image-height, 150px);
-    }
-  }
 </style>

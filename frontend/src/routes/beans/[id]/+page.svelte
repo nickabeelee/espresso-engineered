@@ -305,9 +305,16 @@
     const updatedBag = event.detail;
     
     // Update the bag in the local bags array
-    bags = bags.map(bag => 
-      bag.id === updatedBag.id ? updatedBag : bag
-    );
+    bags = bags.map(bag => {
+      if (bag.id !== updatedBag.id) return bag;
+      const existingBean = (bag as any).bean;
+      const updatedBean = (updatedBag as any).bean;
+      const mergedBean = existingBean || updatedBean ? { ...(existingBean || {}), ...(updatedBean || {}) } : undefined;
+      return {
+        ...updatedBag,
+        ...(mergedBean ? { bean: mergedBean } : {})
+      };
+    });
   }
 
   async function handleBagCreated(event: CustomEvent<BagWithBarista>) {
@@ -492,7 +499,6 @@
                       bind:value={editRoastLevel}
                       editable={true}
                       size="medium"
-                      showLabel={true}
                     />
                   </div>
                 {:else}
@@ -501,7 +507,6 @@
                       value={bean.roast_level}
                       editable={false}
                       size="medium"
-                      showLabel={true}
                     />
                   </div>
                 {/if}
@@ -676,6 +681,7 @@
               beanId={bean.id}
               beanName={bean.name}
               beanImagePath={bean.image_path || null}
+              beanRoastLevel={bean.roast_level || null}
               isNewBag={true}
               on:created={handleBagCreated}
               on:cancel={handleNewBagCancel}
@@ -694,6 +700,7 @@
                   {bag}
                   beanName={bean.name}
                   beanImagePath={bean.image_path || null}
+                  beanRoastLevel={bean.roast_level || null}
                   {baristasById}
                   on:updated={handleBagUpdated}
                 />

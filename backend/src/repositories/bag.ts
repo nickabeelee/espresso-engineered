@@ -36,6 +36,7 @@ export class BagRepository extends BaseRepository<Bag> {
         bean:bean_id (
           id,
           name,
+          image_path,
           roast_level,
           country_of_origin,
           tasting_notes,
@@ -78,6 +79,7 @@ export class BagRepository extends BaseRepository<Bag> {
         bean:bean_id (
           id,
           name,
+          image_path,
           roast_level,
           country_of_origin,
           tasting_notes,
@@ -122,6 +124,7 @@ export class BagRepository extends BaseRepository<Bag> {
         bean:bean_id (
           id,
           name,
+          image_path,
           roast_level,
           country_of_origin,
           tasting_notes,
@@ -161,6 +164,7 @@ export class BagRepository extends BaseRepository<Bag> {
         bean:bean_id (
           id,
           name,
+          image_path,
           roast_level,
           roaster:roaster_id (
             id,
@@ -191,6 +195,7 @@ export class BagRepository extends BaseRepository<Bag> {
         bean:bean_id (
           id,
           name,
+          image_path,
           roast_level,
           roaster:roaster_id (
             id,
@@ -223,6 +228,7 @@ export class BagRepository extends BaseRepository<Bag> {
         bean:bean_id (
           id,
           name,
+          image_path,
           roast_level,
           roaster:roaster_id (
             id,
@@ -262,6 +268,7 @@ export class BagRepository extends BaseRepository<Bag> {
         bean:bean_id (
           id,
           name,
+          image_path,
           roast_level,
           country_of_origin,
           tasting_notes,

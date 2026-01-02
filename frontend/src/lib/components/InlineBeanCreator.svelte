@@ -213,7 +213,6 @@
             bind:value={roast_level}
             editable={!loading}
             size="medium"
-            showLabel={true}
           />
         </div>
         {#if validationErrors.roast_level}

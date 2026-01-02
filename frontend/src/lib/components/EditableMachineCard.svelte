@@ -11,7 +11,6 @@
   import { toStyleString } from '$lib/ui/style';
   import { imageSizes } from '$lib/ui/components/image';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
-  import { imageSizes } from '$lib/ui/components/image';
   import { formatMostUsedBy } from '$lib/utils/usage-stats';
   import type { Machine, CreateMachineRequest, Barista } from '@shared/types';
 
@@ -288,6 +287,8 @@
     return null;
   }
 
+  $: usageStatus = getUsageStatus();
+
   // Initialize form data when component mounts or props change
   $: if (isNewMachine || machine) {
     initializeFormData();
@@ -299,22 +300,68 @@
       <div class="machine-header">
         <div class="machine-header-top">
           <div class="machine-title">
-          {#if isNewMachine}
-            <h4>New Machine</h4>
-            <span class="machine-info">Add a new espresso machine</span>
-          {:else if machine}
-            <h4>{machine.manufacturer} {machine.model}</h4>
-            <div class="machine-meta">
-              <span>{machine.manufacturer}</span>
-              <span class="separator">/</span>
-              <span>{machine.model}</span>
-            </div>
-          {/if}
+            {#if isNewMachine}
+              <h4>New Machine</h4>
+              <span class="machine-info">Add a new espresso machine</span>
+            {:else if machine}
+              <h4>{machine.manufacturer} {machine.model}</h4>
+              <div class="machine-meta">
+                <span>{machine.manufacturer}</span>
+                <span class="separator">/</span>
+                <span>{machine.model}</span>
+              </div>
+            {/if}
           </div>
-          {@const usageStatus = getUsageStatus()}
-          {#if !isEditing && !isNewMachine && usageStatus}
-            <Chip variant={usageStatus.variant} size="sm">{usageStatus.label}</Chip>
-          {/if}
+          <div class="machine-header-actions">
+            {#if !isEditing && !isNewMachine && usageStatus}
+              <Chip variant={usageStatus.variant} size="sm">{usageStatus.label}</Chip>
+            {/if}
+            {#if canEdit && !isEditing && !isNewMachine}
+              <IconButton 
+                on:click={handleEdit} 
+                ariaLabel="Edit machine" 
+                title="Edit machine" 
+                variant="accent" 
+                size="sm"
+              >
+                <PencilSquare />
+              </IconButton>
+              <IconButton 
+                on:click={handleDelete} 
+                ariaLabel="Delete machine" 
+                title="Delete machine" 
+                variant="danger" 
+                size="sm"
+                disabled={isSaving}
+              >
+                <Trash />
+              </IconButton>
+            {/if}
+            {#if isEditing}
+              <div class="edit-actions">
+                <IconButton 
+                  on:click={handleCancel} 
+                  ariaLabel="Cancel" 
+                  title="Cancel" 
+                  variant="neutral" 
+                  size="sm"
+                  disabled={isSaving}
+                >
+                  <XMark />
+                </IconButton>
+                <IconButton 
+                  on:click={handleSave} 
+                  ariaLabel={isNewMachine ? "Create machine" : "Save changes"} 
+                  title={isNewMachine ? "Create machine" : "Save"} 
+                  variant="success" 
+                  size="sm"
+                  disabled={isSaving}
+                >
+                  <CheckCircle />
+                </IconButton>
+              </div>
+            {/if}
+          </div>
         </div>
         {#if machine?.image_path && !isEditing}
           <div class="card-media">
@@ -326,55 +373,6 @@
             />
           </div>
         {/if}
-        
-        <div class="machine-actions">
-          {#if canEdit && !isEditing && !isNewMachine}
-            <IconButton 
-              on:click={handleEdit} 
-              ariaLabel="Edit machine" 
-              title="Edit machine" 
-              variant="accent" 
-              size="sm"
-            >
-              <PencilSquare />
-            </IconButton>
-            <IconButton 
-              on:click={handleDelete} 
-              ariaLabel="Delete machine" 
-              title="Delete machine" 
-              variant="danger" 
-              size="sm"
-              disabled={isSaving}
-            >
-              <Trash />
-            </IconButton>
-          {/if}
-          
-          {#if isEditing}
-            <div class="edit-actions">
-              <IconButton 
-                on:click={handleCancel} 
-                ariaLabel="Cancel" 
-                title="Cancel" 
-                variant="neutral" 
-                size="sm"
-                disabled={isSaving}
-              >
-                <XMark />
-              </IconButton>
-              <IconButton 
-                on:click={handleSave} 
-                ariaLabel={isNewMachine ? "Create machine" : "Save changes"} 
-                title={isNewMachine ? "Create machine" : "Save"} 
-                variant="success" 
-                size="sm"
-                disabled={isSaving}
-              >
-                <CheckCircle />
-              </IconButton>
-            </div>
-          {/if}
-        </div>
       </div>
 
       {#if !isEditing && !isNewMachine && (usageCount > 0 || mostUsedBy)}
@@ -525,8 +523,8 @@
   }
 
   .card-media {
-    width: 100%;
-    height: var(--editable-card-image-height, 150px);
+    width: min(100%, var(--editable-card-image-width, 200px));
+    aspect-ratio: 1 / 1;
     border-radius: var(--editable-card-radius, var(--radius-sm));
     border: 1px solid var(--editable-card-border, var(--border-subtle));
     overflow: hidden;
@@ -550,9 +548,16 @@
 
   .machine-header-top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem;
+  }
+
+  .machine-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
   }
 
   .machine-title {
@@ -586,13 +591,6 @@
 
   .machine-meta .separator {
     color: var(--text-ink-muted);
-  }
-
-  .machine-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--editable-card-actions-gap, 0.5rem);
-    flex-shrink: 0;
   }
 
   .edit-actions {
@@ -723,9 +721,6 @@
     font-size: 0.8rem;
   }
 
-  .machine-actions {
-    justify-content: flex-end;
-  }
 
   .usage-stats {
     margin-top: 0.5rem;
@@ -737,10 +732,4 @@
     gap: 0.5rem;
   }
 
-  @media (max-width: 768px) {
-    .card-media {
-      height: auto;
-      max-height: var(--editable-card-image-height, 150px);
-    }
-  }
 </style>

@@ -233,8 +233,8 @@
   }
 
   .card-media {
-    width: 100%;
-    height: var(--record-card-image-height, 150px);
+    width: min(100%, var(--record-card-image-width, 200px));
+    aspect-ratio: 1 / 1;
     border-radius: var(--record-card-notes-radius, var(--radius-sm));
     border: 1px solid var(--record-card-border, rgba(123, 94, 58, 0.2));
     overflow: hidden;

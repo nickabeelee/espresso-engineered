@@ -212,7 +212,15 @@
     // Update the bag in our local array
     const index = bags.findIndex(bag => bag.id === updatedBag.id);
     if (index !== -1) {
-      bags[index] = updatedBag;
+      const existingBag = bags[index];
+      const existingBean = (existingBag as any).bean;
+      const updatedBean = (updatedBag as any).bean;
+      const mergedBean = existingBean || updatedBean ? { ...(existingBean || {}), ...(updatedBean || {}) } : undefined;
+      const mergedBag = {
+        ...updatedBag,
+        ...(mergedBean ? { bean: mergedBean } : {})
+      };
+      bags[index] = mergedBag;
       bags = [...bags]; // Trigger reactivity
     }
 
@@ -303,6 +311,7 @@
                   {bag}
                   beanName={bag.bean?.name || 'Unknown Bean'}
                   beanImagePath={bag.bean?.image_path || null}
+                  beanRoastLevel={bag.bean?.roast_level || null}
                   {baristasById}
                   on:updated={handleBagUpdated}
                 />
