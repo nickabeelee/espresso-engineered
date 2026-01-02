@@ -5,7 +5,8 @@
   import { CheckCircle, XMark } from '$lib/icons';
   import { inlineCreator } from '$lib/ui/components/inline-creator';
   import { toStyleString } from '$lib/ui/style';
-  import { getImageUrl } from '$lib/utils/image-utils';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
+  import { imageSizes } from '$lib/ui/components/image';
 
   import ImageUpload from './ImageUpload.svelte';
 
@@ -279,7 +280,7 @@
           {/if}
           {#if image_path}
             <div class="preview-image">
-              <img src={getImageUrl(image_path, 'grinder')} alt="{manufacturer} {model}" loading="lazy" />
+              <img src={getTransformedImageUrl(image_path, 'grinder', imageSizes.card)} alt="{manufacturer} {model}" loading="lazy" />
             </div>
           {/if}
         </div>

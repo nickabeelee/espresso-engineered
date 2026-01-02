@@ -12,5 +12,10 @@ describe('image-utils', () => {
       const url = getImageUploadUrl('grinder', 'abc', 'http://localhost:8080');
       expect(url).toBe('http://localhost:8080/grinders/abc/image');
     });
+
+    it('supports bean image uploads', () => {
+      const url = getImageUploadUrl('bean', 'bean123', 'http://localhost:8080/api');
+      expect(url).toBe('http://localhost:8080/api/beans/bean123/image');
+    });
   });
 });

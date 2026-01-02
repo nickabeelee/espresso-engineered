@@ -302,6 +302,7 @@
                 <EditableBagCard
                   {bag}
                   beanName={bag.bean?.name || 'Unknown Bean'}
+                  beanImagePath={bag.bean?.image_path || null}
                   {baristasById}
                   on:updated={handleBagUpdated}
                 />

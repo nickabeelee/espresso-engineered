@@ -20,6 +20,7 @@ export interface Bean {
     roast_level: RoastLevel;
     country_of_origin?: string;
     tasting_notes?: string;
+    image_path?: string;
 }
 export interface Bag {
     id: string;
@@ -102,6 +103,7 @@ export interface CreateBeanRequest {
     roast_level: RoastLevel;
     country_of_origin?: string;
     tasting_notes?: string;
+    image_path?: string;
 }
 export interface CreateBagRequest {
     bean_id: string;

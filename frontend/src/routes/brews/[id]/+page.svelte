@@ -9,7 +9,8 @@
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import { PencilSquare, Trash, XMark } from '$lib/icons';
-  import { getImageUrl } from '$lib/utils/image-utils';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
+  import { imageSizes } from '$lib/ui/components/image';
   import { buildEquipmentUsageStats, formatMostUsedBy } from '$lib/utils/usage-stats';
   import type { Barista } from '@shared/types';
 
@@ -305,7 +306,7 @@
                   {#if machine?.image_path}
                     <div class="equipment-image">
                       <img
-                        src={getImageUrl(machine.image_path, 'machine')}
+                        src={getTransformedImageUrl(machine.image_path, 'machine', imageSizes.card)}
                         alt={formatEquipmentName(machine)}
                         loading="lazy"
                         on:error={(e) => (e.currentTarget.style.display = 'none')}
@@ -354,7 +355,7 @@
                   {#if grinder?.image_path}
                     <div class="equipment-image">
                       <img
-                        src={getImageUrl(grinder.image_path, 'grinder')}
+                        src={getTransformedImageUrl(grinder.image_path, 'grinder', imageSizes.card)}
                         alt={formatEquipmentName(grinder)}
                         loading="lazy"
                         on:error={(e) => (e.currentTarget.style.display = 'none')}

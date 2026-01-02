@@ -30,6 +30,7 @@ export interface Bean {
   roast_level: RoastLevel;
   country_of_origin?: string;
   tasting_notes?: string;
+  image_path?: string;
 }
 
 export interface BeanWithContext extends Bean {
@@ -164,6 +165,7 @@ export interface CreateBeanRequest {
   roast_level: RoastLevel;
   country_of_origin?: string;
   tasting_notes?: string;
+  image_path?: string;
 }
 
 export interface CreateBagRequest {

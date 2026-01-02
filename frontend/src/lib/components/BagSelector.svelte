@@ -8,6 +8,8 @@
   import { ChevronDown, MagnifyingGlass, Plus } from '$lib/icons';
   import { selector } from '$lib/ui/components/selector';
   import { toStyleString } from '$lib/ui/style';
+  import { imageSizes } from '$lib/ui/components/image';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
 
   import InlineBagCreator from './InlineBagCreator.svelte';
 
@@ -459,50 +461,62 @@
     {#if selectedBag}
       {@const bean = getBeanInfo(selectedBag.bean_id)}
       <div class="selected-bag-details" class:expired={isExpired(selectedBag)}>
-        <div class="bag-info">
-          <h4>{bean?.name || 'Unknown Bean'}</h4>
-          <div class="bag-meta">
-            <span class="roaster">{bean ? getRoasterName(bean.roaster_id) : 'Unknown'}</span>
-            {#if bean}
-              <div class="roast-level-wrapper">
-                <RoastLevel value={bean.roast_level} size="small" />
+        <div class="selected-bag-row">
+          {#if bean?.image_path}
+            <div class="bag-thumb">
+              <img
+                src={getTransformedImageUrl(bean.image_path, 'bean', imageSizes.thumbnail)}
+                alt={bean?.name || 'Bean image'}
+                loading="lazy"
+                on:error={(e) => e.currentTarget.style.display = 'none'}
+              />
+            </div>
+          {/if}
+          <div class="bag-info">
+            <h4>{bean?.name || 'Unknown Bean'}</h4>
+            <div class="bag-meta">
+              <span class="roaster">{bean ? getRoasterName(bean.roaster_id) : 'Unknown'}</span>
+              {#if bean}
+                <div class="roast-level-wrapper">
+                  <RoastLevel value={bean.roast_level} size="small" />
+                </div>
+              {/if}
+              {#if selectedBag.roast_date}
+                <span class="roast-date">
+                  Roasted {new Date(selectedBag.roast_date).toLocaleDateString()}
+                </span>
+              {/if}
+              {#if selectedBag.inventory_status}
+                <span class="status" class:low={isLowOrEmpty(selectedBag)} class:empty={isEmpty(selectedBag)}>
+                  {getStatusLabel(selectedBag.inventory_status)}
+                </span>
+              {/if}
+            </div>
+
+            {#if isExpired(selectedBag)}
+              <div class="warning expired-warning">
+                This coffee is over 30 days old and may be stale
               </div>
             {/if}
-            {#if selectedBag.roast_date}
-              <span class="roast-date">
-                Roasted {new Date(selectedBag.roast_date).toLocaleDateString()}
-              </span>
+            {#if isLowOrEmpty(selectedBag)}
+              <div class="warning low-status-warning">
+                {#if isEmpty(selectedBag)}
+                  This bag is empty
+                {:else}
+                  Running low on this coffee
+                {/if}
+              </div>
             {/if}
-            {#if selectedBag.inventory_status}
-              <span class="status" class:low={isLowOrEmpty(selectedBag)} class:empty={isEmpty(selectedBag)}>
-                {getStatusLabel(selectedBag.inventory_status)}
-              </span>
+
+            {#if selectedBag.purchase_location}
+              <p class="purchase-info">
+                Purchased from: {selectedBag.purchase_location}
+                {#if selectedBag.price}
+                  (${selectedBag.price.toFixed(2)})
+                {/if}
+              </p>
             {/if}
           </div>
-
-          {#if isExpired(selectedBag)}
-            <div class="warning expired-warning">
-              This coffee is over 30 days old and may be stale
-            </div>
-          {/if}
-          {#if isLowOrEmpty(selectedBag)}
-            <div class="warning low-status-warning">
-              {#if isEmpty(selectedBag)}
-                This bag is empty
-              {:else}
-                Running low on this coffee
-              {/if}
-            </div>
-          {/if}
-
-          {#if selectedBag.purchase_location}
-            <p class="purchase-info">
-              Purchased from: {selectedBag.purchase_location}
-              {#if selectedBag.price}
-                (${selectedBag.price.toFixed(2)})
-              {/if}
-            </p>
-          {/if}
         </div>
       </div>
     {/if}
@@ -713,6 +727,29 @@
     border-color: rgba(138, 106, 62, 0.25);
   }
 
+  .selected-bag-row {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .bag-thumb {
+    flex: 0 0 96px;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .bag-thumb img {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    object-fit: cover;
+  }
+
   .bag-info h4 {
     margin: 0 0 0.5rem 0;
     color: var(--selector-detail-title-color, var(--text-ink-primary));
@@ -796,6 +833,21 @@
     .bag-select-row {
       flex-direction: column;
       align-items: stretch;
+    }
+
+    .selected-bag-row {
+      flex-direction: column;
+    }
+
+    .bag-thumb {
+      width: 100%;
+      height: auto;
+      max-width: 96px;
+    }
+
+    .bag-thumb img {
+      width: 96px;
+      height: 96px;
     }
 
     .bag-meta {

@@ -5,15 +5,19 @@
   import { barista } from '$lib/auth';
   import { getBagPermissions } from '$lib/permissions';
   import IconButton from '$lib/components/IconButton.svelte';
+  import Chip from '$lib/components/Chip.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import { PencilSquare, CheckCircle, XMark, Plus } from '$lib/icons';
   import { editableCard, editableCardVariants } from '$lib/ui/components/editable-card';
+  import { imageSizes } from '$lib/ui/components/image';
   import { toStyleString } from '$lib/ui/style';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import type { BagWithBarista, Barista as BaristaType, InventoryStatus, UpdateBagRequest, CreateBagRequest } from '@shared/types';
 
   // Props for existing bag mode
   export let bag: BagWithBarista | null = null;
   export let beanName: string;
+  export let beanImagePath: string | null = null;
   export let baristasById: Record<string, BaristaType> = {};
   
   // Props for new bag mode
@@ -58,6 +62,19 @@
   function formatInventoryStatus(status?: string): string {
     if (!status) return 'Unknown';
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  function getInventoryVariant(status?: string): 'success' | 'warning' | 'error' | 'neutral' {
+    switch (status) {
+      case 'plenty':
+        return 'success';
+      case 'getting_low':
+        return 'warning';
+      case 'empty':
+        return 'error';
+      default:
+        return 'neutral';
+    }
   }
 
   function initializeFormData() {
@@ -290,189 +307,204 @@
     '--editable-card-section-title-font': editableCard.section.title.fontFamily,
     '--editable-card-section-title-size': editableCard.section.title.fontSize,
     '--editable-card-section-title-weight': editableCard.section.title.fontWeight,
-    '--editable-card-section-title-color': editableCard.section.title.textColor
+    '--editable-card-section-title-color': editableCard.section.title.textColor,
+    '--editable-card-image-width': `${imageSizes.card.width}px`,
+    '--editable-card-image-height': `${imageSizes.card.height}px`
   });
 </script>
 
 <div class="bag-card" class:editing={isEditing} class:new-bag={isNewBag} on:keydown={handleKeydown} style={style}>
-  <div class="bag-header">
-    <div class="bag-title">
-      {#if isEditing}
-        <input
-          type="text"
-          bind:value={formData.name}
-          class="bag-name-input"
-          placeholder={isNewBag ? `Name for this ${beanName} bag` : beanName}
-          disabled={isSaving}
-        />
-      {:else if isNewBag}
-        <h4>New Bag</h4>
-      {:else}
-        <h4>{bag?.name || beanName}</h4>
+  <div class="bag-card-body">
+      <div class="bag-header">
+        <div class="bag-header-top">
+          <div class="bag-title">
+            {#if isEditing}
+              <input
+                type="text"
+                bind:value={formData.name}
+                class="bag-name-input"
+                placeholder={isNewBag ? `Name for this ${beanName} bag` : beanName}
+                disabled={isSaving}
+              />
+            {:else if isNewBag}
+              <h4>New Bag</h4>
+            {:else}
+              <h4>{bag?.name || beanName}</h4>
+            {/if}
+            
+            {#if !isNewBag}
+              <span class="bag-owner" class:own={ownershipStatus === 'owned'}>
+                {ownershipStatus === 'owned' ? 'Your bag' : `${ownerName}'s bag`}
+              </span>
+            {:else if isEditing}
+              <span class="bag-info">Creating bag for: <strong>{beanName}</strong></span>
+            {/if}
+          </div>
+          {#if !isEditing && !isNewBag && bag?.inventory_status}
+            <Chip variant={getInventoryVariant(bag.inventory_status)} size="sm">
+              {formatInventoryStatus(bag.inventory_status)}
+            </Chip>
+          {/if}
+        </div>
+        {#if beanImagePath && !isEditing}
+          <div class="card-media">
+            <img
+              src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
+              alt={beanName}
+              loading="lazy"
+              on:error={(e) => e.currentTarget.style.display = 'none'}
+            />
+          </div>
+        {/if}
+        
+        <div class="bag-actions">
+          {#if canEdit && !isEditing && !isNewBag}
+            <IconButton 
+              on:click={handleEdit} 
+              ariaLabel="Edit bag" 
+              title="Edit bag" 
+              variant="accent" 
+              size="sm"
+            >
+              <PencilSquare />
+            </IconButton>
+          {/if}
+          
+          {#if isEditing}
+            <div class="edit-actions">
+              <IconButton 
+                on:click={handleCancel} 
+                ariaLabel="Cancel" 
+                title="Cancel" 
+                variant="neutral" 
+                size="sm"
+                disabled={isSaving}
+              >
+                <XMark />
+              </IconButton>
+              <IconButton 
+                on:click={handleSave} 
+                ariaLabel={isNewBag ? "Create bag" : "Save changes"} 
+                title={isNewBag ? "Create bag" : "Save"} 
+                variant="success" 
+                size="sm"
+                disabled={isSaving}
+              >
+                <CheckCircle />
+              </IconButton>
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      {#if error}
+        <div class="error-message">
+          {error}
+        </div>
       {/if}
       
-      {#if !isNewBag}
-        <span class="bag-owner" class:own={ownershipStatus === 'owned'}>
-          {ownershipStatus === 'owned' ? 'Your bag' : `${ownerName}'s bag`}
-        </span>
-      {:else if isEditing}
-        <span class="bag-info">Creating bag for: <strong>{beanName}</strong></span>
-      {/if}
-    </div>
-    
-    <div class="bag-actions">
-      {#if !isEditing && !isNewBag && bag?.inventory_status}
-        <span class="inventory-status {bag.inventory_status}">
-          {formatInventoryStatus(bag.inventory_status)}
-        </span>
-      {/if}
-      
-      {#if canEdit && !isEditing && !isNewBag}
-        <IconButton 
-          on:click={handleEdit} 
-          ariaLabel="Edit bag" 
-          title="Edit bag" 
-          variant="accent" 
-          size="sm"
-        >
-          <PencilSquare />
-        </IconButton>
-      {/if}
-      
-      {#if isEditing}
-        <div class="edit-actions">
-          <IconButton 
-            on:click={handleCancel} 
-            ariaLabel="Cancel" 
-            title="Cancel" 
-            variant="neutral" 
-            size="sm"
-            disabled={isSaving}
-          >
-            <XMark />
-          </IconButton>
-          <IconButton 
-            on:click={handleSave} 
-            ariaLabel={isNewBag ? "Create bag" : "Save changes"} 
-            title={isNewBag ? "Create bag" : "Save"} 
-            variant="success" 
-            size="sm"
-            disabled={isSaving}
-          >
-            <CheckCircle />
-          </IconButton>
+      <div class="bag-details">
+        <div class="bag-detail">
+          <span class="detail-label">Roasted</span>
+          {#if isEditing}
+            <input
+              type="date"
+              bind:value={formData.roast_date}
+              class="detail-input"
+              disabled={isSaving}
+            />
+          {:else if bag?.roast_date}
+            <span class="detail-value">{formatDate(bag.roast_date)}</span>
+          {:else}
+            <span class="detail-value detail-empty">Not specified</span>
+          {/if}
+        </div>
+        
+        <div class="bag-detail">
+          <span class="detail-label">Weight (g)</span>
+          {#if isEditing}
+            <input
+              type="number"
+              inputmode="decimal"
+              bind:value={formData.weight_g}
+              class="detail-input"
+              placeholder="e.g., 250"
+              min="0"
+              step="0.1"
+              disabled={isSaving}
+            />
+          {:else if bag?.weight_g}
+            <span class="detail-value">{bag.weight_g}g</span>
+          {:else}
+            <span class="detail-value detail-empty">Not specified</span>
+          {/if}
+        </div>
+        
+        <div class="bag-detail">
+          <span class="detail-label">Price</span>
+          {#if isEditing}
+            <input
+              type="number"
+              inputmode="decimal"
+              bind:value={formData.price}
+              class="detail-input"
+              placeholder="e.g., 18.50"
+              min="0"
+              step="0.01"
+              disabled={isSaving}
+            />
+          {:else if bag?.price}
+            <span class="detail-value">${bag.price.toFixed(2)}</span>
+          {:else}
+            <span class="detail-value detail-empty">Not specified</span>
+          {/if}
+        </div>
+        
+        <div class="bag-detail">
+          <span class="detail-label">From</span>
+          {#if isEditing}
+            <input
+              type="text"
+              bind:value={formData.purchase_location}
+              class="detail-input"
+              placeholder="e.g., Local Coffee Shop"
+              disabled={isSaving}
+            />
+          {:else if bag?.purchase_location}
+            <span class="detail-value">{bag.purchase_location}</span>
+          {:else}
+            <span class="detail-value detail-empty">Not specified</span>
+          {/if}
+        </div>
+
+        {#if isEditing}
+          <div class="bag-detail">
+            <span class="detail-label">Status</span>
+            <select
+              bind:value={formData.inventory_status}
+              class="detail-select"
+              disabled={isSaving}
+            >
+              <option value="">Select status</option>
+              <option value="plenty">Plenty</option>
+              <option value="getting_low">Getting Low</option>
+              <option value="empty">Empty</option>
+            </select>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Status updater for owned bags and admins (only when not editing and not new bag) -->
+      {#if canEdit && !isEditing && !isNewBag && bag}
+        <div class="bag-status-section">
+          <h5>Update Status</h5>
+          <BagStatusUpdater 
+            {bag} 
+            on:updated={handleBagStatusUpdated}
+          />
         </div>
       {/if}
     </div>
-  </div>
-
-  {#if error}
-    <div class="error-message">
-      {error}
-    </div>
-  {/if}
-  
-  <div class="bag-details">
-    <div class="bag-detail">
-      <span class="detail-label">Roasted</span>
-      {#if isEditing}
-        <input
-          type="date"
-          bind:value={formData.roast_date}
-          class="detail-input"
-          disabled={isSaving}
-        />
-      {:else if bag?.roast_date}
-        <span class="detail-value">{formatDate(bag.roast_date)}</span>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-    
-    <div class="bag-detail">
-      <span class="detail-label">Weight (g)</span>
-      {#if isEditing}
-        <input
-          type="number"
-          inputmode="decimal"
-          bind:value={formData.weight_g}
-          class="detail-input"
-          placeholder="e.g., 250"
-          min="0"
-          step="0.1"
-          disabled={isSaving}
-        />
-      {:else if bag?.weight_g}
-        <span class="detail-value">{bag.weight_g}g</span>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-    
-    <div class="bag-detail">
-      <span class="detail-label">Price</span>
-      {#if isEditing}
-        <input
-          type="number"
-          inputmode="decimal"
-          bind:value={formData.price}
-          class="detail-input"
-          placeholder="e.g., 18.50"
-          min="0"
-          step="0.01"
-          disabled={isSaving}
-        />
-      {:else if bag?.price}
-        <span class="detail-value">${bag.price.toFixed(2)}</span>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-    
-    <div class="bag-detail">
-      <span class="detail-label">From</span>
-      {#if isEditing}
-        <input
-          type="text"
-          bind:value={formData.purchase_location}
-          class="detail-input"
-          placeholder="e.g., Local Coffee Shop"
-          disabled={isSaving}
-        />
-      {:else if bag?.purchase_location}
-        <span class="detail-value">{bag.purchase_location}</span>
-      {:else}
-        <span class="detail-value detail-empty">Not specified</span>
-      {/if}
-    </div>
-
-    {#if isEditing}
-      <div class="bag-detail">
-        <span class="detail-label">Status</span>
-        <select
-          bind:value={formData.inventory_status}
-          class="detail-select"
-          disabled={isSaving}
-        >
-          <option value="">Select status</option>
-          <option value="plenty">Plenty</option>
-          <option value="getting_low">Getting Low</option>
-          <option value="empty">Empty</option>
-        </select>
-      </div>
-    {/if}
-  </div>
-
-  <!-- Status updater for owned bags and admins (only when not editing and not new bag) -->
-  {#if canEdit && !isEditing && !isNewBag && bag}
-    <div class="bag-status-section">
-      <h5>Update Status</h5>
-      <BagStatusUpdater 
-        {bag} 
-        on:updated={handleBagStatusUpdated}
-      />
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -507,12 +539,35 @@
     margin-bottom: var(--editable-card-new-edit-margin, 1.5rem);
   }
 
+  .card-media {
+    width: 100%;
+    height: var(--editable-card-image-height, 150px);
+    border-radius: var(--editable-card-radius, var(--radius-sm));
+    border: 1px solid var(--editable-card-border, rgba(123, 94, 58, 0.2));
+    overflow: hidden;
+    background: rgba(123, 94, 58, 0.06);
+    margin-top: 0.75rem;
+  }
+
+  .card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
   .bag-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: var(--editable-card-header-gap, 1rem);
+    flex-direction: column;
+    gap: 0.35rem;
     margin-bottom: var(--editable-card-header-margin, 0.75rem);
+  }
+
+  .bag-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
   }
 
   .bag-title {
@@ -581,6 +636,7 @@
     align-items: center;
     gap: var(--editable-card-actions-gap, 0.5rem);
     flex-shrink: 0;
+    justify-content: flex-end;
   }
 
   .edit-actions {
@@ -634,6 +690,13 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--editable-card-detail-min-col, 120px), 1fr));
     gap: var(--editable-card-grid-gap, 0.75rem);
+  }
+
+  @media (max-width: 768px) {
+    .card-media {
+      height: auto;
+      max-height: var(--editable-card-image-height, 150px);
+    }
   }
 
   .bag-detail {
