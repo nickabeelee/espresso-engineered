@@ -1,3 +1,5 @@
+import { radius } from "../foundations/radius";
+
 const imageSizes = {
   thumbnail: {
     width: 96,
@@ -19,5 +21,18 @@ const imageSizes = {
   },
 } as const;
 
-export { imageSizes };
+const imageFrame = {
+  background: "rgba(123, 94, 58, 0.06)",
+  borderColor: "rgba(123, 94, 58, 0.2)",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderRadius: radius.md,
+  placeholder: {
+    background: "rgba(123, 94, 58, 0.04)",
+    borderStyle: "dashed",
+  },
+} as const;
+
+export { imageFrame, imageSizes };
 export type ImageSizeTokens = typeof imageSizes;
+export type ImageFrameTokens = typeof imageFrame;
