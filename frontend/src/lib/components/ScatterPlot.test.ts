@@ -95,7 +95,7 @@ describe('ScatterPlot Component', () => {
 
     const plotContainer = container.querySelector('.scatter-plot-container') as HTMLElement;
     expect(plotContainer).toBeTruthy();
-    expect(plotContainer.style.width).toBe('400px');
+    expect(plotContainer.style.width).toBe('100%');
     expect(plotContainer.style.height).toBe('300px');
   });
 

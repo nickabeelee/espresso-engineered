@@ -30,6 +30,7 @@ export interface Bean {
   roast_level: RoastLevel;
   country_of_origin?: string;
   tasting_notes?: string;
+  image_path?: string;
 }
 
 export interface BeanWithContext extends Bean {
@@ -73,6 +74,9 @@ export interface Bag {
   purchase_location?: string;
   inventory_status?: InventoryStatus; // Status-based inventory tracking
   emptied_on_date?: string | null; // ISO date string when bag was marked as empty
+  average_rating?: number;
+  rating_count?: number;
+  brew_count?: number;
 }
 
 export interface BagWithBarista extends Bag {
@@ -164,6 +168,7 @@ export interface CreateBeanRequest {
   roast_level: RoastLevel;
   country_of_origin?: string;
   tasting_notes?: string;
+  image_path?: string;
 }
 
 export interface CreateBagRequest {

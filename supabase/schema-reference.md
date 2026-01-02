@@ -39,6 +39,7 @@ All tables have RLS (Row Level Security) enabled.
 | roast_level | roast_levels enum | updatable | - |
 | country_of_origin | varchar | nullable, updatable | - |
 | tasting_notes | text | nullable, updatable | - |
+| image_path | text | nullable, updatable | - |
 
 **Enum Values for roast_level:**
 - Dark

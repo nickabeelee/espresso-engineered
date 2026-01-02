@@ -44,7 +44,8 @@ export const createBeanSchema = z.object({
   name: z.string().min(1).max(255),
   roast_level: roastLevelSchema.optional(),
   country_of_origin: z.string().max(100).optional(),
-  tasting_notes: z.string().max(1000).optional()
+  tasting_notes: z.string().max(1000).optional(),
+  image_path: z.string().max(500).optional()
 });
 
 export const createBagSchema = z.object({

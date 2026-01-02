@@ -56,18 +56,6 @@ describe('RoastLevel Component', () => {
     expect(inactiveBeans).toHaveLength(5);
   });
 
-  it('displays text label when showLabel is true', () => {
-    render(RoastLevel, { props: { value: 'Medium Light', showLabel: true } });
-    
-    expect(screen.getByText('(Medium Light)')).toBeInTheDocument();
-  });
-
-  it('does not display text label when showLabel is false', () => {
-    render(RoastLevel, { props: { value: 'Medium Light', showLabel: false } });
-    
-    expect(screen.queryByText('(Medium Light)')).not.toBeInTheDocument();
-  });
-
   it('has proper accessibility attributes', () => {
     render(RoastLevel, { props: { value: 'Medium' } });
     

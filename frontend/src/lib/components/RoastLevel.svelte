@@ -9,7 +9,6 @@
   export let value: RoastLevel | null | undefined = null;
   export let editable: boolean = false;
   export let size: 'small' | 'medium' | 'large' = 'medium';
-  export let showLabel: boolean = false;
   export let onChange: ((value: RoastLevel) => void) | undefined = undefined;
 
   // Event dispatcher for Svelte events
@@ -169,11 +168,6 @@
     {/key}
   </div>
   
-  {#if showLabel && draftValue}
-    <div class="roast-label">
-      ({draftValue})
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -259,13 +253,6 @@
   .roast-level-component.editable .bean-row:has(button:nth-child(5):focus-visible) button:nth-child(-n + 5) {
     color: var(--accent-primary);
     transform: translateY(-1px) scale(1.05);
-  }
-
-  .roast-label {
-    font-size: 0.875rem;
-    color: var(--text-ink-muted);
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
-    text-align: center;
   }
 
   .editable.roast-level-component:focus-visible {

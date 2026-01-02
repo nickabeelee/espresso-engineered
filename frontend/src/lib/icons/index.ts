@@ -8,6 +8,7 @@ export { default as Trash } from './outline/Trash.svelte';
 export { default as XMark } from './outline/XMark.svelte';
 export { default as ArrowDownTray } from './outline/ArrowDownTray.svelte';
 export { default as ArrowPath } from './outline/ArrowPath.svelte';
+export { default as ArrowTopRightOnSquare } from './outline/ArrowTopRightOnSquare.svelte';
 export { default as ChevronDown } from './outline/ChevronDown.svelte';
 export { default as ChevronLeft } from './outline/ChevronLeft.svelte';
 export { default as ChevronRight } from './outline/ChevronRight.svelte';
@@ -18,6 +19,7 @@ export { default as DocumentDuplicate } from './outline/DocumentDuplicate.svelte
 export { default as CoffeeBean } from './solid/CoffeeBean.svelte';
 export { default as CoffeeBeanSolid } from './solid/CoffeeBean.svelte';
 export { default as CoffeeBeanMini } from './mini/CoffeeBean.svelte';
+export { default as ArrowTopRightOnSquareMini } from './mini/ArrowTopRightOnSquare.svelte';
 export { default as CoffeeBeanMicro } from './micro/CoffeeBean.svelte';
 export { default as ExclamationTriangle } from './outline/ExclamationTriangle.svelte';
 export { default as InformationCircle } from './outline/InformationCircle.svelte';

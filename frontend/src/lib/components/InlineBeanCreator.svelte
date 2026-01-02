@@ -4,9 +4,12 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
+  import ImageUpload from '$lib/components/ImageUpload.svelte';
   import { inlineCreator } from '$lib/ui/components/inline-creator';
   import { toStyleString } from '$lib/ui/style';
   import { XMark, CheckCircle } from '$lib/icons';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
+  import { imageSizes } from '$lib/ui/components/image';
   import type { Bean, Roaster, RoastLevel as RoastLevelType, CreateBeanRequest } from '@shared/types';
 
   const dispatch = createEventDispatcher<{
@@ -20,11 +23,13 @@
   let roast_level: RoastLevelType | null = null;
   let country_of_origin = '';
   let tasting_notes = '';
+  let image_path = '';
 
   // UI state
   let loading = false;
   let error: string | null = null;
   let validationErrors: Record<string, string> = {};
+  let createdBeanId = '';
 
   const style = toStyleString({
     '--inline-bg': inlineCreator.container.background,
@@ -71,8 +76,26 @@
     if (!roast_level) {
       validationErrors.roast_level = 'Roast level is required';
     }
+    if (image_path && !isValidImagePath(image_path)) {
+      validationErrors.image_path = 'Please enter a valid URL or image path';
+    }
 
     return Object.keys(validationErrors).length === 0;
+  }
+
+  function isValidUrl(value: string): boolean {
+    try {
+      new URL(value);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function isValidImagePath(value: string): boolean {
+    if (!value) return true;
+    if (isValidUrl(value)) return true;
+    return !/\s/.test(value);
   }
 
   async function handleSubmit() {
@@ -90,12 +113,14 @@
         roaster_id,
         roast_level: roast_level as RoastLevelType,
         country_of_origin: country_of_origin.trim() || undefined,
-        tasting_notes: tasting_notes.trim() || undefined
+        tasting_notes: tasting_notes.trim() || undefined,
+        image_path: image_path.trim() || undefined
       };
 
       const response = await apiClient.createBean(beanData);
       
       if (response.data) {
+        createdBeanId = response.data.id;
         dispatch('created', response.data);
       } else {
         throw new Error('Failed to create bean');
@@ -110,6 +135,21 @@
 
   function handleCancel() {
     dispatch('cancel');
+  }
+
+  function handleImageUpload(event: CustomEvent<{ file: File; imageUrl: string; imagePath: string }>) {
+    image_path = event.detail.imagePath;
+    delete validationErrors.image_path;
+    validationErrors = { ...validationErrors };
+  }
+
+  function handleImageDelete() {
+    image_path = '';
+  }
+
+  function handleImageError(event: CustomEvent<{ message: string }>) {
+    validationErrors.image_path = event.detail.message;
+    validationErrors = { ...validationErrors };
   }
 
   function handleRoasterCreated(event: CustomEvent<Roaster>) {
@@ -173,7 +213,6 @@
             bind:value={roast_level}
             editable={!loading}
             size="medium"
-            showLabel={true}
           />
         </div>
         {#if validationErrors.roast_level}
@@ -216,6 +255,34 @@
         disabled={loading}
       />
     </div>
+
+    <div class="form-group">
+      <label>Bean Image (optional)</label>
+      <ImageUpload
+        entityType="bean"
+        entityId={createdBeanId}
+        currentImageUrl={image_path}
+        disabled={loading}
+        on:upload={handleImageUpload}
+        on:delete={handleImageDelete}
+        on:error={handleImageError}
+      />
+      {#if validationErrors.image_path}
+        <span class="error-text">{validationErrors.image_path}</span>
+      {/if}
+    </div>
+
+    {#if name.trim() && image_path}
+      <div class="bean-preview">
+        <h5>Preview:</h5>
+        <div class="preview-content">
+          <strong>{name}</strong>
+          <div class="preview-image">
+            <img src={getTransformedImageUrl(image_path, 'bean', imageSizes.card)} alt="{name} bean" loading="lazy" />
+          </div>
+        </div>
+      </div>
+    {/if}
   </form>
 </div>
 
@@ -365,9 +432,51 @@
     display: block;
   }
 
+  .bean-preview {
+    background: var(--bg-surface-paper-secondary);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    border-radius: 999px;
+    padding: 1rem;
+  }
+
+  .bean-preview h5 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-ink-secondary);
+    font-size: 0.9rem;
+  }
+
+  .preview-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .preview-content strong {
+    color: var(--text-ink-secondary);
+    font-size: 1rem;
+  }
+
+  .preview-image {
+    margin-top: 0.5rem;
+  }
+
+  .preview-image img {
+    max-width: 150px;
+    max-height: 100px;
+    width: auto;
+    height: auto;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    object-fit: cover;
+  }
+
   @media (max-width: 768px) {
     .form-row {
       grid-template-columns: 1fr;
+    }
+
+    .preview-image img {
+      max-width: 100%;
     }
   }
 </style>

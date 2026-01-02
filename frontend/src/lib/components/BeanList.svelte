@@ -185,7 +185,6 @@
             value={selectedRoastLevel}
             editable={isOnline}
             size="small"
-            showLabel={false}
             on:change={handleRoastLevelChange}
           />
           {#if selectedRoastLevel}

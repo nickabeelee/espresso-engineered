@@ -8,9 +8,12 @@
   import BeanRating from '$lib/components/BeanRating.svelte';
   import EditableBagCard from '$lib/components/EditableBagCard.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import ImageUpload from '$lib/components/ImageUpload.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
   import RoastLevelComponent from '$lib/components/RoastLevel.svelte';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
+  import { imageSizes } from '$lib/ui/components/image';
   import { apiClient } from '$lib/api-client';
   import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
   import { AppError } from '$lib/utils/error-handling';
@@ -161,7 +164,8 @@
       roaster_id: bean.roaster_id,
       roast_level: bean.roast_level,
       country_of_origin: bean.country_of_origin || '',
-      tasting_notes: bean.tasting_notes || ''
+      tasting_notes: bean.tasting_notes || '',
+      image_path: bean.image_path || ''
     };
     editRoastLevel = bean.roast_level ?? null;
     
@@ -218,6 +222,21 @@
     } finally {
       isSaving = false;
     }
+  }
+
+  function handleImageUpload(event: CustomEvent<{ file: File; imageUrl: string; imagePath: string }>) {
+    editFormData.image_path = event.detail.imagePath;
+  }
+
+  function handleImageDelete() {
+    editFormData.image_path = '';
+  }
+
+  function handleImageError(event: CustomEvent<{ message: string }>) {
+    permissionError = new AppError(
+      `Image upload failed: ${event.detail.message}`,
+      { operation: 'upload', entityType: 'bean image', retryable: true }
+    );
   }
 
   async function handleDeleteBean() {
@@ -286,9 +305,16 @@
     const updatedBag = event.detail;
     
     // Update the bag in the local bags array
-    bags = bags.map(bag => 
-      bag.id === updatedBag.id ? updatedBag : bag
-    );
+    bags = bags.map(bag => {
+      if (bag.id !== updatedBag.id) return bag;
+      const existingBean = (bag as any).bean;
+      const updatedBean = (updatedBag as any).bean;
+      const mergedBean = existingBean || updatedBean ? { ...(existingBean || {}), ...(updatedBean || {}) } : undefined;
+      return {
+        ...updatedBag,
+        ...(mergedBean ? { bean: mergedBean } : {})
+      };
+    });
   }
 
   async function handleBagCreated(event: CustomEvent<BagWithBarista>) {
@@ -473,7 +499,6 @@
                       bind:value={editRoastLevel}
                       editable={true}
                       size="medium"
-                      showLabel={true}
                     />
                   </div>
                 {:else}
@@ -482,7 +507,6 @@
                       value={bean.roast_level}
                       editable={false}
                       size="medium"
-                      showLabel={true}
                     />
                   </div>
                 {/if}
@@ -505,7 +529,33 @@
                 {/if}
               </div>
             </div>
+
           </div>
+
+          {#if isEditing}
+            <div class="bean-image-section">
+              <span class="info-label">Bean Image</span>
+              <ImageUpload
+                currentImageUrl={editFormData.image_path || ''}
+                entityType="bean"
+                entityId={bean?.id || ''}
+                on:upload={handleImageUpload}
+                on:delete={handleImageDelete}
+                on:error={handleImageError}
+                disabled={isSaving}
+              />
+            </div>
+          {:else if bean.image_path}
+            <div class="bean-image-section">
+              <span class="info-label">Bean Image</span>
+              <img
+                src={getTransformedImageUrl(bean.image_path, 'bean', imageSizes.detail)}
+                alt="{bean.name} bean"
+                class="bean-image"
+                loading="lazy"
+              />
+            </div>
+          {/if}
           
           <div class="tasting-notes">
             <h4>Tasting Notes</h4>
@@ -630,6 +680,9 @@
             <EditableBagCard
               beanId={bean.id}
               beanName={bean.name}
+              beanImagePath={bean.image_path || null}
+              beanRoastLevel={bean.roast_level || null}
+              tastingNotes={bean.tasting_notes || null}
               isNewBag={true}
               on:created={handleBagCreated}
               on:cancel={handleNewBagCancel}
@@ -647,6 +700,9 @@
                 <EditableBagCard
                   {bag}
                   beanName={bean.name}
+                  beanImagePath={bean.image_path || null}
+                  beanRoastLevel={bean.roast_level || null}
+                  tastingNotes={bean.tasting_notes || null}
                   {baristasById}
                   on:updated={handleBagUpdated}
                 />
@@ -816,6 +872,21 @@
     cursor: not-allowed;
   }
 
+  .bean-image {
+    max-width: 220px;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    object-fit: cover;
+  }
+
+  .bean-image-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
   .tasting-notes {
     margin-top: 1rem;
   }
@@ -839,6 +910,7 @@
   .tasting-notes-input {
     width: 100%;
     color: var(--text-ink-secondary);
+    font-size: 1rem;
     line-height: 1.6;
     margin: 0;
     background: var(--bg-surface-paper);

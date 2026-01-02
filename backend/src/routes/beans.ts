@@ -1,9 +1,11 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { MultipartFile } from '@fastify/multipart';
 import { BeanRepository, RoasterRepository, BeanRatingRepository } from '../repositories/index.js';
 import { authenticateRequest, AuthenticatedRequest } from '../middleware/auth.js';
 import { validateSchema, createBeanSchema, createBeanRatingSchema, updateBeanRatingSchema } from '../validation/schemas.js';
 import { CreateBeanRequest, CreateBeanRatingRequest, UpdateBeanRatingRequest } from '../types/index.js';
 import { handleRouteError, isNotFoundError, isValidationError, isConflictError } from '../utils/error-helpers.js';
+import { deleteImage, replaceImage } from '../utils/image-upload.js';
 
 const beanRepository = new BeanRepository();
 const roasterRepository = new RoasterRepository();
@@ -186,8 +188,17 @@ export async function beanRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      
+
+      const bean = await beanRepository.findById(id);
       await beanRepository.delete(id);
+
+      if (bean.image_path) {
+        try {
+          await deleteImage(bean.image_path, 'bean');
+        } catch (error) {
+          request.log.warn(`Failed to delete bean image ${bean.image_path}: ${String(error)}`);
+        }
+      }
       
       return reply.status(204).send();
     } catch (error) {
@@ -200,6 +211,75 @@ export async function beanRoutes(fastify: FastifyInstance) {
       
       request.log.error(error);
       return handleRouteError(error, reply, 'delete bean');
+    }
+  });
+
+  // POST /api/beans/:id/image - Upload bean image (authenticated)
+  fastify.post('/api/beans/:id/image', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+
+      const data: MultipartFile | undefined = await (request as any).file();
+      if (!data) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'No file uploaded'
+        });
+      }
+
+      const buffer = await data.toBuffer();
+      const bean = await beanRepository.findById(id);
+
+      const uploadResult = await replaceImage(
+        bean.image_path || null,
+        buffer,
+        data.filename,
+        'bean'
+      );
+
+      const updatedBean = await beanRepository.update(id, {
+        image_path: uploadResult.path
+      });
+
+      return {
+        data: updatedBean,
+        image_path: uploadResult.path,
+        image_url: uploadResult.publicUrl
+      };
+    } catch (error) {
+      request.log.error(error);
+      return handleRouteError(error, reply, 'upload bean image');
+    }
+  });
+
+  // DELETE /api/beans/:id/image - Delete bean image (authenticated)
+  fastify.delete('/api/beans/:id/image', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+
+      const bean = await beanRepository.findById(id);
+
+      if (!bean.image_path) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'No image found for this bean'
+        });
+      }
+
+      await deleteImage(bean.image_path, 'bean');
+
+      const updatedBean = await beanRepository.update(id, {
+        image_path: undefined
+      });
+
+      return { data: updatedBean };
+    } catch (error) {
+      request.log.error(error);
+      return handleRouteError(error, reply, 'delete bean image');
     }
   });
 

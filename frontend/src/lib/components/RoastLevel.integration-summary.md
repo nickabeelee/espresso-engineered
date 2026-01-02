@@ -23,8 +23,6 @@ All automated integration tests passed successfully:
 - ✅ Clears hover state when mouse leaves component
 
 #### Optional Text Label
-- ✅ Displays text label when showLabel is true
-- ✅ Does not display text label when showLabel is false
 - ✅ Uses correct styling for text label
 
 #### Accessibility Support
