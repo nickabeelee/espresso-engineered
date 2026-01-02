@@ -227,7 +227,7 @@ export class BagRepository extends BaseRepository<Bag> {
       const ratingCount = ratings.length;
       const brewCount = brewsList.length;
       const averageRating = ratingCount > 0
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratingCount
+        ? ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratingCount
         : null;
       return {
         ...cleanBag,
@@ -349,7 +349,7 @@ export class BagRepository extends BaseRepository<Bag> {
       const ratingCount = ratings.length;
       const brewCount = brewsList.length;
       const averageRating = ratingCount > 0
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratingCount
+        ? ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratingCount
         : null;
       return {
         ...cleanBag,
