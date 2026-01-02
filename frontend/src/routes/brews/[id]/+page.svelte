@@ -32,6 +32,7 @@
   let grinder: Grinder | null = null;
   let bag: Bag | null = null;
   let bean: Bean | null = null;
+  let roaster: Roaster | null = null;
   let bagOwnerName = 'Unknown';
   const detailStyle = toStyleString({
     '--page-gap': spacing["2xl"],
@@ -164,6 +165,14 @@
     '--equipment-title-family': textStyles.headingQuaternary.fontFamily,
     '--equipment-title-line-height': textStyles.headingQuaternary.lineHeight,
     '--equipment-title-color': colorCss.text.ink.primary,
+    '--equipment-title-gap': spacing.none,
+    '--equipment-meta-size': textStyles.helper.fontSize,
+    '--equipment-meta-family': textStyles.helper.fontFamily,
+    '--equipment-meta-weight': textStyles.helper.fontWeight,
+    '--equipment-meta-line-height': textStyles.helper.lineHeight,
+    '--equipment-meta-color': colorCss.text.ink.muted,
+    '--equipment-meta-margin-top': spacing.none,
+    '--equipment-title-row-margin': spacing.sm,
     '--equipment-label-size': textStyles.label.fontSize,
     '--equipment-label-family': textStyles.label.fontFamily,
     '--equipment-label-weight': textStyles.label.fontWeight,
@@ -230,12 +239,14 @@
         grindersResponse,
         bagResponse,
         beansResponse,
+        roastersResponse,
         baristasResponse
       ] = await Promise.all([
         apiClient.getMachines(),
         apiClient.getGrinders(),
         apiClient.getBag(currentBrew.bag_id),
         apiClient.getBeans(),
+        apiClient.getRoasters(),
         apiClient.getBaristas()
       ]);
 
@@ -243,6 +254,7 @@
       grinder = grindersResponse.data.find((item) => item.id === currentBrew.grinder_id) || null;
       bag = bagResponse.data || null;
       bean = bag ? beansResponse.data.find((item) => item.id === bag.bean_id) || null : null;
+      roaster = bean ? roastersResponse.data.find((item) => item.id === bean.roaster_id) || null : null;
       if (bag) {
         const owner = baristasResponse.data.find((entry) => entry.id === bag.owner_id);
         bagOwnerName = owner?.display_name || owner?.username || 'Unknown';
@@ -254,6 +266,7 @@
       grinder = null;
       bag = null;
       bean = null;
+      roaster = null;
       bagOwnerName = 'Unknown';
     } finally {
       equipmentLoading = false;
@@ -316,6 +329,21 @@
   function formatEquipmentName(item: Machine | Grinder): string {
     const parts = [item.manufacturer, item.model].filter(Boolean);
     return parts.join(' ');
+  }
+
+  function formatEquipmentModel(item: Machine | Grinder): string {
+    const model = item.model?.trim();
+    return model ? model : 'Unknown Model';
+  }
+
+  function formatEquipmentManufacturer(item: Machine | Grinder): string {
+    const manufacturer = item.manufacturer?.trim();
+    return `by ${manufacturer ? manufacturer : 'Unknown'}`;
+  }
+
+  function formatRoasterMeta(roasterRecord: Roaster | null): string {
+    const name = roasterRecord?.name?.trim();
+    return `by ${name ? name : 'Unknown'}`;
   }
 
   function formatBagTitle(bag: Bag | null, bean: Bean | null): string {
@@ -411,10 +439,10 @@
                       <p class="equipment-label">Machine</p>
                     </div>
                     <div class="equipment-title-row">
-                      <h4>{machine ? formatEquipmentName(machine) : 'Unknown Machine'}</h4>
+                      <h4>{machine ? formatEquipmentModel(machine) : 'Unknown Machine'}</h4>
+                      <p class="equipment-meta">{machine ? formatEquipmentManufacturer(machine) : 'by Unknown'}</p>
                     </div>
                     <div class="equipment-content-row">
-                      <div class="equipment-details"></div>
                       {#if machine?.image_path}
                         <div class="equipment-image">
                           <img
@@ -437,10 +465,10 @@
                       <p class="equipment-label">Grinder</p>
                     </div>
                     <div class="equipment-title-row">
-                      <h4>{grinder ? formatEquipmentName(grinder) : 'Unknown Grinder'}</h4>
+                      <h4>{grinder ? formatEquipmentModel(grinder) : 'Unknown Grinder'}</h4>
+                      <p class="equipment-meta">{grinder ? formatEquipmentManufacturer(grinder) : 'by Unknown'}</p>
                     </div>
                     <div class="equipment-content-row">
-                      <div class="equipment-details"></div>
                       {#if grinder?.image_path}
                         <div class="equipment-image">
                           <img
@@ -472,8 +500,9 @@
                     </div>
                     <div class="equipment-title-row">
                       <h4>{bean?.name || formatBagTitle(bag, bean)}</h4>
+                      <p class="equipment-meta">{formatRoasterMeta(roaster)}</p>
                     </div>
-                    <div class="equipment-content-row">
+                    <div class="equipment-content-row equipment-content-row--split">
                       <div class="equipment-details">
                         <div class="equipment-detail">
                           <span class="equipment-detail-value">{bagOwnerName}'s bag</span>
@@ -861,6 +890,22 @@
     color: var(--equipment-title-color);
   }
 
+  .equipment-title-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--equipment-title-gap);
+    margin-bottom: var(--equipment-title-row-margin);
+  }
+
+  .equipment-meta {
+    margin: var(--equipment-meta-margin-top) 0 0 0;
+    font-size: var(--equipment-meta-size);
+    font-family: var(--equipment-meta-family);
+    font-weight: var(--equipment-meta-weight);
+    line-height: var(--equipment-meta-line-height);
+    color: var(--equipment-meta-color);
+  }
+
   .equipment-label {
     margin: 0;
     font-size: var(--equipment-label-size);
@@ -872,7 +917,13 @@
 
   .equipment-content-row {
     display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .equipment-content-row--split {
     gap: var(--equipment-content-gap);
+    justify-content: space-between;
     align-items: flex-start;
   }
 
