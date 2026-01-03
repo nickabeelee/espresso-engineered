@@ -532,19 +532,6 @@
                   </IconButton>
                 </div>
 
-                <div class="brew-indicators" role="tablist" aria-label="Select brew">
-                  {#each group.brews as brew, brewIndex (brew.id)}
-                    <button
-                      class="brew-indicator"
-                      class:active={brewIndex === getActiveIndex(groupIndex, stackOrders)}
-                      aria-label={`View brew ${brewIndex + 1} of ${group.brews.length}`}
-                      aria-pressed={brewIndex === getActiveIndex(groupIndex, stackOrders) ? 'true' : 'false'}
-                      on:click={() => setActiveBrew(groupIndex, brewIndex)}
-                    >
-                      <span class="indicator-line"></span>
-                    </button>
-                  {/each}
-                </div>
               </div>
             </article>
           {/each}
@@ -711,39 +698,6 @@
     text-align: center;
   }
 
-  .brew-indicators {
-    display: flex;
-    gap: 0.35rem;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .brew-indicator {
-    background: none;
-    border: none;
-    padding: 0.25rem 0.35rem;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: transform 160ms ease;
-  }
-
-  .brew-indicator:hover {
-    transform: scale(1.06);
-  }
-
-  .indicator-line {
-    display: block;
-    width: 20px;
-    height: 2px;
-    background: var(--text-ink-muted);
-    transition: background 160ms ease, height 160ms ease;
-  }
-
-  .brew-indicator.active .indicator-line {
-    background: var(--accent-primary);
-    height: 3px;
-  }
-
   @media (max-width: 900px) {
     .group-stack {
       width: 360px;
@@ -768,8 +722,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .stack-card,
-    .brew-indicator {
+    .stack-card {
       transition: none;
     }
   }
