@@ -4,6 +4,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { authService, barista, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
+  import { apiClient } from '$lib/api-client';
   import BaristaProfile from '$lib/components/BaristaProfile.svelte';
   import { UserCircle } from '$lib/icons';
   import logoInverted from '../assets/brand/espresso-engineered-logo-inverted.svg';
@@ -20,6 +21,9 @@
   const hideThreshold = 24;
   const revealDistance = 96;
   let scrollUpDistance = 0;
+  let reflectionDraftCount = 0;
+  let reflectionDraftDisplay = '';
+  let isDraftCountLoading = false;
 
   onMount(() => {
     console.log('Layout: Initializing auth service...');
@@ -101,6 +105,24 @@
       profileMenu.open = false;
     }
   }
+
+  async function refreshDraftCount() {
+    if (isDraftCountLoading) return;
+    isDraftCountLoading = true;
+    try {
+      const response = await apiClient.getDraftBrews();
+      reflectionDraftCount = response.count ?? response.data?.length ?? 0;
+    } catch (error) {
+      console.error('Failed to load reflection draft count:', error);
+    } finally {
+      isDraftCountLoading = false;
+    }
+  }
+
+  $: reflectionDraftDisplay = reflectionDraftCount > 99 ? '99+' : `${reflectionDraftCount}`;
+  $: if ($isAuthenticated && $barista && !isPublicPage) {
+    void refreshDraftCount();
+  }
 </script>
 
 <div class="app-shell">
@@ -124,9 +146,18 @@
             </a>
             <a
               href="/brews/drafts"
+              class="reflection-link"
               class:active={$page.url.pathname === '/brews/drafts' || $page.url.pathname.startsWith('/brews/drafts/')}
+              aria-label={
+                reflectionDraftCount > 0
+                  ? `Reflection (${reflectionDraftCount} drafts waiting)`
+                  : 'Reflection'
+              }
             >
               Reflection
+              {#if reflectionDraftCount > 0}
+                <span class="reflection-badge">{reflectionDraftDisplay}</span>
+              {/if}
             </a>
             <a
               href="/beans"
@@ -286,5 +317,30 @@
     .logo {
       letter-spacing: 0.06em;
     }
+  }
+
+  .reflection-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .reflection-badge {
+    position: absolute;
+    top: -0.45rem;
+    right: -0.9rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: #ff3b30;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   }
 </style>
