@@ -4,9 +4,10 @@
   import { barista } from '$lib/auth';
   import ScatterPlot from './ScatterPlot.svelte';
   import ErrorDisplay from './ErrorDisplay.svelte';
-  import { ChevronDown } from '$lib/icons';
+  import { ArrowTopRightOnSquareMini, ChevronDown } from '$lib/icons';
   import { gsap } from '$lib/ui/animations';
   import type { Bean, Bag, Brew } from '@shared/types';
+  import IconButton from '$lib/components/IconButton.svelte';
   import { recordListShell } from '$lib/ui/components/card';
   import { selector } from '$lib/ui/components/selector';
   import { colorCss } from '$lib/ui/foundations/color';
@@ -865,6 +866,7 @@
                 <th>Ratio</th>
                 <th>Brew Time</th>
                 <th>Grind Setting</th>
+                <th class="analysis-action-header">Open</th>
               </tr>
             </thead>
             <tbody>
@@ -875,6 +877,16 @@
                   <td>{formatRatio(brew.x_ratio)}</td>
                   <td>{formatBrewTime(brew.x_brew_time)}</td>
                   <td>{brew.grind_setting || '—'}</td>
+                  <td class="analysis-action-cell">
+                    <IconButton
+                      href={`/brews/${brew.id}`}
+                      ariaLabel={`View ${brew.name || brew.bag_name || 'brew'}`}
+                      title="View brew details"
+                      variant="neutral"
+                    >
+                      <ArrowTopRightOnSquareMini />
+                    </IconButton>
+                  </td>
                 </tr>
               {/each}
             </tbody>
@@ -1271,6 +1283,12 @@
     font-size: 0.85rem;
     color: var(--text-ink-secondary);
     border-bottom: 1px solid rgba(123, 94, 58, 0.12);
+  }
+
+  .analysis-action-header,
+  .analysis-action-cell {
+    width: 52px;
+    text-align: center;
   }
 
   .analysis-table th {
