@@ -4,7 +4,7 @@
   import { barista } from '$lib/auth';
   import ScatterPlot from './ScatterPlot.svelte';
   import ErrorDisplay from './ErrorDisplay.svelte';
-  import { ChevronDown } from '$lib/icons';
+  import { ArrowTopRightOnSquareMini, ChevronDown } from '$lib/icons';
   import { gsap } from '$lib/ui/animations';
   import type { Bean, Bag, Brew } from '@shared/types';
   import { recordListShell } from '$lib/ui/components/card';
@@ -870,7 +870,17 @@
             <tbody>
               {#each analysisData as brew}
                 <tr>
-                  <td>{brew.name || brew.bag_name || 'Brew'}</td>
+                  <td class="analysis-brew-cell">
+                    <a
+                      class="analysis-brew-link"
+                      href={`/brews/${brew.id}`}
+                      aria-label={`View ${brew.name || brew.bag_name || 'brew'}`}
+                      title="View brew details"
+                    >
+                      <ArrowTopRightOnSquareMini />
+                    </a>
+                    <span>{brew.name || brew.bag_name || 'Brew'}</span>
+                  </td>
                   <td>{formatRating(brew.y_rating)}</td>
                   <td>{formatRatio(brew.x_ratio)}</td>
                   <td>{formatBrewTime(brew.x_brew_time)}</td>
@@ -1271,6 +1281,23 @@
     font-size: 0.85rem;
     color: var(--text-ink-secondary);
     border-bottom: 1px solid rgba(123, 94, 58, 0.12);
+  }
+
+  .analysis-brew-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .analysis-brew-link {
+    display: inline-flex;
+    align-items: center;
+    color: inherit;
+  }
+
+  .analysis-brew-link :global(svg) {
+    width: 16px;
+    height: 16px;
   }
 
   .analysis-table th {
