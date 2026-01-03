@@ -22,6 +22,7 @@
   export let beanRoastLevel: string | null = null;
   export let tastingNotes: string | null = null;
   export let baristasById: Record<string, BaristaType> = {};
+  export let viewVariant: 'full' | 'beanDetail' = 'full';
   
   // Props for new bag mode
   export let beanId: string | null = null;
@@ -262,6 +263,9 @@
   $: ratingCount = bag?.rating_count ?? 0;
   $: brewCount = bag?.brew_count ?? 0;
   $: beanLinkId = !isEditing ? (bag?.bean_id ?? beanId ?? null) : null;
+  $: showMedia = !isEditing && viewVariant === 'full';
+  $: showBeanDetails = !isEditing && viewVariant === 'full';
+  $: showTastingNotes = !isEditing && viewVariant === 'full';
 
   const style = toStyleString({
     '--editable-card-bg': editableCard.container.background,
@@ -403,7 +407,7 @@
       {/if}
       
       <div class="bag-content">
-        {#if !isEditing}
+        {#if showMedia}
           <div class="bag-media">
             <div
               class="card-media"
@@ -428,7 +432,7 @@
           </div>
         {/if}
         <div class="bag-details">
-          {#if beanRoastLevel && !isEditing}
+          {#if beanRoastLevel && showBeanDetails}
             <div class="bag-detail">
               <span class="detail-label">Roast level</span>
               <div class="detail-value">
@@ -467,7 +471,19 @@
               <span class="detail-value detail-empty">Not specified</span>
             {/if}
           </div>
-          
+
+          {#if isEditing}
+            <div class="bag-detail">
+              <span class="detail-label">Roast date</span>
+              <input
+                type="date"
+                bind:value={formData.roast_date}
+                class="detail-input"
+                disabled={isSaving}
+              />
+            </div>
+          {/if}
+
           {#if isEditing}
             <div class="bag-detail">
               <span class="detail-label">Weight</span>
@@ -483,7 +499,20 @@
               />
             </div>
           {/if}
-          
+
+          {#if isEditing}
+            <div class="bag-detail">
+              <span class="detail-label">Purchase location</span>
+              <input
+                type="text"
+                bind:value={formData.purchase_location}
+                class="detail-input"
+                placeholder="e.g., Local roaster"
+                disabled={isSaving}
+              />
+            </div>
+          {/if}
+
           {#if isEditing}
             <div class="bag-detail">
               <span class="detail-label">Status</span>
@@ -493,6 +522,7 @@
                 disabled={isSaving}
               >
                 <option value="">Select status</option>
+                <option value="unopened">Unopened</option>
                 <option value="plenty">Plenty</option>
                 <option value="getting_low">Getting Low</option>
                 <option value="empty">Empty</option>
@@ -502,7 +532,7 @@
         </div>
       </div>
 
-      {#if !isEditing && tastingNotes}
+      {#if showTastingNotes && tastingNotes}
         <div class="bag-notes">
           <p class="notes-preview">
             {tastingNotes.length > 100
