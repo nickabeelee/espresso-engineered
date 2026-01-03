@@ -7,7 +7,6 @@
   import { ArrowTopRightOnSquareMini, ChevronDown } from '$lib/icons';
   import { gsap } from '$lib/ui/animations';
   import type { Bean, Bag, Brew } from '@shared/types';
-  import IconButton from '$lib/components/IconButton.svelte';
   import { recordListShell } from '$lib/ui/components/card';
   import { selector } from '$lib/ui/components/selector';
   import { colorCss } from '$lib/ui/foundations/color';
@@ -866,27 +865,26 @@
                 <th>Ratio</th>
                 <th>Brew Time</th>
                 <th>Grind Setting</th>
-                <th class="analysis-action-header">Open</th>
               </tr>
             </thead>
             <tbody>
               {#each analysisData as brew}
                 <tr>
-                  <td>{brew.name || brew.bag_name || 'Brew'}</td>
+                  <td class="analysis-brew-cell">
+                    <a
+                      class="analysis-brew-link"
+                      href={`/brews/${brew.id}`}
+                      aria-label={`View ${brew.name || brew.bag_name || 'brew'}`}
+                      title="View brew details"
+                    >
+                      <ArrowTopRightOnSquareMini />
+                    </a>
+                    <span>{brew.name || brew.bag_name || 'Brew'}</span>
+                  </td>
                   <td>{formatRating(brew.y_rating)}</td>
                   <td>{formatRatio(brew.x_ratio)}</td>
                   <td>{formatBrewTime(brew.x_brew_time)}</td>
                   <td>{brew.grind_setting || '—'}</td>
-                  <td class="analysis-action-cell">
-                    <IconButton
-                      href={`/brews/${brew.id}`}
-                      ariaLabel={`View ${brew.name || brew.bag_name || 'brew'}`}
-                      title="View brew details"
-                      variant="neutral"
-                    >
-                      <ArrowTopRightOnSquareMini />
-                    </IconButton>
-                  </td>
                 </tr>
               {/each}
             </tbody>
@@ -1285,10 +1283,21 @@
     border-bottom: 1px solid rgba(123, 94, 58, 0.12);
   }
 
-  .analysis-action-header,
-  .analysis-action-cell {
-    width: 52px;
-    text-align: center;
+  .analysis-brew-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .analysis-brew-link {
+    display: inline-flex;
+    align-items: center;
+    color: inherit;
+  }
+
+  .analysis-brew-link :global(svg) {
+    width: 16px;
+    height: 16px;
   }
 
   .analysis-table th {
