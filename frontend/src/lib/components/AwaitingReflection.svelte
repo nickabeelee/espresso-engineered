@@ -181,7 +181,7 @@
             {/if}
 
             <div class="draft-actions">
-              <a href="/brews/{brew.id}?edit=true" class="btn-primary">
+              <a href="/brews/{brew.id}?reflect=true" class="btn-primary">
                 Complete Brew
               </a>
               <a href="/brews/{brew.id}" class="btn-secondary">

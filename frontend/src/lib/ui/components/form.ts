@@ -49,6 +49,7 @@ const editableField = {
     borderWidth: "1px",
     borderRadius: radius.sm,
     focusRing: "0 0 0 2px rgba(176, 138, 90, 0.2)",
+    background: colorCss.bg.surface.paper.primary,
   },
   helper: formHelperText,
   error: {
