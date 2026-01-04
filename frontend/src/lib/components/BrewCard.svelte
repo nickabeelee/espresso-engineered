@@ -92,7 +92,7 @@
       <div class="status-group">
         {#if isDraft(brew)}
           <a
-            href="/brews/{brew.id}?edit=true"
+            href="/brews/{brew.id}?reflect=true"
             class="action-link"
             on:click|stopPropagation
           >
