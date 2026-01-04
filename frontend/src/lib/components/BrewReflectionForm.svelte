@@ -4,6 +4,7 @@
   import IconButton from '$lib/components/IconButton.svelte';
   import { CheckCircle, XMark } from '$lib/icons';
   import { editableField, formHelperText, formLabel, formSection } from '$lib/ui/components/form';
+  import { colorCss } from '$lib/ui/foundations/color';
   import { toStyleString } from '$lib/ui/style';
 
   export let brew: Brew;
@@ -22,7 +23,8 @@
   let missingRating = false;
   let missingTastingNotes = false;
   let missingReflections = false;
-  let suggestions: string[] = [];
+  let beanNotes: string[] = [];
+  let genericNotes: string[] = [];
 
   const coffeeCompassNotes = [
     'Overwhelming',
@@ -73,6 +75,8 @@
     '--form-input-border-width': editableField.input.borderWidth,
     '--form-input-radius': editableField.input.borderRadius,
     '--form-input-focus': editableField.input.focusRing,
+    '--form-input-bg': colorCss.bg.surface.paper.primary,
+    '--form-input-bg-missing': colorCss.bg.surface.paper.secondary,
     '--form-helper-color': formHelperText.textColor,
     '--form-helper-size': formHelperText.fontSize,
     '--form-error-color': editableField.error.textColor,
@@ -99,9 +103,8 @@
       .filter(Boolean);
   }
 
-  function getSuggestionList(): string[] {
-    const beanNotes = parseFlavorList(beanTastingNotes);
-    const allNotes = [...beanNotes, ...coffeeCompassNotes];
+  function getSuggestionList(notes: string[]): string[] {
+    const allNotes = [...notes];
     const seen = new Set<string>();
 
     return allNotes.filter((note) => {
@@ -158,7 +161,8 @@
   $: missingRating = !rating;
   $: missingTastingNotes = !tasting_notes.trim();
   $: missingReflections = !reflections.trim();
-  $: suggestions = getSuggestionList();
+  $: beanNotes = getSuggestionList(parseFlavorList(beanTastingNotes));
+  $: genericNotes = getSuggestionList(coffeeCompassNotes);
 </script>
 
 <div class="reflection-form" style={style}>
@@ -200,19 +204,41 @@
         {/if}
         <div class="tasting-suggestions">
           <p class="suggestions-label">Suggested flavors</p>
-          <div class="chip-list">
-            {#each suggestions as note}
-              <button
-                class="chip-button"
-                type="button"
-                on:click={() => addTastingNote(note)}
-                aria-pressed={isNoteIncluded(note)}
-              >
-                <Chip variant={isNoteIncluded(note) ? 'accent' : 'neutral'} size="sm">
-                  {note}
-                </Chip>
-              </button>
-            {/each}
+          {#if beanNotes.length}
+            <div class="tasting-group">
+              <span class="group-label">Bean tasting notes</span>
+              <div class="chip-list">
+                {#each beanNotes as note}
+                  <button
+                    class="chip-button"
+                    type="button"
+                    on:click={() => addTastingNote(note)}
+                    aria-pressed={isNoteIncluded(note)}
+                  >
+                    <Chip variant={isNoteIncluded(note) ? 'accent' : 'neutral'} size="sm">
+                      {note}
+                    </Chip>
+                  </button>
+                {/each}
+              </div>
+            </div>
+          {/if}
+          <div class="tasting-group">
+            <span class="group-label">Coffee compass helpers</span>
+            <div class="chip-list">
+              {#each genericNotes as note}
+                <button
+                  class="chip-button"
+                  type="button"
+                  on:click={() => addTastingNote(note)}
+                  aria-pressed={isNoteIncluded(note)}
+                >
+                  <Chip variant={isNoteIncluded(note) ? 'accent' : 'neutral'} size="sm">
+                    {note}
+                  </Chip>
+                </button>
+              {/each}
+            </div>
           </div>
         </div>
       </div>
@@ -298,6 +324,7 @@
     border-radius: var(--form-input-radius, var(--radius-sm));
     font-size: var(--form-input-font-size, 1rem);
     font-family: inherit;
+    background: var(--form-input-bg, var(--bg-surface-paper));
   }
 
   .form-group input:focus,
@@ -310,7 +337,7 @@
   .form-group.missing input,
   .form-group.missing textarea {
     border-color: rgba(176, 138, 90, 0.65);
-    background: rgba(176, 138, 90, 0.08);
+    background: var(--form-input-bg-missing, var(--bg-surface-paper-secondary));
   }
 
   .helper-text {
@@ -333,6 +360,19 @@
     margin: 0;
     color: var(--form-helper-color, var(--text-ink-muted));
     font-size: var(--form-helper-size, 0.85rem);
+  }
+
+  .tasting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .group-label {
+    color: var(--form-helper-color, var(--text-ink-muted));
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   .chip-list {

@@ -9,7 +9,7 @@
   import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { CheckCircle, ChevronLeft, PencilSquare, Trash, XMark } from '$lib/icons';
+  import { PencilSquare, Trash, XMark } from '$lib/icons';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import { imageFrame, imageSizes } from '$lib/ui/components/image';
   import { alertBase, alertSizes, alertVariants } from '$lib/ui/components/alert';
@@ -434,14 +434,11 @@
           </IconButton>
         {/if}
         {#if reflectionMode && brew}
-          <IconButton on:click={handleReflectionCancel} ariaLabel="Back to brew details" title="Back to details" variant="neutral" disabled={loading}>
-            <ChevronLeft />
+          <IconButton on:click={handleReflectionCancel} ariaLabel="Close reflection view" title="Close reflection" variant="neutral" disabled={loading}>
+            <XMark />
           </IconButton>
         {/if}
         {#if canEdit && brew && !reflectionMode}
-          <IconButton on:click={openReflection} ariaLabel="Open reflection view" title="Reflect" variant="accent" disabled={loading}>
-            <CheckCircle />
-          </IconButton>
           {#if editing}
             <IconButton on:click={toggleEdit} ariaLabel="Cancel editing" title="Cancel" variant="neutral" disabled={loading}>
               <XMark />
@@ -482,174 +479,172 @@
               on:cancel={handleReflectionCancel}
             />
           </div>
-          <details class="detail-section reference-section">
+          <details class="reference-section">
             <summary>Reference details</summary>
-            <div class="reference-content">
-              <div class="detail-section">
-                <h3>Equipment</h3>
-                {#if equipmentLoading}
-                  <div class="loading equipment-loading">Loading equipment details...</div>
-                {:else}
-                  <div class="equipment-grid" style={equipmentStyle}>
-                    <article class="equipment-card">
-                      <div class="equipment-card-main">
-                        <div class="equipment-label-row">
-                          <p class="equipment-label">Machine</p>
-                        </div>
-                        <div class="equipment-title-row">
-                          <h4>{machine ? formatEquipmentModel(machine) : 'Unknown Machine'}</h4>
-                          <p class="equipment-meta">{machine ? formatEquipmentManufacturer(machine) : 'by Unknown'}</p>
-                        </div>
-                        <div class="equipment-content-row">
-                          {#if machine?.image_path}
-                            <div class="equipment-image">
-                              <img
-                                src={getTransformedImageUrl(machine.image_path, 'machine', imageSizes.thumbnail)}
-                                alt={formatEquipmentName(machine)}
-                                loading="lazy"
-                                on:error={(e) => (e.currentTarget.style.display = 'none')}
-                              />
-                            </div>
-                          {:else}
-                            <div class="equipment-image equipment-image--placeholder" aria-hidden="true"></div>
-                          {/if}
-                        </div>
+            <div class="detail-section">
+              <h3>Equipment</h3>
+              {#if equipmentLoading}
+                <div class="loading equipment-loading">Loading equipment details...</div>
+              {:else}
+                <div class="equipment-grid" style={equipmentStyle}>
+                  <article class="equipment-card">
+                    <div class="equipment-card-main">
+                      <div class="equipment-label-row">
+                        <p class="equipment-label">Machine</p>
                       </div>
-                    </article>
-
-                    <article class="equipment-card">
-                      <div class="equipment-card-main">
-                        <div class="equipment-label-row">
-                          <p class="equipment-label">Grinder</p>
-                        </div>
-                        <div class="equipment-title-row">
-                          <h4>{grinder ? formatEquipmentModel(grinder) : 'Unknown Grinder'}</h4>
-                          <p class="equipment-meta">{grinder ? formatEquipmentManufacturer(grinder) : 'by Unknown'}</p>
-                        </div>
-                        <div class="equipment-content-row">
-                          {#if grinder?.image_path}
-                            <div class="equipment-image">
-                              <img
-                                src={getTransformedImageUrl(grinder.image_path, 'grinder', imageSizes.thumbnail)}
-                                alt={formatEquipmentName(grinder)}
-                                loading="lazy"
-                                on:error={(e) => (e.currentTarget.style.display = 'none')}
-                              />
-                            </div>
-                          {:else}
-                            <div class="equipment-image equipment-image--placeholder" aria-hidden="true"></div>
-                          {/if}
-                        </div>
+                      <div class="equipment-title-row">
+                        <h4>{machine ? formatEquipmentModel(machine) : 'Unknown Machine'}</h4>
+                        <p class="equipment-meta">{machine ? formatEquipmentManufacturer(machine) : 'by Unknown'}</p>
                       </div>
-                    </article>
-
-                    <article
-                      class="equipment-card bag-card bag-card--wide"
-                      class:bag-card--clickable={Boolean(bean)}
-                      role={bean ? 'link' : undefined}
-                      tabindex={bean ? 0 : -1}
-                      aria-label={bean ? `View ${formatBagTitle(bag, bean)}` : undefined}
-                      on:click={handleBagCardClick}
-                      on:keydown={handleBagCardKeydown}
-                    >
-                      <div class="equipment-card-main">
-                        <div class="equipment-label-row">
-                          <p class="equipment-label">Coffee Bag</p>
-                        </div>
-                        <div class="equipment-title-row">
-                          <h4>{bean?.name || formatBagTitle(bag, bean)}</h4>
-                          <p class="equipment-meta">{formatRoasterMeta(roaster)}</p>
-                        </div>
-                        <div class="equipment-content-row equipment-content-row--split">
-                          <div class="equipment-details">
-                            <div class="equipment-detail">
-                              <span class="equipment-detail-value">{bagOwnerName}'s bag</span>
-                            </div>
-                            <div class="equipment-detail">
-                              <span class="equipment-detail-value">
-                                Roasted on {bag?.roast_date ? new Date(bag.roast_date).toLocaleDateString() : 'Unknown'}
-                              </span>
-                            </div>
-                            <div class="equipment-detail">
-                              {#if bean?.roast_level}
-                                <RoastLevel value={bean.roast_level} size="small" />
-                              {:else}
-                                <span class="equipment-detail-value">Unknown</span>
-                              {/if}
-                            </div>
+                      <div class="equipment-content-row">
+                        {#if machine?.image_path}
+                          <div class="equipment-image">
+                            <img
+                              src={getTransformedImageUrl(machine.image_path, 'machine', imageSizes.thumbnail)}
+                              alt={formatEquipmentName(machine)}
+                              loading="lazy"
+                              on:error={(e) => (e.currentTarget.style.display = 'none')}
+                            />
                           </div>
-                          {#if bean?.image_path}
-                            <div class="equipment-image">
-                              <img
-                                src={getTransformedImageUrl(bean.image_path, 'bean', imageSizes.thumbnail)}
-                                alt={bean?.name || formatBagTitle(bag, bean)}
-                                loading="lazy"
-                                on:error={(e) => (e.currentTarget.style.display = 'none')}
-                              />
-                            </div>
-                          {:else}
-                            <div class="equipment-image equipment-image--placeholder" aria-hidden="true"></div>
-                          {/if}
-                        </div>
+                        {:else}
+                          <div class="equipment-image equipment-image--placeholder" aria-hidden="true"></div>
+                        {/if}
                       </div>
-                    </article>
-                  </div>
-                {/if}
-              </div>
+                    </div>
+                  </article>
 
-              <div class="detail-section">
-                <h3>Input Parameters</h3>
-                <div class="metric-grid">
-                  <div class="metric-card">
-                    <span class="metric-label">Dose</span>
-                    <div class="metric-value">{currentBrew.dose_g}g</div>
-                  </div>
-                  <div class="metric-card">
-                    <span class="metric-label">Grind Setting</span>
-                    {#if currentBrew.grind_setting}
-                      <div class="metric-value">{currentBrew.grind_setting}</div>
-                    {:else}
-                      <div class="metric-empty">Not recorded yet</div>
-                    {/if}
-                  </div>
+                  <article class="equipment-card">
+                    <div class="equipment-card-main">
+                      <div class="equipment-label-row">
+                        <p class="equipment-label">Grinder</p>
+                      </div>
+                      <div class="equipment-title-row">
+                        <h4>{grinder ? formatEquipmentModel(grinder) : 'Unknown Grinder'}</h4>
+                        <p class="equipment-meta">{grinder ? formatEquipmentManufacturer(grinder) : 'by Unknown'}</p>
+                      </div>
+                      <div class="equipment-content-row">
+                        {#if grinder?.image_path}
+                          <div class="equipment-image">
+                            <img
+                              src={getTransformedImageUrl(grinder.image_path, 'grinder', imageSizes.thumbnail)}
+                              alt={formatEquipmentName(grinder)}
+                              loading="lazy"
+                              on:error={(e) => (e.currentTarget.style.display = 'none')}
+                            />
+                          </div>
+                        {:else}
+                          <div class="equipment-image equipment-image--placeholder" aria-hidden="true"></div>
+                        {/if}
+                      </div>
+                    </div>
+                  </article>
+
+                  <article
+                    class="equipment-card bag-card bag-card--wide"
+                    class:bag-card--clickable={Boolean(bean)}
+                    role={bean ? 'link' : undefined}
+                    tabindex={bean ? 0 : -1}
+                    aria-label={bean ? `View ${formatBagTitle(bag, bean)}` : undefined}
+                    on:click={handleBagCardClick}
+                    on:keydown={handleBagCardKeydown}
+                  >
+                    <div class="equipment-card-main">
+                      <div class="equipment-label-row">
+                        <p class="equipment-label">Coffee Bag</p>
+                      </div>
+                      <div class="equipment-title-row">
+                        <h4>{bean?.name || formatBagTitle(bag, bean)}</h4>
+                        <p class="equipment-meta">{formatRoasterMeta(roaster)}</p>
+                      </div>
+                      <div class="equipment-content-row equipment-content-row--split">
+                        <div class="equipment-details">
+                          <div class="equipment-detail">
+                            <span class="equipment-detail-value">{bagOwnerName}'s bag</span>
+                          </div>
+                          <div class="equipment-detail">
+                            <span class="equipment-detail-value">
+                              Roasted on {bag?.roast_date ? new Date(bag.roast_date).toLocaleDateString() : 'Unknown'}
+                            </span>
+                          </div>
+                          <div class="equipment-detail">
+                            {#if bean?.roast_level}
+                              <RoastLevel value={bean.roast_level} size="small" />
+                            {:else}
+                              <span class="equipment-detail-value">Unknown</span>
+                            {/if}
+                          </div>
+                        </div>
+                        {#if bean?.image_path}
+                          <div class="equipment-image">
+                            <img
+                              src={getTransformedImageUrl(bean.image_path, 'bean', imageSizes.thumbnail)}
+                              alt={bean?.name || formatBagTitle(bag, bean)}
+                              loading="lazy"
+                              on:error={(e) => (e.currentTarget.style.display = 'none')}
+                            />
+                          </div>
+                        {:else}
+                          <div class="equipment-image equipment-image--placeholder" aria-hidden="true"></div>
+                        {/if}
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              {/if}
+            </div>
+
+            <div class="detail-section">
+              <h3>Input Parameters</h3>
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <span class="metric-label">Dose</span>
+                  <div class="metric-value">{currentBrew.dose_g}g</div>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Grind Setting</span>
+                  {#if currentBrew.grind_setting}
+                    <div class="metric-value">{currentBrew.grind_setting}</div>
+                  {:else}
+                    <div class="metric-empty">Not recorded yet</div>
+                  {/if}
                 </div>
               </div>
+            </div>
 
-              <div class="detail-section">
-                <h3>Output Measurements</h3>
-                <div class="metric-grid">
-                  <div class="metric-card">
-                    <span class="metric-label">Yield</span>
-                    {#if currentBrew.yield_g}
-                      <div class="metric-value">{currentBrew.yield_g}g</div>
-                    {:else}
-                      <div class="metric-empty">Not recorded yet</div>
-                    {/if}
-                  </div>
-                  <div class="metric-card">
-                    <span class="metric-label">Brew Time</span>
-                    {#if currentBrew.brew_time_s}
-                      <div class="metric-value">{currentBrew.brew_time_s.toFixed(1)}s</div>
-                    {:else}
-                      <div class="metric-empty">Not recorded yet</div>
-                    {/if}
-                  </div>
-                  <div class="metric-card">
-                    <span class="metric-label">Ratio</span>
-                    {#if currentBrew.ratio}
-                      <div class="metric-value">1:{currentBrew.ratio.toFixed(2)}</div>
-                    {:else}
-                      <div class="metric-empty">Not recorded yet</div>
-                    {/if}
-                  </div>
-                  <div class="metric-card">
-                    <span class="metric-label">Flow Rate</span>
-                    {#if currentBrew.flow_rate_g_per_s}
-                      <div class="metric-value">{currentBrew.flow_rate_g_per_s.toFixed(1)} g/s</div>
-                    {:else}
-                      <div class="metric-empty">Not recorded yet</div>
-                    {/if}
-                  </div>
+            <div class="detail-section">
+              <h3>Output Measurements</h3>
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <span class="metric-label">Yield</span>
+                  {#if currentBrew.yield_g}
+                    <div class="metric-value">{currentBrew.yield_g}g</div>
+                  {:else}
+                    <div class="metric-empty">Not recorded yet</div>
+                  {/if}
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Brew Time</span>
+                  {#if currentBrew.brew_time_s}
+                    <div class="metric-value">{currentBrew.brew_time_s.toFixed(1)}s</div>
+                  {:else}
+                    <div class="metric-empty">Not recorded yet</div>
+                  {/if}
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Ratio</span>
+                  {#if currentBrew.ratio}
+                    <div class="metric-value">1:{currentBrew.ratio.toFixed(2)}</div>
+                  {:else}
+                    <div class="metric-empty">Not recorded yet</div>
+                  {/if}
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Flow Rate</span>
+                  {#if currentBrew.flow_rate_g_per_s}
+                    <div class="metric-value">{currentBrew.flow_rate_g_per_s.toFixed(1)} g/s</div>
+                  {:else}
+                    <div class="metric-empty">Not recorded yet</div>
+                  {/if}
                 </div>
               </div>
             </div>
@@ -937,13 +932,18 @@
   }
 
   .reference-section {
-    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--detail-section-gap);
   }
 
   .reference-section summary {
     list-style: none;
     cursor: pointer;
     padding: var(--detail-section-padding);
+    background: var(--detail-section-bg);
+    border: var(--detail-section-border-width) var(--detail-section-border-style) var(--detail-section-border);
+    border-radius: var(--detail-section-radius);
     font-weight: var(--detail-title-weight);
     color: var(--detail-title-color);
     font-size: var(--detail-title-size);
@@ -957,14 +957,8 @@
   }
 
   .reference-section[open] summary {
-    border-bottom-color: var(--detail-section-border);
-  }
-
-  .reference-content {
-    padding: var(--detail-section-padding);
-    display: flex;
-    flex-direction: column;
-    gap: var(--detail-section-gap);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   .detail-section {
