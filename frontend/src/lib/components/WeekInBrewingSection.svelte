@@ -4,7 +4,7 @@
   import LoadingIndicator from './LoadingIndicator.svelte';
   import ErrorDisplay from './ErrorDisplay.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ChevronLeft, ChevronRight, XMark } from '$lib/icons';
+  import { ChevronLeft, ChevronRight, XMark, StarMini } from '$lib/icons';
   import { apiClient } from '$lib/api-client';
   import { animations, gsap } from '$lib/ui/animations';
   import { recordListShell } from '$lib/ui/components/card';
@@ -76,6 +76,15 @@
   });
 
   // Types for the component
+  interface BrewWithEquipment extends Brew {
+    grinder?: {
+      image_path?: string | null;
+    };
+    machine?: {
+      image_path?: string | null;
+    };
+  }
+
   interface LayeredBrewGroup {
     barista: {
       id: string;
@@ -85,12 +94,13 @@
       id: string;
       name: string;
       roast_level: string;
+      image_path?: string | null;
       roaster: {
         id: string;
         name: string;
       };
     };
-    brews: Brew[];
+    brews: BrewWithEquipment[];
     stackDepth: number;
   }
 
@@ -493,12 +503,14 @@
                   <h3 class="group-title" style={groupTitleStyle}>{group.bean.name}</h3>
                   <p class="group-meta" style={groupMetaStyle}>
                     {group.barista.display_name}
-                    {#if averageRating !== null}
-                      • Avg rating {averageRating.toFixed(1)}/10
-                    {/if}
                   </p>
                 </div>
-                <p class="group-count" style={groupMetaStyle}>{getBrewCountText(group.brews.length)}</p>
+                <div class="group-metrics" style={groupMetaStyle}>
+                  <span class="group-count">{getBrewCountText(group.brews.length)}</span>
+                  {#if averageRating !== null}
+                    <span class="avg-rating">{averageRating.toFixed(1)} <StarMini size={16} /> avg</span>
+                  {/if}
+                </div>
               </div>
 
               <div
@@ -516,7 +528,15 @@
                     data-brew-id={stackItem.brew.id}
                     style={`--stack-offset: ${stackItem.offset}; --stack-depth: ${getStackDepth(group)}; z-index: ${getStackDepth(group) - stackItem.offset}; opacity: ${1 - stackItem.offset * 0.12};`}
                   >
-                    <BrewCard brew={stackItem.brew} baristaName={group.barista.display_name} />
+                    <BrewCard
+                      brew={stackItem.brew}
+                      baristaName={group.barista.display_name}
+                      beanName={group.bean?.name ?? null}
+                      beanImagePath={group.bean?.image_path ?? null}
+                      grinderImagePath={stackItem.brew.grinder?.image_path ?? null}
+                      machineImagePath={stackItem.brew.machine?.image_path ?? null}
+                      variant="summary"
+                    />
                   </div>
                 {/each}
               </div>
@@ -575,7 +595,11 @@
         </div>
         <div class="group-overlay-list">
           {#each activeGroup.brews as brew (brew.id)}
-            <BrewCard brew={brew} baristaName={activeGroup.barista.display_name} />
+            <BrewCard
+              brew={brew}
+              baristaName={activeGroup.barista.display_name}
+              variant="detail"
+            />
           {/each}
         </div>
       </div>
@@ -669,8 +693,8 @@
   }
 
   .group-stack {
-    width: 420px;
-    min-width: 420px;
+    width: 320px;
+    min-width: 320px;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -697,13 +721,26 @@
     gap: 0.35rem;
   }
 
+  .avg-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
   .group-count {
     white-space: nowrap;
   }
 
+  .group-metrics {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+  }
+
   .stack-area {
     position: relative;
-    min-height: 320px;
+    min-height: 300px;
     overflow: hidden;
     border-radius: var(--radius-md);
   }
@@ -791,14 +828,7 @@
     padding-right: 0.25rem;
   }
 
-  @media (max-width: 900px) {
-    .group-stack {
-      width: 360px;
-      min-width: 360px;
-    }
-  }
-
-  @media (max-width: 720px) {
+  @media (max-width: 768px) {
     .section-header {
       flex-direction: column;
       align-items: flex-start;
@@ -810,12 +840,12 @@
     }
 
     .group-stack {
-      width: 85vw;
-      min-width: 85vw;
+      width: min(82vw, 320px);
+      min-width: min(82vw, 320px);
     }
 
     .stack-area {
-      min-height: 280px;
+      min-height: 260px;
     }
 
     .stack-card.is-active {
@@ -843,6 +873,13 @@
 
     .group-overlay-panel {
       padding: 1.25rem 1rem 1.5rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .group-stack {
+      width: min(86vw, 280px);
+      min-width: min(86vw, 280px);
     }
   }
 

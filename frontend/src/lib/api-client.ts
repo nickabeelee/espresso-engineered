@@ -179,12 +179,20 @@ class ApiClient {
         id: string;
         name: string;
         roast_level: string;
+        image_path?: string | null;
         roaster: {
           id: string;
           name: string;
         };
       };
-      brews: Brew[];
+      brews: Array<Brew & {
+        grinder?: {
+          image_path?: string | null;
+        };
+        machine?: {
+          image_path?: string | null;
+        };
+      }>;
       stackDepth: number;
     }>;
     week_start: string;
@@ -204,12 +212,20 @@ class ApiClient {
           id: string;
           name: string;
           roast_level: string;
+          image_path?: string | null;
           roaster: {
             id: string;
             name: string;
           };
         };
-        brews: Brew[];
+        brews: Array<Brew & {
+          grinder?: {
+            image_path?: string | null;
+          };
+          machine?: {
+            image_path?: string | null;
+          };
+        }>;
         stackDepth: number;
       }>;
       week_start: string;

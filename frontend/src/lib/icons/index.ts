@@ -14,13 +14,16 @@ export { default as ChevronLeft } from './outline/ChevronLeft.svelte';
 export { default as ChevronRight } from './outline/ChevronRight.svelte';
 export { default as MagnifyingGlass } from './outline/MagnifyingGlass.svelte';
 export { default as DocumentDuplicate } from './outline/DocumentDuplicate.svelte';
+export { default as StarOutline } from './outline/Star.svelte';
 
 // Coffee Bean icons
 export { default as CoffeeBean } from './solid/CoffeeBean.svelte';
 export { default as CoffeeBeanSolid } from './solid/CoffeeBean.svelte';
 export { default as CoffeeBeanMini } from './mini/CoffeeBean.svelte';
 export { default as ArrowTopRightOnSquareMini } from './mini/ArrowTopRightOnSquare.svelte';
+export { default as StarMini } from './mini/Star.svelte';
 export { default as CoffeeBeanMicro } from './micro/CoffeeBean.svelte';
+export { default as StarMicro } from './micro/Star.svelte';
 export { default as ExclamationTriangle } from './outline/ExclamationTriangle.svelte';
 export { default as InformationCircle } from './outline/InformationCircle.svelte';
 export { default as CheckCircle } from './outline/CheckCircle.svelte';

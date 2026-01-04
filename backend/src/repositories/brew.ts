@@ -227,6 +227,7 @@ export class BrewRepository extends BaseRepository<Brew> {
             id,
             name,
             roast_level,
+            image_path,
             roaster:roaster_id (
               id,
               name
@@ -240,12 +241,14 @@ export class BrewRepository extends BaseRepository<Brew> {
         machine:machine_id (
           id,
           manufacturer,
-          name
+          name,
+          image_path
         ),
         grinder:grinder_id (
           id,
           manufacturer,
-          name
+          name,
+          image_path
         )
       `)
       .gte('created_at', currentWeekStart.toISOString())

@@ -216,7 +216,11 @@
     <div class="brew-grid">
       {#each filteredBrews as brew (brew.id)}
         {@const baristaRecord = baristasById[brew.barista_id]}
-        <BrewCard brew={brew} baristaName={baristaRecord?.display_name ?? 'Unknown barista'} />
+        <BrewCard
+          brew={brew}
+          baristaName={baristaRecord?.display_name ?? 'Unknown barista'}
+          variant="detail"
+        />
       {/each}
     </div>
   </div>
