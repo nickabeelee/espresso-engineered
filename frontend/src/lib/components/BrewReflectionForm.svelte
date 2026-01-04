@@ -5,6 +5,7 @@
   import { CheckCircle, XMark } from '$lib/icons';
   import { editableField, formHelperText, formLabel, formSection } from '$lib/ui/components/form';
   import { colorCss } from '$lib/ui/foundations/color';
+  import { textStyles } from '$lib/ui/foundations/typography';
   import { toStyleString } from '$lib/ui/style';
 
   export let brew: Brew;
@@ -75,12 +76,18 @@
     '--form-input-border-width': editableField.input.borderWidth,
     '--form-input-radius': editableField.input.borderRadius,
     '--form-input-focus': editableField.input.focusRing,
-    '--form-input-bg': colorCss.bg.surface.paper.primary,
-    '--form-input-bg-missing': colorCss.bg.surface.paper.secondary,
+    '--form-input-bg': editableField.input.background,
+    '--form-input-bg-missing': editableField.input.background,
     '--form-helper-color': formHelperText.textColor,
     '--form-helper-size': formHelperText.fontSize,
     '--form-error-color': editableField.error.textColor,
-    '--form-error-size': editableField.error.fontSize
+    '--form-error-size': editableField.error.fontSize,
+    '--voice-font-family': textStyles.voice.fontFamily,
+    '--voice-font-size': textStyles.voice.fontSize,
+    '--voice-line-height': textStyles.voice.lineHeight,
+    '--voice-letter-spacing': textStyles.voice.letterSpacing,
+    '--voice-font-style': textStyles.voice.fontStyle,
+    '--voice-color': colorCss.text.ink.muted
   });
 
   $: if (brew && brew.id !== currentBrewId) {
@@ -185,7 +192,7 @@
         {#if validationErrors.rating}
           <span class="error-text">{validationErrors.rating}</span>
         {:else if missingRating}
-          <span class="helper-text">Still waiting for a rating.</span>
+          <span class="voice-text">Still waiting for a rating.</span>
         {/if}
       </div>
 
@@ -198,12 +205,13 @@
           placeholder="e.g., notes of cacao and orange"
         />
         {#if missingTastingNotes}
-          <span class="helper-text">Capture a few flavors while they are fresh.</span>
+          <span class="voice-text">
+            Capture a few flavors while they are fresh. Trouble deciding? Here are some options:
+          </span>
         {:else}
           <span class="helper-text">Keep notes comma separated.</span>
         {/if}
         <div class="tasting-suggestions">
-          <p class="suggestions-label">Suggested flavors</p>
           {#if beanNotes.length}
             <div class="tasting-group">
               <span class="group-label">Bean tasting notes</span>
@@ -252,7 +260,7 @@
           placeholder="e.g., What worked? What would you change?"
         />
         {#if missingReflections}
-          <span class="helper-text">Give yourself a reminder for next time.</span>
+          <span class="voice-text">Give yourself a reminder for next time.</span>
         {/if}
       </div>
     </div>
@@ -343,6 +351,15 @@
   .helper-text {
     color: var(--form-helper-color, var(--text-ink-muted));
     font-size: var(--form-helper-size, 0.85rem);
+  }
+
+  .voice-text {
+    font-family: var(--voice-font-family, "Libre Baskerville", serif);
+    font-size: var(--voice-font-size, 0.95rem);
+    line-height: var(--voice-line-height, 1.7);
+    letter-spacing: var(--voice-letter-spacing, 0.02em);
+    font-style: var(--voice-font-style, normal);
+    color: var(--voice-color, var(--text-ink-muted));
   }
 
   .error-text {

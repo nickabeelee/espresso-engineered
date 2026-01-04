@@ -9,7 +9,7 @@
   import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { PencilSquare, Trash, XMark } from '$lib/icons';
+  import { ChevronDown, PencilSquare, Trash, XMark } from '$lib/icons';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import { imageFrame, imageSizes } from '$lib/ui/components/image';
   import { alertBase, alertSizes, alertVariants } from '$lib/ui/components/alert';
@@ -480,7 +480,15 @@
             />
           </div>
           <details class="reference-section">
-            <summary>Reference details</summary>
+            <summary>
+              <span class="reference-toggle">
+                <span class="reference-icon" aria-hidden="true">
+                  <ChevronDown size={18} />
+                </span>
+                <span>Reference details</span>
+              </span>
+              <span class="reference-divider" aria-hidden="true"></span>
+            </summary>
             <div class="detail-section">
               <h3>Equipment</h3>
               {#if equipmentLoading}
@@ -940,25 +948,58 @@
   .reference-section summary {
     list-style: none;
     cursor: pointer;
-    padding: var(--detail-section-padding);
-    background: var(--detail-section-bg);
-    border: var(--detail-section-border-width) var(--detail-section-border-style) var(--detail-section-border);
-    border-radius: var(--detail-section-radius);
+    padding: 0;
+    background: none;
+    border: none;
     font-weight: var(--detail-title-weight);
     color: var(--detail-title-color);
     font-size: var(--detail-title-size);
     font-family: var(--detail-title-family);
     line-height: var(--detail-title-line-height);
-    border-bottom: var(--detail-section-border-width) var(--detail-section-border-style) transparent;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .reference-section summary::-webkit-details-marker {
     display: none;
   }
 
-  .reference-section[open] summary {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+  .reference-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .reference-icon {
+    display: inline-flex;
+    align-items: center;
+    transition: transform 0.2s ease;
+  }
+
+  .reference-divider {
+    height: 1px;
+    width: 100%;
+    background: var(--detail-section-border);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .reference-section[open] summary .reference-icon {
+    transform: rotate(0deg);
+  }
+
+  .reference-section:not([open]) summary .reference-icon {
+    transform: rotate(-90deg);
+  }
+
+  .reference-section[open] summary .reference-divider {
+    opacity: 1;
+  }
+
+  .reference-section .detail-section + .detail-section {
+    margin-top: var(--detail-section-gap);
   }
 
   .detail-section {
@@ -1258,7 +1299,7 @@
     border: var(--incomplete-border-width) var(--incomplete-border-style) var(--incomplete-border);
     border-radius: var(--incomplete-radius);
     padding: var(--incomplete-padding);
-    margin-top: var(--incomplete-margin-top);
+    margin-top: 0;
     color: var(--incomplete-color);
     font-family: var(--incomplete-font-family);
     font-size: var(--incomplete-font-size);
