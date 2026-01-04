@@ -8,8 +8,8 @@ const imageSizes = {
     quality: 70,
   },
   card: {
-    width: 160,
-    height: 160,
+    width: 200,
+    height: 200,
     fit: "cover",
     quality: 75,
   },

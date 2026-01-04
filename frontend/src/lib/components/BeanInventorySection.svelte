@@ -327,7 +327,6 @@
                   beanRoastLevel={bag.bean?.roast_level || null}
                   tastingNotes={bag.bean?.tasting_notes || null}
                   {baristasById}
-                  showQuickBrew={true}
                   on:inspect={() => requestInspect(bag)}
                   on:brew={requestBrew}
                 />

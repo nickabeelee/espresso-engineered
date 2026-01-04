@@ -43,7 +43,6 @@
   export let tastingNotes: string | null = null;
   export let baristasById: Record<string, BaristaType> = {};
   export let variant: BagCardVariant = 'inspect';
-  export let showQuickBrew = false;
   export let surface: BagCardSurface = 'card';
 
   // Props for new bag mode
@@ -389,42 +388,50 @@
   <article class="bag-card preview" style={style}>
     <div
       class="bag-preview"
-      class:hasQuickBrew={showQuickBrew && Boolean(bag)}
       role="button"
       tabindex="0"
       aria-label={`Inspect ${bagTitle}`}
       on:click={() => dispatch('inspect')}
       on:keydown={handlePreviewKeydown}
     >
-      <div class="bag-preview-media" class:placeholder={!beanImagePath}>
-        {#if beanImagePath}
-          <img
-            src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
-            alt={bagTitle}
-            loading="lazy"
-            on:error={(e) => (e.currentTarget.style.display = 'none')}
-          />
-        {/if}
+      <div class="bag-preview-top">
+        <span class="bag-preview-owner">{ownershipStatus === 'owned' ? 'Your bag' : ownerName}</span>
+        <Chip variant={inventoryVariant} size="sm">{inventoryLabel}</Chip>
       </div>
-      <div class="bag-preview-main">
-        <div class="bag-preview-title">
-          <h4>{bagTitle}</h4>
-          {#if roasterName}
-            <p class="bag-preview-roaster">{roasterName}</p>
+      <div class="bag-preview-title-full">
+        <h4>{beanName}</h4>
+      </div>
+      <div class="bag-preview-body">
+        <div class="bag-preview-media" class:placeholder={!beanImagePath}>
+          {#if beanImagePath}
+            <img
+              src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
+              alt={beanName}
+              loading="lazy"
+              on:error={(e) => (e.currentTarget.style.display = 'none')}
+            />
           {/if}
         </div>
-        <div class="bag-preview-meta">
-          {#if beanRoastLevel}
-            <RoastLevel value={beanRoastLevel} size="small" />
-          {/if}
-          <Chip variant={inventoryVariant} size="sm">{inventoryLabel}</Chip>
+        <div class="bag-preview-main">
+          <div class="bag-preview-title">
+            <p class="bag-preview-meta-text">
+              {#if roasterName}
+                <span>by {roasterName}</span>
+              {/if}
+              {#if bag?.roast_date}
+                <span>{formatRoastDate(bag.roast_date)}</span>
+              {:else}
+                <span>Date not set</span>
+              {/if}
+            </p>
+          </div>
+          <div class="bag-preview-meta">
+            {#if beanRoastLevel}
+              <RoastLevel value={beanRoastLevel} size="small" />
+            {/if}
+          </div>
         </div>
       </div>
-      {#if showQuickBrew && bag}
-        <button type="button" class="btn-secondary bag-preview-brew" on:click={handleStartBrew}>
-          Brew
-        </button>
-      {/if}
     </div>
   </article>
 {:else}
@@ -772,14 +779,39 @@
 
   .bag-preview {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 1fr;
     align-items: center;
     gap: 0.75rem;
     cursor: pointer;
   }
 
-  .bag-preview.hasQuickBrew {
-    grid-template-columns: auto 1fr auto;
+
+  .bag-preview-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .bag-preview-title-full h4 {
+    margin: 0;
+    color: var(--editable-card-title-color, var(--text-ink-primary));
+    font-family: var(--editable-card-title-font, inherit);
+    font-size: 0.98rem;
+    font-weight: var(--editable-card-title-weight, 600);
+    word-wrap: break-word;
+  }
+
+  .bag-preview-owner {
+    color: var(--editable-card-owner-color, var(--text-ink-muted));
+    font-size: 0.8rem;
+  }
+
+  .bag-preview-body {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .bag-preview:focus-visible {
@@ -789,8 +821,8 @@
   }
 
   .bag-preview-media {
-    width: 56px;
-    height: 56px;
+    width: 86px;
+    height: 86px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--editable-card-border, rgba(123, 94, 58, 0.2));
     overflow: hidden;
@@ -832,6 +864,15 @@
     color: var(--text-ink-secondary);
   }
 
+  .bag-preview-meta-text {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-ink-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
   .bag-preview-meta {
     display: flex;
     align-items: center;
@@ -839,11 +880,6 @@
     flex-wrap: wrap;
   }
 
-  .bag-preview-brew {
-    min-height: 34px;
-    padding: 0.25rem 0.8rem;
-    font-size: 0.85rem;
-  }
 
   .card-media {
     width: min(100%, var(--editable-card-image-width, 200px));
@@ -1145,12 +1181,9 @@
     }
 
     .bag-preview {
-      grid-template-columns: auto 1fr;
+      grid-template-columns: 1fr;
     }
 
-    .bag-preview-brew {
-      display: none;
-    }
 
     .bag-content {
       grid-template-columns: 1fr;
