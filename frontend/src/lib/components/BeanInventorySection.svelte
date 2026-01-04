@@ -460,6 +460,7 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 1rem;
+      margin-bottom: 0;
     }
 
     .scroll-controls {

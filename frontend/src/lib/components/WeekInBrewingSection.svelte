@@ -802,6 +802,7 @@
     .section-header {
       flex-direction: column;
       align-items: flex-start;
+      margin-bottom: 0;
     }
 
     .scroll-controls {
