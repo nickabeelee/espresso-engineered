@@ -700,7 +700,7 @@
             </div>
           </details>
 
-          <details class="waypoint-details">
+          <details class="waypoint-details" open>
             <summary class="waypoint-summary">
               <div class="waypoint-summary-title">
                 <h3>Equipment</h3>
@@ -824,7 +824,7 @@
             </div>
           </details>
 
-          <details class="waypoint-details">
+          <details class="waypoint-details" open>
             <summary class="waypoint-summary">
               <div class="waypoint-summary-title">
                 <h3>Input Parameters</h3>
@@ -854,7 +854,7 @@
             </div>
           </details>
 
-          <details class="waypoint-details">
+          <details class="waypoint-details" open>
             <summary class="waypoint-summary">
               <div class="waypoint-summary-title">
                 <h3>Output Measurements</h3>
@@ -904,7 +904,7 @@
             </div>
           </details>
 
-          <details class="waypoint-details">
+          <details class="waypoint-details" open>
             <summary class="waypoint-summary">
               <div class="waypoint-summary-title">
                 <h3>Reflections</h3>

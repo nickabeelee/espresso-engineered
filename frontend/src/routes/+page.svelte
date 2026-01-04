@@ -4,6 +4,8 @@
   import { browser } from '$app/environment';
   import { isAuthenticated, barista } from '$lib/auth';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import BagCard from '$lib/components/BagCard.svelte';
+  import Sheet from '$lib/components/Sheet.svelte';
   import { apiClient } from '$lib/api-client';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
@@ -25,6 +27,8 @@
   let hasRecentActivity = false;
   let loading = true;
   let error: string | null = null;
+  let inspectedBag: BagWithBarista | null = null;
+  let inspectOpen = false;
   
   // Analysis section state
   let selectedBean: Bean | null = null;
@@ -136,9 +140,33 @@
   }
 
   function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
-    // Handle bag updates from inventory section
-    // This could trigger updates in other sections if needed
-    console.log('Bag updated:', event.detail);
+    const updatedBag = event.detail;
+    inventorySectionRef?.applyBagUpdate(updatedBag);
+
+    if (inspectedBag?.id === updatedBag.id) {
+      const existingBean = (inspectedBag as any).bean;
+      const updatedBean = (updatedBag as any).bean;
+      const mergedBean = existingBean || updatedBean ? { ...(existingBean || {}), ...(updatedBean || {}) } : undefined;
+      inspectedBag = {
+        ...updatedBag,
+        ...(mergedBean ? { bean: mergedBean } : {})
+      };
+    }
+  }
+
+  function handleBagInspect(event: CustomEvent<{ bag: BagWithBarista }>) {
+    inspectedBag = event.detail.bag;
+    inspectOpen = true;
+  }
+
+  function closeBagInspect() {
+    inspectOpen = false;
+  }
+
+  function handleBagBrew(event: CustomEvent<{ bagId: string | null }>) {
+    const bagId = event.detail.bagId;
+    if (!bagId) return;
+    goto(`/brews/new?bag=${bagId}`);
   }
 
   function handleBeanChange(event: CustomEvent<{ bean: Bean | null }>) {
@@ -200,6 +228,8 @@
     color: colorCss.text.ink.secondary,
     margin: 0
   });
+
+  let inventorySectionRef: any = null;
 </script>
 
 <svelte:head>
@@ -238,7 +268,10 @@
         <div class="section-container inventory-section" id="shelf">
           <svelte:component 
             this={BeanInventorySection}
+            bind:this={inventorySectionRef}
             on:bagUpdated={handleBagUpdated}
+            on:inspect={handleBagInspect}
+            on:brew={handleBagBrew}
           />
         </div>
       {:else if inventoryLoaded}
@@ -292,8 +325,30 @@
           <div class="skeleton-content analysis-skeleton"></div>
         </div>
       {/if}
+
     {/if}
   </div>
+  {#if inspectedBag}
+    <Sheet
+      open={inspectOpen}
+      title="Your bag"
+      subtitle={inspectedBag.name || inspectedBag.bean?.name || 'Bag details'}
+      on:close={closeBagInspect}
+    >
+      <BagCard
+        variant="inspect"
+        surface="sheet"
+        bag={inspectedBag}
+        beanName={inspectedBag.bean?.name || 'Unknown Bean'}
+        roasterName={inspectedBag.bean?.roaster?.name || null}
+        beanImagePath={inspectedBag.bean?.image_path || null}
+        beanRoastLevel={inspectedBag.bean?.roast_level || null}
+        tastingNotes={inspectedBag.bean?.tasting_notes || null}
+        on:updated={handleBagUpdated}
+        on:brew={handleBagBrew}
+      />
+    </Sheet>
+  {/if}
 {:else}
   <!-- Landing page for unauthenticated users -->
   <div class="home-page">
@@ -411,7 +466,7 @@
     transform: translateY(20px);
     animation: fadeInUp 0.6s ease-out forwards;
     will-change: opacity, transform;
-    contain: layout style paint;
+    contain: none;
   }
 
   .inventory-section {
@@ -429,7 +484,7 @@
   @keyframes fadeInUp {
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: none;
     }
   }
 
@@ -468,6 +523,7 @@
   .analysis-skeleton {
     height: 300px;
   }
+
 
   @keyframes shimmer {
     0% {
@@ -538,9 +594,11 @@
       border-radius: var(--radius-md);
     }
 
+
     .cta-buttons {
       flex-direction: column;
       align-items: flex-start;
     }
   }
+
 </style>

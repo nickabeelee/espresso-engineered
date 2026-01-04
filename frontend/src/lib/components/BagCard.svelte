@@ -8,46 +8,93 @@
   import Chip from '$lib/components/Chip.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
-  import { ArrowTopRightOnSquareMini, PencilSquare, CheckCircle, XMark, Plus } from '$lib/icons';
+  import { ArrowTopRightOnSquareMini, PencilSquare, CheckCircle, XMark } from '$lib/icons';
   import { editableCard, editableCardVariants } from '$lib/ui/components/editable-card';
   import { imageSizes } from '$lib/ui/components/image';
   import { toStyleString } from '$lib/ui/style';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
-  import type { BagWithBarista, Barista as BaristaType, InventoryStatus, UpdateBagRequest, CreateBagRequest } from '@shared/types';
+  import type {
+    BagWithBarista,
+    Barista as BaristaType,
+    UpdateBagRequest,
+    CreateBagRequest
+  } from '@shared/types';
+
+  /*
+    BagCard variants
+    - preview: read-only list card for shelves and browsing; tap to inspect.
+    - inspect: full detail view for sheets or wide layouts; primary action is start brew.
+    - edit: sectioned form inside the same sheet; no inline edits inside lists.
+
+    Mobile usage
+    - Lists use preview only.
+    - Inspect/edit live in a sheet overlay so only one paper surface shows at a time.
+  */
+
+  export type BagCardVariant = 'preview' | 'inspect' | 'edit';
+  export type BagCardSurface = 'card' | 'sheet';
 
   // Props for existing bag mode
   export let bag: BagWithBarista | null = null;
   export let beanName: string;
+  export let roasterName: string | null = null;
   export let beanImagePath: string | null = null;
   export let beanRoastLevel: string | null = null;
   export let tastingNotes: string | null = null;
   export let baristasById: Record<string, BaristaType> = {};
-  export let viewVariant: 'full' | 'beanDetail' = 'full';
-  
+  export let variant: BagCardVariant = 'inspect';
+  export let showQuickBrew = false;
+  export let surface: BagCardSurface = 'card';
+
   // Props for new bag mode
   export let beanId: string | null = null;
   export let isNewBag = false;
 
   const dispatch = createEventDispatcher<{
+    inspect: void;
+    brew: { bagId: string | null };
     updated: BagWithBarista;
     created: BagWithBarista;
-    deleted: string;
     cancel: void;
   }>();
 
-  let isEditing = isNewBag; // Start in edit mode for new bags
   let isSaving = false;
   let error: string | null = null;
-  
-  // Form data - works for both create and update
+  let internalEdit = false;
   let formData: Partial<CreateBagRequest & UpdateBagRequest> = {};
+  let lastVariant: BagCardVariant = variant;
+  let lastBeanId = '';
 
   $: bagPermissions = bag ? getBagPermissions($barista, bag) : { canEdit: true, canDelete: false };
   $: canEdit = bagPermissions.canEdit;
 
-  function formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString();
+  $: if (variant !== lastVariant) {
+    if (variant === 'edit' && !isNewBag) {
+      internalEdit = true;
+      initializeFormData();
+    }
+    lastVariant = variant;
   }
+
+  $: isEditing = isNewBag || internalEdit || variant === 'edit';
+  $: activeVariant = variant === 'preview' ? 'preview' : isEditing ? 'edit' : 'inspect';
+
+  $: if (isNewBag && lastBeanId !== (beanId || '')) {
+    lastBeanId = beanId || '';
+    initializeFormData();
+  }
+
+  $: ownershipStatus = getBagOwnershipStatus();
+  $: ownerName = getBagOwnerName();
+  $: pricePerUnit = bag ? formatPricePerGram(bag.price, bag.weight_g) : null;
+  $: formPricePerUnit = formatPricePerGram(formData.price, formData.weight_g);
+  $: averageRating = bag?.average_rating ?? null;
+  $: ratingCount = bag?.rating_count ?? 0;
+  $: brewCount = bag?.brew_count ?? 0;
+  $: beanLinkId = bag?.bean_id ?? beanId ?? null;
+  $: bagTitle = bag?.name?.trim() || beanName;
+  $: inventoryLabel = formatInventoryStatus(bag?.inventory_status);
+  $: inventoryVariant = getInventoryVariant(bag?.inventory_status);
 
   function formatRoastDate(dateString?: string): string {
     if (!dateString) return 'Not specified';
@@ -59,12 +106,12 @@
   }
 
   function getBagOwnershipStatus(): 'owned' | 'other' {
-    if (!bag) return 'owned'; // New bags are always owned by current user
+    if (!bag) return 'owned';
     return bag.owner_id === $barista?.id ? 'owned' : 'other';
   }
 
   function getBagOwnerName(): string {
-    if (!bag) return 'Your bag'; // New bags
+    if (!bag) return 'Your bag';
     if (bag.barista?.display_name) {
       return bag.barista.display_name;
     }
@@ -101,7 +148,6 @@
 
   function initializeFormData() {
     if (isNewBag) {
-      // Initialize for new bag creation
       formData = {
         bean_id: beanId || '',
         name: '',
@@ -111,8 +157,10 @@
         purchase_location: '',
         inventory_status: undefined
       };
-    } else if (bag) {
-      // Initialize for editing existing bag
+      return;
+    }
+
+    if (bag) {
       formData = {
         name: bag.name || '',
         roast_date: bag.roast_date || '',
@@ -126,9 +174,8 @@
 
   function handleEdit() {
     if (!canEdit || isNewBag) return;
-    
     initializeFormData();
-    isEditing = true;
+    internalEdit = true;
     error = null;
   }
 
@@ -137,8 +184,7 @@
       dispatch('cancel');
       return;
     }
-    
-    isEditing = false;
+    internalEdit = false;
     formData = {};
     error = null;
     dispatch('cancel');
@@ -149,17 +195,17 @@
       error = 'Bean is required';
       return false;
     }
-    
+
     if (formData.weight_g !== undefined && formData.weight_g < 0) {
       error = 'Weight cannot be negative';
       return false;
     }
-    
+
     if (formData.price !== undefined && formData.price < 0) {
       error = 'Price cannot be negative';
       return false;
     }
-    
+
     return true;
   }
 
@@ -172,7 +218,6 @@
       error = null;
 
       if (isNewBag) {
-        // Create new bag
         const createData: CreateBagRequest = {
           bean_id: formData.bean_id!,
           name: formData.name?.trim() || undefined,
@@ -184,33 +229,29 @@
         };
 
         const response = await apiClient.createBag(createData);
-        
+
         if (response.data) {
           dispatch('created', response.data);
         } else {
           throw new Error('Failed to create bag');
         }
       } else if (bag) {
-        // Update existing bag
         const updateData: UpdateBagRequest = {
           id: bag.id,
           ...formData
         };
 
-        // Use admin endpoint if user is admin and not the bag owner
         const isAdmin = $barista?.is_admin === true;
         const isOwner = bag.owner_id === $barista?.id;
-        
+
         let response;
         if (isAdmin && !isOwner) {
-          // Admin editing someone else's bag - use admin endpoint
           const updatedBag = await adminService.updateBag(bag.id, updateData);
           response = { data: updatedBag };
         } else {
-          // Owner editing their own bag - use regular endpoint
           response = await apiClient.updateBag(bag.id, updateData);
         }
-        
+
         if (response.data) {
           const updatedBag = { ...response.data, barista: bag.barista };
           const existingBean = (bag as any)?.bean;
@@ -221,7 +262,7 @@
             ...(mergedBean ? { bean: mergedBean } : {})
           };
           dispatch('updated', enrichedBag);
-          isEditing = false;
+          internalEdit = false;
           formData = {};
         } else {
           throw new Error('Failed to update bag');
@@ -238,9 +279,15 @@
   function handleBagStatusUpdated(event: CustomEvent<BagWithBarista>) {
     if (!bag) return;
     const updatedBag = event.detail;
-    // Preserve barista information
     const bagWithBarista = { ...updatedBag, barista: bag.barista };
     dispatch('updated', bagWithBarista);
+  }
+
+  function handlePreviewKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      dispatch('inspect');
+    }
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -251,21 +298,10 @@
     }
   }
 
-  // Initialize form data when component mounts or props change
-  $: if (isNewBag || bag) {
-    initializeFormData();
+  function handleStartBrew(event?: Event) {
+    event?.stopPropagation();
+    dispatch('brew', { bagId: bag?.id ?? null });
   }
-
-  $: ownershipStatus = getBagOwnershipStatus();
-  $: ownerName = getBagOwnerName();
-  $: pricePerUnit = bag ? formatPricePerGram(bag.price, bag.weight_g) : null;
-  $: averageRating = bag?.average_rating ?? null;
-  $: ratingCount = bag?.rating_count ?? 0;
-  $: brewCount = bag?.brew_count ?? 0;
-  $: beanLinkId = !isEditing ? (bag?.bean_id ?? beanId ?? null) : null;
-  $: showMedia = !isEditing && viewVariant === 'full';
-  $: showBeanDetails = !isEditing && viewVariant === 'full';
-  $: showTastingNotes = !isEditing && viewVariant === 'full';
 
   const style = toStyleString({
     '--editable-card-bg': editableCard.container.background,
@@ -349,15 +385,58 @@
   });
 </script>
 
-<div
-  class="bag-card"
-  class:editing={isEditing}
-  class:new-bag={isNewBag}
-  class:has-media={!isEditing}
-  class:bean-detail={viewVariant === 'beanDetail'}
-  on:keydown={handleKeydown}
-  style={style}
->
+{#if activeVariant === 'preview'}
+  <article class="bag-card preview" style={style}>
+    <div
+      class="bag-preview"
+      class:hasQuickBrew={showQuickBrew && Boolean(bag)}
+      role="button"
+      tabindex="0"
+      aria-label={`Inspect ${bagTitle}`}
+      on:click={() => dispatch('inspect')}
+      on:keydown={handlePreviewKeydown}
+    >
+      <div class="bag-preview-media" class:placeholder={!beanImagePath}>
+        {#if beanImagePath}
+          <img
+            src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
+            alt={bagTitle}
+            loading="lazy"
+            on:error={(e) => (e.currentTarget.style.display = 'none')}
+          />
+        {/if}
+      </div>
+      <div class="bag-preview-main">
+        <div class="bag-preview-title">
+          <h4>{bagTitle}</h4>
+          {#if roasterName}
+            <p class="bag-preview-roaster">{roasterName}</p>
+          {/if}
+        </div>
+        <div class="bag-preview-meta">
+          {#if beanRoastLevel}
+            <RoastLevel value={beanRoastLevel} size="small" />
+          {/if}
+          <Chip variant={inventoryVariant} size="sm">{inventoryLabel}</Chip>
+        </div>
+      </div>
+      {#if showQuickBrew && bag}
+        <button type="button" class="btn-secondary bag-preview-brew" on:click={handleStartBrew}>
+          Brew
+        </button>
+      {/if}
+    </div>
+  </article>
+{:else}
+  <article
+    class="bag-card"
+    class:sheet-surface={surface === 'sheet'}
+    class:editing={activeVariant === 'edit'}
+    class:new-bag={isNewBag}
+    class:has-media={!isEditing}
+    on:keydown={handleKeydown}
+    style={style}
+  >
     <div class="bag-card-body">
       <div class="bag-header">
         <div class="bag-header-main">
@@ -366,35 +445,24 @@
               <span class="bag-owner" class:own={ownershipStatus === 'owned'}>
                 {ownershipStatus === 'owned' ? 'Your bag' : ownerName}
               </span>
-            {:else if isEditing}
-              <span class="bag-owner">Creating bag</span>
+            {:else}
+              <span class="bag-owner">New bag</span>
             {/if}
             <div class="bag-title">
-              {#if isEditing}
-                <input
-                  type="text"
-                  bind:value={formData.name}
-                  class="bag-name-input"
-                  placeholder={isNewBag ? `Name for this ${beanName} bag` : beanName}
-                  disabled={isSaving}
-                />
-              {:else if isNewBag}
-                <h4>New Bag</h4>
-              {:else}
-                <h4>{beanName}</h4>
-              {/if}
+              <h4>{isNewBag ? 'New Bag' : bagTitle}</h4>
             </div>
-            {#if !isEditing}
-              <span class="bag-roast-meta">Roasted {bag?.roast_date ? formatRoastDate(bag.roast_date) : 'Not specified'}</span>
+            {#if activeVariant === 'inspect'}
+              <div class="bag-header-meta">
+                <span class="bag-roast-meta">Roasted {bag?.roast_date ? formatRoastDate(bag.roast_date) : 'Not specified'}</span>
+                {#if roasterName}
+                  <span class="bag-roaster-meta">{roasterName}</span>
+                {/if}
+              </div>
             {/if}
           </div>
           <div class="bag-header-status">
-            {#if !isEditing && !isNewBag && bag?.inventory_status}
-              <Chip variant={getInventoryVariant(bag.inventory_status)} size="sm">
-                {formatInventoryStatus(bag.inventory_status)}
-              </Chip>
-            {/if}
-            {#if !isEditing && !isNewBag}
+            {#if activeVariant === 'inspect'}
+              <Chip variant={inventoryVariant} size="sm">{inventoryLabel}</Chip>
               <Chip variant="neutral" size="sm">
                 {brewCount} {brewCount === 1 ? 'brew' : 'brews'}
               </Chip>
@@ -408,9 +476,9 @@
           {error}
         </div>
       {/if}
-      
-      <div class="bag-content">
-        {#if showMedia}
+
+      {#if activeVariant === 'inspect'}
+        <div class="bag-content">
           <div class="bag-media">
             <div
               class="card-media"
@@ -420,9 +488,9 @@
               {#if beanImagePath}
                 <img
                   src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
-                  alt={beanName}
+                  alt={bagTitle}
                   loading="lazy"
-                  on:error={(e) => e.currentTarget.style.display = 'none'}
+                  on:error={(e) => (e.currentTarget.style.display = 'none')}
                 />
               {/if}
             </div>
@@ -433,17 +501,15 @@
               </a>
             {/if}
           </div>
-        {/if}
-        <div class="bag-details">
-          {#if beanRoastLevel && showBeanDetails}
-            <div class="bag-detail">
-              <span class="detail-label">Roast level</span>
-              <div class="detail-value">
-                <RoastLevel value={beanRoastLevel} size="small" />
+          <div class="bag-details">
+            {#if beanRoastLevel}
+              <div class="bag-detail">
+                <span class="detail-label">Roast level</span>
+                <div class="detail-value">
+                  <RoastLevel value={beanRoastLevel} size="small" />
+                </div>
               </div>
-            </div>
-          {/if}
-          {#if !isNewBag && !isEditing}
+            {/if}
             <div class="bag-detail">
               <span class="detail-label">Avg rating</span>
               {#if averageRating !== null && ratingCount > 0}
@@ -454,24 +520,6 @@
                 <span class="detail-value detail-empty">No ratings yet</span>
               {/if}
             </div>
-          {/if}
-          {#if isEditing}
-            <div class="bag-detail">
-              <span class="detail-label">Price</span>
-              <input
-                type="number"
-                inputmode="decimal"
-                bind:value={formData.price}
-                class="detail-input"
-                placeholder="e.g., 18.50"
-                min="0"
-                step="0.01"
-                disabled={isSaving}
-              />
-            </div>
-          {/if}
-
-          {#if viewVariant === 'beanDetail' && !isEditing && !isNewBag}
             <div class="bag-detail">
               <span class="detail-label">Purchase price</span>
               {#if bag?.price !== null && bag?.price !== undefined}
@@ -488,9 +536,6 @@
                 <span class="detail-value detail-empty">Not specified</span>
               {/if}
             </div>
-          {/if}
-
-          {#if !isEditing}
             <div class="bag-detail">
               <span class="detail-label">Unit price</span>
               {#if pricePerUnit}
@@ -499,131 +544,185 @@
                 <span class="detail-value detail-empty">Not specified</span>
               {/if}
             </div>
-          {/if}
-
-          {#if isEditing}
-            <div class="bag-detail">
-              <span class="detail-label">Roast date</span>
-              <input
-                type="date"
-                bind:value={formData.roast_date}
-                class="detail-input"
-                disabled={isSaving}
-              />
-            </div>
-          {/if}
-
-          {#if isEditing}
-            <div class="bag-detail">
-              <span class="detail-label">Weight (g)</span>
-              <input
-                type="number"
-                inputmode="decimal"
-                bind:value={formData.weight_g}
-                class="detail-input"
-                placeholder="e.g., 250"
-                min="0"
-                step="0.1"
-                disabled={isSaving}
-              />
-            </div>
-          {/if}
-
-          {#if isEditing}
             <div class="bag-detail">
               <span class="detail-label">Purchase location</span>
-              <input
-                type="text"
-                bind:value={formData.purchase_location}
-                class="detail-input"
-                placeholder="e.g., Local roaster"
-                disabled={isSaving}
-              />
+              {#if bag?.purchase_location}
+                <span class="detail-value">{bag.purchase_location}</span>
+              {:else}
+                <span class="detail-value detail-empty">Not specified</span>
+              {/if}
             </div>
-          {/if}
+          </div>
+        </div>
 
-          {#if isEditing}
-            <div class="bag-detail">
-              <span class="detail-label">Status</span>
-              <select
-                bind:value={formData.inventory_status}
-                class="detail-select"
-                disabled={isSaving}
-              >
-                <option value="">Select status</option>
-                <option value="unopened">Unopened</option>
-                <option value="plenty">Plenty</option>
-                <option value="getting_low">Getting Low</option>
-                <option value="empty">Empty</option>
-              </select>
+        {#if tastingNotes}
+          <div class="bag-notes">
+            <p class="notes-preview">{tastingNotes}</p>
+          </div>
+        {/if}
+
+        {#if canEdit && bag}
+          <div class="bag-status-section">
+            <h5>Update Status</h5>
+            <BagStatusUpdater {bag} on:updated={handleBagStatusUpdated} />
+          </div>
+        {/if}
+
+        <div class="bag-actions-row">
+          <div class="bag-actions">
+            {#if bag}
+              <button type="button" class="btn-primary" on:click={handleStartBrew}>
+                Start brew with this bag
+              </button>
+            {/if}
+            {#if canEdit && !isNewBag}
+              <button type="button" class="btn-secondary" on:click={handleEdit}>
+                <PencilSquare size={16} />
+                Edit
+              </button>
+            {/if}
+          </div>
+        </div>
+      {:else}
+        <div class="bag-edit-sections">
+          <section class="bag-edit-section">
+            <h5>Identity</h5>
+            <div class="bag-edit-grid">
+              <div class="bag-edit-field">
+                <label for="bag-name">Bag name</label>
+                <input
+                  id="bag-name"
+                  type="text"
+                  bind:value={formData.name}
+                  class="detail-input"
+                  placeholder={isNewBag ? `Name for this ${beanName} bag` : beanName}
+                  disabled={isSaving}
+                />
+              </div>
+              <div class="bag-edit-field">
+                <label for="bag-roast-date">Roast date</label>
+                <input
+                  id="bag-roast-date"
+                  type="date"
+                  bind:value={formData.roast_date}
+                  class="detail-input"
+                  disabled={isSaving}
+                />
+              </div>
             </div>
-          {/if}
-        </div>
-      </div>
+          </section>
 
-      {#if showTastingNotes && tastingNotes}
-        <div class="bag-notes">
-          <p class="notes-preview">
-            {tastingNotes.length > 100
-              ? tastingNotes.substring(0, 100) + '...'
-              : tastingNotes}
-          </p>
-        </div>
-      {/if}
+          <section class="bag-edit-section">
+            <h5>Purchase</h5>
+            <div class="bag-edit-grid">
+              <div class="bag-edit-field">
+                <label for="bag-price">Price</label>
+                <input
+                  id="bag-price"
+                  type="number"
+                  inputmode="decimal"
+                  bind:value={formData.price}
+                  class="detail-input"
+                  placeholder="e.g., 18.50"
+                  min="0"
+                  step="0.01"
+                  disabled={isSaving}
+                />
+              </div>
+              <div class="bag-edit-field">
+                <label for="bag-weight">Weight (g)</label>
+                <input
+                  id="bag-weight"
+                  type="number"
+                  inputmode="decimal"
+                  bind:value={formData.weight_g}
+                  class="detail-input"
+                  placeholder="e.g., 250"
+                  min="0"
+                  step="0.1"
+                  disabled={isSaving}
+                />
+              </div>
+              <div class="bag-edit-field">
+                <label for="bag-location">Purchase location</label>
+                <input
+                  id="bag-location"
+                  type="text"
+                  bind:value={formData.purchase_location}
+                  class="detail-input"
+                  placeholder="e.g., Local roaster"
+                  disabled={isSaving}
+                />
+              </div>
+              <div class="bag-edit-field">
+                <label>Unit price</label>
+                <div class="detail-value detail-readonly">
+                  {#if formPricePerUnit}
+                    {formPricePerUnit}
+                  {:else}
+                    <span class="detail-empty">Not specified</span>
+                  {/if}
+                </div>
+              </div>
+            </div>
+          </section>
 
-      <!-- Status updater for owned bags and admins (only when not editing and not new bag) -->
-      {#if canEdit && !isEditing && !isNewBag && bag}
-        <div class="bag-status-section">
-          <h5>Update Status</h5>
-          <BagStatusUpdater 
-            {bag} 
-            on:updated={handleBagStatusUpdated}
-          />
-        </div>
-      {/if}
+          <section class="bag-edit-section">
+            <h5>Inventory</h5>
+            <div class="bag-edit-grid">
+              <div class="bag-edit-field">
+                <label for="bag-status">Status</label>
+                <select id="bag-status" bind:value={formData.inventory_status} class="detail-select" disabled={isSaving}>
+                  <option value="">Select status</option>
+                  <option value="unopened">Unopened</option>
+                  <option value="plenty">Plenty</option>
+                  <option value="getting_low">Getting Low</option>
+                  <option value="empty">Empty</option>
+                </select>
+              </div>
+            </div>
+          </section>
 
-      <div class="bag-actions-row">
-        <div class="bag-actions">
-          {#if canEdit && !isEditing && !isNewBag}
-            <IconButton 
-              on:click={handleEdit} 
-              ariaLabel="Edit bag" 
-              title="Edit bag" 
-              variant="accent" 
+          <section class="bag-edit-section">
+            <h5>Notes</h5>
+            <div class="bag-edit-notes">
+              {#if tastingNotes}
+                <p class="notes-preview">{tastingNotes}</p>
+              {:else}
+                <p class="detail-empty">No tasting notes for this bean.</p>
+              {/if}
+            </div>
+          </section>
+        </div>
+
+        <div class="bag-actions-row">
+          <div class="bag-actions">
+            <IconButton
+              on:click={handleCancel}
+              ariaLabel="Cancel"
+              title="Cancel"
+              variant="neutral"
               size="sm"
+              disabled={isSaving}
             >
-              <PencilSquare />
+              <XMark />
             </IconButton>
-          {/if}
-          
-          {#if isEditing}
-            <div class="edit-actions">
-              <IconButton 
-                on:click={handleCancel} 
-                ariaLabel="Cancel" 
-                title="Cancel" 
-                variant="neutral" 
-                size="sm"
-                disabled={isSaving}
-              >
-                <XMark />
-              </IconButton>
-              <IconButton 
-                on:click={handleSave} 
-                ariaLabel={isNewBag ? "Create bag" : "Save changes"} 
-                title={isNewBag ? "Create bag" : "Save"} 
-                variant="success" 
-                size="sm"
-                disabled={isSaving}
-              >
-                <CheckCircle />
-              </IconButton>
-            </div>
-          {/if}
+            <IconButton
+              on:click={handleSave}
+              ariaLabel={isNewBag ? 'Create bag' : 'Save changes'}
+              title={isNewBag ? 'Create bag' : 'Save'}
+              variant="success"
+              size="sm"
+              disabled={isSaving}
+            >
+              <CheckCircle />
+            </IconButton>
+          </div>
         </div>
-      </div>
+      {/if}
     </div>
-</div>
+  </article>
+{/if}
 
 <style>
   .bag-card {
@@ -632,6 +731,26 @@
     border-radius: var(--editable-card-radius, var(--radius-md));
     padding: var(--editable-card-padding, 1rem);
     transition: var(--editable-card-transition, border-color var(--motion-fast));
+  }
+
+  .bag-card.preview {
+    padding: 0.85rem;
+  }
+
+  .bag-card.sheet-surface {
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .bag-card.sheet-surface:hover {
+    box-shadow: none;
+    border-color: transparent;
+  }
+
+  .bag-card.sheet-surface.editing {
+    box-shadow: none;
   }
 
   .bag-card:hover {
@@ -651,10 +770,79 @@
     margin-bottom: var(--editable-card-new-margin, 1.5rem);
   }
 
-  .bag-card.new-bag.editing {
-    border-style: var(--editable-card-new-edit-border-style, solid);
-    background: var(--editable-card-new-edit-bg, var(--bg-surface-paper));
-    margin-bottom: var(--editable-card-new-edit-margin, 1.5rem);
+  .bag-preview {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+  }
+
+  .bag-preview.hasQuickBrew {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .bag-preview:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 4px;
+    border-radius: var(--radius-md);
+  }
+
+  .bag-preview-media {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--editable-card-border, rgba(123, 94, 58, 0.2));
+    overflow: hidden;
+    background: rgba(123, 94, 58, 0.06);
+    flex-shrink: 0;
+  }
+
+  .bag-preview-media.placeholder {
+    background: rgba(123, 94, 58, 0.04);
+    border-style: dashed;
+  }
+
+  .bag-preview-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .bag-preview-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .bag-preview-title h4 {
+    margin: 0;
+    color: var(--editable-card-title-color, var(--text-ink-primary));
+    font-family: var(--editable-card-title-font, inherit);
+    font-size: 0.95rem;
+    font-weight: var(--editable-card-title-weight, 600);
+    word-wrap: break-word;
+  }
+
+  .bag-preview-roaster {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-ink-secondary);
+  }
+
+  .bag-preview-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .bag-preview-brew {
+    min-height: 34px;
+    padding: 0.25rem 0.8rem;
+    font-size: 0.85rem;
   }
 
   .card-media {
@@ -720,6 +908,12 @@
     gap: 0.35rem;
   }
 
+  .bag-header-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
   .bag-header-status {
     display: flex;
     justify-content: flex-end;
@@ -742,29 +936,6 @@
     word-wrap: break-word;
   }
 
-  .bag-name-input {
-    width: 100%;
-    color: var(--editable-card-input-color, var(--text-ink-primary));
-    font-size: var(--editable-card-input-size, 1rem);
-    font-weight: 600;
-    background: var(--editable-card-input-bg, var(--bg-surface-paper));
-    border: var(--editable-card-input-border-width, 1px) solid var(--editable-card-input-border, rgba(123, 94, 58, 0.3));
-    border-radius: var(--editable-card-input-radius, var(--radius-sm));
-    padding: 0.5rem 0.75rem;
-    transition: border-color var(--motion-fast);
-  }
-
-  .bag-name-input:focus {
-    outline: none;
-    border-color: var(--editable-card-edit-border, var(--accent-primary));
-    box-shadow: var(--editable-card-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.1));
-  }
-
-  .bag-name-input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
   .bag-owner {
     color: var(--editable-card-owner-color, var(--text-ink-muted));
     font-size: var(--editable-card-owner-size, 0.8rem);
@@ -776,15 +947,11 @@
     font-weight: var(--editable-card-owner-weight, 600);
   }
 
-  .bag-roast-meta {
+  .bag-roast-meta,
+  .bag-roaster-meta {
     color: var(--editable-card-info-color, var(--text-ink-secondary));
     font-family: var(--editable-card-info-font, inherit);
     font-size: var(--editable-card-info-size, 0.8rem);
-  }
-
-  .edit-actions {
-    display: flex;
-    gap: var(--editable-card-edit-actions-gap, 0.25rem);
   }
 
   .error-message {
@@ -800,13 +967,9 @@
 
   .bag-content {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: var(--editable-card-image-width, 200px) minmax(240px, 1fr);
     gap: 1rem;
     align-items: start;
-  }
-
-  .bag-card.has-media .bag-content {
-    grid-template-columns: var(--editable-card-image-width, 200px) minmax(240px, 1fr);
   }
 
   .bag-details {
@@ -814,15 +977,6 @@
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: var(--editable-card-grid-gap, 0.75rem);
   }
-
-  .bag-card.has-media .bag-details {
-    grid-template-columns: 1fr;
-  }
-
-  .bag-card.bean-detail .bag-details {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  }
-
 
   .bag-detail {
     display: flex;
@@ -843,6 +997,10 @@
     font-family: var(--editable-card-value-font, inherit);
   }
 
+  .detail-readonly {
+    padding: 0.4rem 0;
+  }
+
   .detail-empty {
     color: var(--editable-card-empty-color, var(--text-ink-muted));
     font-style: var(--editable-card-empty-style, italic);
@@ -859,6 +1017,16 @@
     border-radius: var(--editable-card-input-radius, var(--radius-sm));
     padding: var(--editable-card-input-padding, 0.4rem 0.6rem);
     transition: border-color var(--motion-fast);
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: block;
+  }
+
+  .detail-input[type="date"] {
+    width: 100%;
+    max-width: 100%;
   }
 
   .detail-input:focus,
@@ -913,7 +1081,61 @@
   .bag-actions {
     display: flex;
     align-items: center;
-    gap: var(--editable-card-actions-gap, 0.5rem);
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .bag-edit-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .bag-edit-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .bag-edit-section h5 {
+    margin: 0;
+    color: var(--editable-card-section-title-color, var(--text-ink-secondary));
+    font-size: var(--editable-card-section-title-size, 0.95rem);
+    font-weight: var(--editable-card-section-title-weight, 600);
+    font-family: var(--editable-card-section-title-font, inherit);
+  }
+
+  .bag-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, minmax(0, 1fr)));
+    gap: 0.9rem;
+  }
+
+  .bag-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .bag-edit-field label {
+    font-weight: var(--editable-card-label-weight, 500);
+    color: var(--editable-card-label-color, var(--text-ink-secondary));
+    font-size: var(--editable-card-label-size, 0.8rem);
+    font-family: var(--editable-card-label-font, inherit);
+  }
+
+  .bag-edit-notes {
+    padding: 0.6rem 0.75rem;
+    background: var(--record-card-notes-bg, rgba(123, 94, 58, 0.06));
+    border-radius: var(--record-card-notes-radius, var(--radius-sm));
+    border: 1px solid rgba(123, 94, 58, 0.15);
+  }
+
+  @media (max-width: 900px) {
+    .bag-content {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 768px) {
@@ -922,11 +1144,19 @@
       align-items: flex-start;
     }
 
+    .bag-preview {
+      grid-template-columns: auto 1fr;
+    }
+
+    .bag-preview-brew {
+      display: none;
+    }
+
     .bag-content {
       grid-template-columns: 1fr;
     }
 
-    .bag-card.has-media .bag-content {
+    .bag-edit-grid {
       grid-template-columns: 1fr;
     }
 

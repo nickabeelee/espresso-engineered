@@ -15,6 +15,7 @@
   import MachineSelector from './MachineSelector.svelte';
 
   export let brew: Brew | null = null;
+  export let prefillBagId: string | null = null;
   let name = '';
   let isNameAuto = true;
   let nameTouched = false;
@@ -40,6 +41,7 @@
   let prefillAvailable = false;
   let prefillLoading = false;
   let prefillApplied = false;
+  let hasAppliedPrefillBag = false;
 
   let outputSection: HTMLDivElement | null = null;
   let doseInput: HTMLInputElement | null = null;
@@ -107,6 +109,11 @@
       await checkPrefillAvailability();
     }
   });
+
+  $: if (!brew && prefillBagId && !hasAppliedPrefillBag) {
+    bag_id = prefillBagId;
+    hasAppliedPrefillBag = true;
+  }
 
   function normalizeNumber(value: number | null | undefined): number | undefined {
     if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -430,7 +437,7 @@
     </details>
 
     <!-- Equipment Selection -->
-    <details class="waypoint-details form-waypoint">
+    <details class="waypoint-details form-waypoint" open>
       <summary class="waypoint-summary">
         <div class="waypoint-summary-title">
           <h3>Equipment</h3>
@@ -488,7 +495,7 @@
     </details>
 
     <!-- Input Parameters -->
-    <details class="waypoint-details form-waypoint">
+    <details class="waypoint-details form-waypoint" open>
       <summary class="waypoint-summary">
         <div class="waypoint-summary-title">
           <h3>Input Parameters</h3>
@@ -543,7 +550,7 @@
     </details>
 
     <!-- Output Measurements -->
-    <details class="waypoint-details form-waypoint">
+    <details class="waypoint-details form-waypoint" open>
       <summary class="waypoint-summary">
         <div class="waypoint-summary-title">
           <h3>Output Measurements</h3>
@@ -620,7 +627,7 @@
     </details>
 
     <!-- Evaluation -->
-    <details class="waypoint-details form-waypoint">
+    <details class="waypoint-details form-waypoint" open>
       <summary class="waypoint-summary">
         <div class="waypoint-summary-title">
           <h3>Evaluation</h3>
