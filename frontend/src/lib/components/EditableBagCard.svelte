@@ -354,6 +354,7 @@
   class:editing={isEditing}
   class:new-bag={isNewBag}
   class:has-media={!isEditing}
+  class:bean-detail={viewVariant === 'beanDetail'}
   on:keydown={handleKeydown}
   style={style}
 >
@@ -383,7 +384,9 @@
                 <h4>{beanName}</h4>
               {/if}
             </div>
-            <span class="bag-roast-meta">Roasted {bag?.roast_date ? formatRoastDate(bag.roast_date) : 'Not specified'}</span>
+            {#if !isEditing}
+              <span class="bag-roast-meta">Roasted {bag?.roast_date ? formatRoastDate(bag.roast_date) : 'Not specified'}</span>
+            {/if}
           </div>
           <div class="bag-header-status">
             {#if !isEditing && !isNewBag && bag?.inventory_status}
@@ -440,7 +443,7 @@
               </div>
             </div>
           {/if}
-          {#if !isNewBag}
+          {#if !isNewBag && !isEditing}
             <div class="bag-detail">
               <span class="detail-label">Avg rating</span>
               {#if averageRating !== null && ratingCount > 0}
@@ -452,9 +455,9 @@
               {/if}
             </div>
           {/if}
-          <div class="bag-detail">
-            <span class="detail-label">Price</span>
-            {#if isEditing}
+          {#if isEditing}
+            <div class="bag-detail">
+              <span class="detail-label">Price</span>
               <input
                 type="number"
                 inputmode="decimal"
@@ -465,12 +468,38 @@
                 step="0.01"
                 disabled={isSaving}
               />
-            {:else if pricePerUnit}
-              <span class="detail-value">{pricePerUnit}</span>
-            {:else}
-              <span class="detail-value detail-empty">Not specified</span>
-            {/if}
-          </div>
+            </div>
+          {/if}
+
+          {#if viewVariant === 'beanDetail' && !isEditing && !isNewBag}
+            <div class="bag-detail">
+              <span class="detail-label">Purchase price</span>
+              {#if bag?.price !== null && bag?.price !== undefined}
+                <span class="detail-value">${bag.price.toFixed(2)}</span>
+              {:else}
+                <span class="detail-value detail-empty">Not specified</span>
+              {/if}
+            </div>
+            <div class="bag-detail">
+              <span class="detail-label">Bag weight</span>
+              {#if bag?.weight_g !== null && bag?.weight_g !== undefined}
+                <span class="detail-value">{bag.weight_g} g</span>
+              {:else}
+                <span class="detail-value detail-empty">Not specified</span>
+              {/if}
+            </div>
+          {/if}
+
+          {#if !isEditing}
+            <div class="bag-detail">
+              <span class="detail-label">Unit price</span>
+              {#if pricePerUnit}
+                <span class="detail-value">{pricePerUnit}</span>
+              {:else}
+                <span class="detail-value detail-empty">Not specified</span>
+              {/if}
+            </div>
+          {/if}
 
           {#if isEditing}
             <div class="bag-detail">
@@ -486,7 +515,7 @@
 
           {#if isEditing}
             <div class="bag-detail">
-              <span class="detail-label">Weight</span>
+              <span class="detail-label">Weight (g)</span>
               <input
                 type="number"
                 inputmode="decimal"
@@ -788,6 +817,10 @@
 
   .bag-card.has-media .bag-details {
     grid-template-columns: 1fr;
+  }
+
+  .bag-card.bean-detail .bag-details {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 
 
