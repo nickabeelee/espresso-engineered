@@ -306,7 +306,7 @@
       <p class="voice-text" style={voiceLineStyle}>Add a bag to start your bar shelf.</p>
     </div>
   {:else}
-    <div class="inventory-shell" style={inventoryShellStyle}>
+    <div class="inventory-shell edge-rail" style={inventoryShellStyle}>
       <div class="inventory-container edge-rail">
         <div 
           class="bag-scroll-container" 
@@ -475,10 +475,28 @@
       gap: 1rem;
     }
 
+    .bag-list {
+      padding-right: 1rem;
+    }
+
     .inventory-shell {
-      background: transparent;
-      border: none;
-      padding: 0;
+      background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+      border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid)
+        var(--record-list-border, rgba(123, 94, 58, 0.2));
+      border-radius: 0;
+      padding: 0.75rem 0;
+    }
+
+    .inventory-shell.edge-rail {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .bag-scroll-container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      scroll-padding-left: 1rem;
+      scroll-padding-right: 1rem;
     }
 
   }

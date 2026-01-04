@@ -476,8 +476,8 @@
       <p class="voice-text" style={voiceLineStyle}>The week is just beginning. Check back soon to see what everyone's brewing!</p>
     </div>
   {:else}
-    <div class="brewing-shell" style={stackShellStyle}>
-      <div class="group-scroll edge-rail" bind:this={scrollContainer}>
+    <div class="brewing-shell edge-rail" style={stackShellStyle}>
+      <div class="group-scroll" bind:this={scrollContainer}>
         <div class="group-row">
           {#each brewGroups as group, groupIndex (getGroupKey(group))}
             {@const averageRating = getGroupAverageRating(group)}
@@ -822,9 +822,22 @@
     }
 
     .brewing-shell {
-      background: transparent;
-      border: none;
-      padding: 0;
+      background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+      border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid)
+        var(--record-list-border, rgba(123, 94, 58, 0.2));
+      border-radius: 0;
+      padding: 0.75rem 0;
+    }
+
+    .group-scroll {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      scroll-padding-left: 1rem;
+      scroll-padding-right: 1rem;
+    }
+
+    .group-row {
+      padding-right: 1rem;
     }
 
     .group-overlay-panel {
