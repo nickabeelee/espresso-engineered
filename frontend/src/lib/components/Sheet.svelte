@@ -12,6 +12,7 @@
   export let closeLabel = 'Close';
   export let lockScroll = true;
   export let showHeader = true;
+  export let stickyHeader = false;
 
   const dispatch = createEventDispatcher<{ close: void }>();
 
@@ -26,8 +27,10 @@
     if (locked) {
       previousBodyOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
+      document.body.classList.add('sheet-open');
     } else {
       document.body.style.overflow = previousBodyOverflow || '';
+      document.body.classList.remove('sheet-open');
     }
   }
 
@@ -61,7 +64,7 @@
   <button class="sheet-backdrop" type="button" on:click={requestClose} aria-label={closeLabel}></button>
   <div class="sheet-panel">
     {#if showHeader}
-      <div class="sheet-header">
+      <div class="sheet-header" class:sticky={stickyHeader}>
         <div class="sheet-title">
           {#if title}
             <h3>{title}</h3>
@@ -127,6 +130,15 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--sheet-header-gap, 1rem);
+  }
+
+  .sheet-header.sticky {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--sheet-panel-bg, var(--bg-surface-paper));
+    padding-bottom: 0.75rem;
+    isolation: isolate;
   }
 
   .sheet-title {

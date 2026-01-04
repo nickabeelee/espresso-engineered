@@ -273,6 +273,11 @@ textarea:disabled {
   animation: pageFadeIn var(--motion-slow) ease;
 }
 
+.sheet-open .page-surface {
+  animation: none;
+  transform: none;
+}
+
 .surface-secondary {
   background: var(--bg-surface-secondary);
   color: var(--text-ink-inverted);

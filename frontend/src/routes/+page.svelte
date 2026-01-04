@@ -5,12 +5,13 @@
   import { isAuthenticated, barista } from '$lib/auth';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import BagCard from '$lib/components/BagCard.svelte';
+  import BrewCard from '$lib/components/BrewCard.svelte';
   import Sheet from '$lib/components/Sheet.svelte';
   import { apiClient } from '$lib/api-client';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
   import { toStyleString } from '$lib/ui/style';
-  import type { Bean, Bag, BagWithBarista } from '@shared/types';
+  import type { Bean, Bag, BagWithBarista, Brew } from '@shared/types';
 
   // Lazy load components for better performance
   let BeanInventorySection: any = null;
@@ -29,6 +30,7 @@
   let error: string | null = null;
   let inspectedBag: BagWithBarista | null = null;
   let inspectOpen = false;
+  let activeBrewGroup: LayeredBrewGroup | null = null;
   
   // Analysis section state
   let selectedBean: Bean | null = null;
@@ -181,6 +183,16 @@
     await loadDashboardData();
   }
 
+  function handleBrewGroupOpen(event: CustomEvent<{ group: LayeredBrewGroup }>) {
+    activeBrewGroup = event.detail.group;
+  }
+
+  function closeBrewGroupSheet() {
+    activeBrewGroup = null;
+  }
+
+  const getBrewCountText = (count: number) => (count === 1 ? '1 brew' : `${count} brews`);
+
   const voiceLineStyle = toStyleString({
     ...textStyles.voice,
     color: colorCss.text.ink.muted,
@@ -230,6 +242,34 @@
   });
 
   let inventorySectionRef: any = null;
+
+  type BrewWithEquipment = Brew & {
+    grinder?: {
+      image_path?: string | null;
+    };
+    machine?: {
+      image_path?: string | null;
+    };
+  };
+
+  type LayeredBrewGroup = {
+    barista: {
+      id: string;
+      display_name: string;
+    };
+    bean: {
+      id: string;
+      name: string;
+      roast_level: string;
+      image_path?: string | null;
+      roaster: {
+        id: string;
+        name: string;
+      };
+    };
+    brews: BrewWithEquipment[];
+    stackDepth: number;
+  };
 </script>
 
 <svelte:head>
@@ -289,7 +329,7 @@
       <!-- Week in Brewing Section -->
       {#if weekLoaded && WeekInBrewingSection}
         <div class="section-container week-section" id="week">
-          <svelte:component this={WeekInBrewingSection} />
+          <svelte:component this={WeekInBrewingSection} on:openGroup={handleBrewGroupOpen} />
         </div>
       {:else if weekLoaded}
         <div class="section-skeleton">
@@ -347,6 +387,26 @@
         on:updated={handleBagUpdated}
         on:brew={handleBagBrew}
       />
+    </Sheet>
+  {/if}
+  {#if activeBrewGroup}
+    <Sheet
+      open={Boolean(activeBrewGroup)}
+      title={activeBrewGroup.bean.name}
+      subtitle={`${activeBrewGroup.barista.display_name} · ${getBrewCountText(activeBrewGroup.brews.length)}`}
+      closeLabel="Close brew stack"
+      stickyHeader={true}
+      on:close={closeBrewGroupSheet}
+    >
+      <div class="brew-stack-sheet-list">
+        {#each activeBrewGroup.brews as brew (brew.id)}
+          <BrewCard
+            brew={brew}
+            baristaName={activeBrewGroup.barista.display_name}
+            variant="detail"
+          />
+        {/each}
+      </div>
     </Sheet>
   {/if}
 {:else}
@@ -522,6 +582,14 @@
 
   .analysis-skeleton {
     height: 300px;
+  }
+
+  .brew-stack-sheet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
   }
 
 
