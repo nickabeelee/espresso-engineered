@@ -36,7 +36,10 @@
   let scrollTrackingInitialized = false;
 
   // Swipe tracking
-  const swipeStates = new Map<number, { x: number; y: number; scrollLeft: number }>();
+  const swipeStates = new Map<
+    number,
+    { x: number; y: number; scrollLeft: number; pointerId: number; isDragging: boolean }
+  >();
   const stackAnimating = new Set<number>();
 
   const maxStackDepth = 3;
@@ -347,12 +350,49 @@
     animateStackShuffle(groupIndex, rotated, direction);
   }
 
+  function setDragVisuals(groupIndex: number, dx: number) {
+    const groupElement = groupElements[groupIndex];
+    if (!groupElement) return;
+
+    const clampedX = Math.max(-120, Math.min(120, dx));
+    groupElement.style.setProperty('--drag-x', `${clampedX}px`);
+    groupElement.style.setProperty('--drag-rotate', `${clampedX * 0.08}deg`);
+  }
+
+  function clearDragVisuals(groupIndex: number) {
+    const groupElement = groupElements[groupIndex];
+    if (!groupElement) return;
+    groupElement.style.setProperty('--drag-x', '0px');
+    groupElement.style.setProperty('--drag-rotate', '0deg');
+    groupElement.classList.remove('is-dragging');
+  }
+
   function handleStackPointerDown(groupIndex: number, event: PointerEvent) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    event.currentTarget?.setPointerCapture?.(event.pointerId);
     swipeStates.set(groupIndex, {
       x: event.clientX,
       y: event.clientY,
-      scrollLeft: scrollContainer?.scrollLeft ?? 0
+      scrollLeft: scrollContainer?.scrollLeft ?? 0,
+      pointerId: event.pointerId,
+      isDragging: false
     });
+  }
+
+  function handleStackPointerMove(groupIndex: number, event: PointerEvent) {
+    const state = swipeStates.get(groupIndex);
+    if (!state || state.pointerId !== event.pointerId) return;
+
+    const dx = event.clientX - state.x;
+    const dy = event.clientY - state.y;
+
+    if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+    if (Math.abs(dx) < Math.abs(dy)) return;
+
+    state.isDragging = true;
+    groupElements[groupIndex]?.classList.add('is-dragging');
+    event.preventDefault();
+    setDragVisuals(groupIndex, dx);
   }
 
   function handleStackPointerUp(groupIndex: number, event: PointerEvent) {
@@ -365,10 +405,21 @@
     const dy = event.clientY - state.y;
     const scrollDelta = Math.abs((scrollContainer?.scrollLeft ?? 0) - state.scrollLeft);
 
+    event.currentTarget?.releasePointerCapture?.(event.pointerId);
+    clearDragVisuals(groupIndex);
+
     if (scrollDelta > 8) return;
     if (Math.abs(dx) < 42 || Math.abs(dx) < Math.abs(dy)) return;
 
     navigateBrew(groupIndex, dx < 0 ? 1 : -1);
+  }
+
+  function handleStackPointerCancel(groupIndex: number, event: PointerEvent) {
+    const state = swipeStates.get(groupIndex);
+    if (!state || state.pointerId !== event.pointerId) return;
+    swipeStates.delete(groupIndex);
+    event.currentTarget?.releasePointerCapture?.(event.pointerId);
+    clearDragVisuals(groupIndex);
   }
 
   function handleGroupKeydown(event: KeyboardEvent, groupIndex: number) {
@@ -491,8 +542,9 @@
               <div
                 class="stack-area"
                 on:pointerdown={(event) => handleStackPointerDown(groupIndex, event)}
+                on:pointermove={(event) => handleStackPointerMove(groupIndex, event)}
                 on:pointerup={(event) => handleStackPointerUp(groupIndex, event)}
-                on:pointercancel={() => swipeStates.delete(groupIndex)}
+                on:pointercancel={(event) => handleStackPointerCancel(groupIndex, event)}
               >
                 {#each getStackedBrews(group, groupIndex, stackOrders) as stackItem (stackItem.brew.id)}
                   <div
@@ -532,19 +584,6 @@
                   </IconButton>
                 </div>
 
-                <div class="brew-indicators" role="tablist" aria-label="Select brew">
-                  {#each group.brews as brew, brewIndex (brew.id)}
-                    <button
-                      class="brew-indicator"
-                      class:active={brewIndex === getActiveIndex(groupIndex, stackOrders)}
-                      aria-label={`View brew ${brewIndex + 1} of ${group.brews.length}`}
-                      aria-pressed={brewIndex === getActiveIndex(groupIndex, stackOrders) ? 'true' : 'false'}
-                      on:click={() => setActiveBrew(groupIndex, brewIndex)}
-                    >
-                      <span class="indicator-line"></span>
-                    </button>
-                  {/each}
-                </div>
               </div>
             </article>
           {/each}
@@ -677,6 +716,7 @@
     min-height: 320px;
     overflow: hidden;
     border-radius: var(--radius-md);
+    touch-action: pan-y;
   }
 
   .stack-card {
@@ -691,6 +731,13 @@
 
   .stack-card.is-active {
     pointer-events: auto;
+    transform: translateX(var(--drag-x, 0px)) rotate(var(--drag-rotate, 0deg))
+      translateY(calc(var(--stack-offset) * 10px))
+      scale(calc(1 - var(--stack-offset) * 0.02));
+  }
+
+  .group-stack.is-dragging .stack-card.is-active {
+    transition: opacity 160ms ease;
   }
 
   .stack-footer {
@@ -709,39 +756,6 @@
   .stack-count {
     min-width: 80px;
     text-align: center;
-  }
-
-  .brew-indicators {
-    display: flex;
-    gap: 0.35rem;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .brew-indicator {
-    background: none;
-    border: none;
-    padding: 0.25rem 0.35rem;
-    cursor: pointer;
-    border-radius: 2px;
-    transition: transform 160ms ease;
-  }
-
-  .brew-indicator:hover {
-    transform: scale(1.06);
-  }
-
-  .indicator-line {
-    display: block;
-    width: 20px;
-    height: 2px;
-    background: var(--text-ink-muted);
-    transition: background 160ms ease, height 160ms ease;
-  }
-
-  .brew-indicator.active .indicator-line {
-    background: var(--accent-primary);
-    height: 3px;
   }
 
   @media (max-width: 900px) {
@@ -768,8 +782,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .stack-card,
-    .brew-indicator {
+    .stack-card {
       transition: none;
     }
   }
