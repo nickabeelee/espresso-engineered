@@ -261,10 +261,14 @@ textarea:disabled {
 }
 
 .page-surface {
+  --page-side-padding-left: 2.5rem;
+  --page-side-padding-right: 2.5rem;
+  --page-top-padding: 2.25rem;
+  --page-bottom-padding: 2.25rem;
   width: min(980px, 100%);
   background: var(--bg-surface-paper);
   border-radius: var(--radius-lg);
-  padding: 2.25rem 2.5rem;
+  padding: var(--page-top-padding) var(--page-side-padding-right) var(--page-bottom-padding) var(--page-side-padding-left);
   box-shadow: var(--shadow-soft);
   animation: pageFadeIn var(--motion-slow) ease;
 }
@@ -272,6 +276,48 @@ textarea:disabled {
 .surface-secondary {
   background: var(--bg-surface-secondary);
   color: var(--text-ink-inverted);
+}
+
+.edge-rail {
+  margin: 0;
+  padding: 0;
+}
+
+.waypoint {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.waypoint-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.waypoint-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.waypoint-summary::-webkit-details-marker {
+  display: none;
+}
+
+.waypoint-summary-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.waypoint-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .card {
@@ -544,7 +590,7 @@ textarea:disabled {
   }
 
   .page-main {
-    padding: 1.5rem 1rem 2.5rem;
+    padding: 1.5rem 0 2.5rem;
   }
 
   .page-frame {
@@ -556,8 +602,31 @@ textarea:disabled {
   }
 
   .page-surface {
-    padding: 1.5rem;
-    border-radius: var(--radius-md);
+    --page-side-padding-left: calc(1rem + env(safe-area-inset-left, 0px));
+    --page-side-padding-right: calc(1rem + env(safe-area-inset-right, 0px));
+    --page-top-padding: 1.5rem;
+    --page-bottom-padding: 1.75rem;
+    padding: var(--page-top-padding) var(--page-side-padding-right) var(--page-bottom-padding) var(--page-side-padding-left);
+    border-radius: 0;
+    width: 100%;
+    box-shadow: none;
+  }
+
+  .edge-rail {
+    margin-left: calc(-1 * var(--page-side-padding-left));
+    margin-right: calc(-1 * var(--page-side-padding-right));
+    padding-left: var(--page-side-padding-left);
+    padding-right: var(--page-side-padding-right);
+  }
+}
+
+@media (min-width: 769px) {
+  .waypoint-details > summary {
+    display: none;
+  }
+
+  .waypoint-details:not([open]) > .waypoint-body {
+    display: flex;
   }
 }
 

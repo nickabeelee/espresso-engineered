@@ -296,7 +296,7 @@
     </div>
   {:else}
     <div class="inventory-shell" style={inventoryShellStyle}>
-      <div class="inventory-container">
+      <div class="inventory-container edge-rail">
         <div 
           class="bag-scroll-container" 
           bind:this={scrollContainer}
@@ -447,28 +447,34 @@
     }
 
     .scroll-controls {
-      align-self: flex-end;
+      display: none;
     }
 
     .bag-card-wrapper {
-      width: 320px;
-      min-width: 320px;
+      width: min(82vw, 320px);
+      min-width: min(82vw, 320px);
     }
 
     .bag-list {
       gap: 1rem;
     }
+
+    .inventory-shell {
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
   }
 
   @media (max-width: 480px) {
     .bag-card-wrapper {
-      width: 260px;
-      min-width: 260px;
+      width: min(86vw, 280px);
+      min-width: min(86vw, 280px);
     }
 
     .bag-card-wrapper.with-image {
-      width: 260px;
-      min-width: 260px;
+      width: min(86vw, 280px);
+      min-width: min(86vw, 280px);
     }
   }
 </style>

@@ -4,7 +4,8 @@
   import { barista } from '$lib/auth';
   import ScatterPlot from './ScatterPlot.svelte';
   import ErrorDisplay from './ErrorDisplay.svelte';
-  import { ArrowTopRightOnSquareMini, ChevronDown } from '$lib/icons';
+  import IconButton from '$lib/components/IconButton.svelte';
+  import { ArrowTopRightOnSquareMini, ChevronDown, XMark } from '$lib/icons';
   import { gsap } from '$lib/ui/animations';
   import type { Bean, Bag, Brew } from '@shared/types';
   import { recordListShell } from '$lib/ui/components/card';
@@ -64,6 +65,8 @@
   let timeValues: number[] = [];
   let ratioRange = '—';
   let timeRange = '—';
+  let filterSheetOpen = false;
+  let activeChart: 'ratio' | 'time' = 'ratio';
 
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
@@ -333,6 +336,14 @@
       beanMenuOpen = false;
       bagMenuOpen = false;
     }
+  }
+
+  function openFilterSheet() {
+    filterSheetOpen = true;
+  }
+
+  function closeFilterSheet() {
+    filterSheetOpen = false;
   }
 
   function toggleBeanMenu() {
@@ -691,101 +702,95 @@
     {:else if error}
       <ErrorDisplay {error} />
     {:else}
-      <div class="analysis-controls" style={selectorStyle} bind:this={selectorRoot}>
-        <div class="filter-row filter-row-left">
-          <label class="quick-toggle">
-            <input
-              type="checkbox"
-              bind:checked={includeCommunity}
-              on:change={handleCommunityToggle}
-              disabled={!$barista?.id}
-            />
-            <span class="toggle-track" aria-hidden="true"></span>
-            <span class="toggle-label">Include community data</span>
-          </label>
+      <div class="analysis-mobile-tools">
+        <button type="button" class="filter-trigger" on:click={openFilterSheet}>Filters</button>
+        <div class="chart-toggle" role="tablist" aria-label="Select chart">
+          <button
+            type="button"
+            class="chart-toggle-button"
+            class:active={activeChart === 'ratio'}
+            role="tab"
+            aria-selected={activeChart === 'ratio'}
+            on:click={() => (activeChart = 'ratio')}
+          >
+            Ratio
+          </button>
+          <button
+            type="button"
+            class="chart-toggle-button"
+            class:active={activeChart === 'time'}
+            role="tab"
+            aria-selected={activeChart === 'time'}
+            on:click={() => (activeChart = 'time')}
+          >
+            Brew time
+          </button>
         </div>
+      </div>
 
-        <div class="selector-row">
-          <div class="selector-group">
-            <label>Bean</label>
-            <div class="cascade-select">
-              <button
-                type="button"
-                class="cascade-trigger"
-                on:click={toggleBeanMenu}
-              >
-                <span class:selection-placeholder={!selectedBean}>{formatBeanLabel(selectedBean)}</span>
-                <span class="chevron" aria-hidden="true">
-                  <ChevronDown size={16} />
-                </span>
-              </button>
-              {#if beanMenuOpen}
-                <div class="cascade-panel">
-                  <button
-                    type="button"
-                    class="cascade-option"
-                    on:click={() => selectBean(null)}
-                  >
-                    <span class="option-title">Clear selection</span>
-                    <span class="option-meta">Pause the analysis view</span>
-                  </button>
-                  {#if availableBeans.length === 0}
-                    <div class="cascade-empty">No beans yet.</div>
-                  {:else}
-                    {#each sortedBeans as bean (bean.id)}
-                      <button
-                        type="button"
-                        class="cascade-option"
-                        on:click={() => selectBean(bean)}
-                      >
-                        <span class="option-title">{bean.name}</span>
-                        <span class="option-meta">
-                          Roast: {bean.roast_level} | Last used {formatRelativeTime(lastUsedByBeanId[bean.id] ?? null) ?? 'never'}
-                        </span>
-                      </button>
-                    {/each}
-                  {/if}
-                </div>
-              {/if}
-            </div>
+      <div class="analysis-controls-shell" class:sheet-open={filterSheetOpen}>
+        <button
+          type="button"
+          class="analysis-controls-backdrop"
+          aria-label="Close filters"
+          on:click={closeFilterSheet}
+        ></button>
+        <div class="analysis-controls" style={selectorStyle} bind:this={selectorRoot}>
+          <div class="analysis-controls-header">
+            <span>Filters</span>
+            <IconButton on:click={closeFilterSheet} ariaLabel="Close filters" variant="neutral" size="sm">
+              <XMark />
+            </IconButton>
           </div>
-          
-          <div class="selector-group">
-            <label>Bag</label>
-            {#if selectedBean}
+          <div class="filter-row filter-row-left">
+            <label class="quick-toggle">
+              <input
+                type="checkbox"
+                bind:checked={includeCommunity}
+                on:change={handleCommunityToggle}
+                disabled={!$barista?.id}
+              />
+              <span class="toggle-track" aria-hidden="true"></span>
+              <span class="toggle-label">Include community data</span>
+            </label>
+          </div>
+
+          <div class="selector-row">
+            <div class="selector-group">
+              <label>Bean</label>
               <div class="cascade-select">
                 <button
                   type="button"
                   class="cascade-trigger"
-                  on:click={toggleBagMenu}
+                  on:click={toggleBeanMenu}
                 >
-                  <span>{formatBagLabel(selectedBag)}</span>
+                  <span class:selection-placeholder={!selectedBean}>{formatBeanLabel(selectedBean)}</span>
                   <span class="chevron" aria-hidden="true">
                     <ChevronDown size={16} />
                   </span>
                 </button>
-                {#if bagMenuOpen}
+                {#if beanMenuOpen}
                   <div class="cascade-panel">
                     <button
                       type="button"
                       class="cascade-option"
-                      on:click={() => selectBag(null)}
+                      on:click={() => selectBean(null)}
                     >
-                      <span class="option-title">All bags</span>
-                      <span class="option-meta">Show every bag for this bean</span>
+                      <span class="option-title">Clear selection</span>
+                      <span class="option-meta">Pause the analysis view</span>
                     </button>
-                    {#if beanBags.length === 0}
-                      <div class="cascade-empty">No bags for this bean yet.</div>
+                    {#if availableBeans.length === 0}
+                      <div class="cascade-empty">No beans yet.</div>
                     {:else}
-                      {#each sortedBeanBags as bag (bag.id)}
+                      {#each sortedBeans as bean (bean.id)}
                         <button
                           type="button"
                           class="cascade-option"
-                          on:click={() => selectBag(bag)}
+                          on:click={() => selectBean(bean)}
                         >
-                          <span class="option-title">{formatBagLabel(bag)}</span>
+                          <span class="option-title">{bean.name}</span>
                           <span class="option-meta">
-                            Roast: {bag.roast_date ? new Date(bag.roast_date).toLocaleDateString() : 'Unknown'} | Last used {formatRelativeTime(lastUsedByBagId[bag.id] ?? null) ?? 'never'}
+                            Roast: {bean.roast_level} | Last used {formatRelativeTime(lastUsedByBeanId[bean.id] ?? null) ?? 'never'}
                           </span>
                         </button>
                       {/each}
@@ -793,31 +798,77 @@
                   </div>
                 {/if}
               </div>
-            {:else}
-              <div class="bag-hint">Choose a bean to reveal its bags.</div>
-            {/if}
+            </div>
+            
+            <div class="selector-group">
+              <label>Bag</label>
+              {#if selectedBean}
+                <div class="cascade-select">
+                  <button
+                    type="button"
+                    class="cascade-trigger"
+                    on:click={toggleBagMenu}
+                  >
+                    <span>{formatBagLabel(selectedBag)}</span>
+                    <span class="chevron" aria-hidden="true">
+                      <ChevronDown size={16} />
+                    </span>
+                  </button>
+                  {#if bagMenuOpen}
+                    <div class="cascade-panel">
+                      <button
+                        type="button"
+                        class="cascade-option"
+                        on:click={() => selectBag(null)}
+                      >
+                        <span class="option-title">All bags</span>
+                        <span class="option-meta">Show every bag for this bean</span>
+                      </button>
+                      {#if beanBags.length === 0}
+                        <div class="cascade-empty">No bags for this bean yet.</div>
+                      {:else}
+                        {#each sortedBeanBags as bag (bag.id)}
+                          <button
+                            type="button"
+                            class="cascade-option"
+                            on:click={() => selectBag(bag)}
+                          >
+                            <span class="option-title">{formatBagLabel(bag)}</span>
+                            <span class="option-meta">
+                              Roast: {bag.roast_date ? new Date(bag.roast_date).toLocaleDateString() : 'Unknown'} | Last used {formatRelativeTime(lastUsedByBagId[bag.id] ?? null) ?? 'never'}
+                            </span>
+                          </button>
+                        {/each}
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
+              {:else}
+                <div class="bag-hint">Choose a bean to reveal its bags.</div>
+              {/if}
+            </div>
           </div>
-        </div>
 
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Time Period</label>
-            <div class="recency-tabs" role="tablist" aria-label="Recency filter" bind:this={recencyTrack}>
-              <span class="recency-indicator" bind:this={recencyIndicator} aria-hidden="true"></span>
-              {#each recencyOptions as option}
-                <button
-                  type="button"
-                  class="recency-tab"
-                  class:active={recencyFilter === option.value}
-                  role="tab"
-                  aria-selected={recencyFilter === option.value}
-                  title={option.label}
-                  on:click={() => handleRecencyChange(option.value)}
-                  use:recencyButtonAction={option.value}
-                >
-                  {option.value}
-                </button>
-              {/each}
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>Time Period</label>
+              <div class="recency-tabs" role="tablist" aria-label="Recency filter" bind:this={recencyTrack}>
+                <span class="recency-indicator" bind:this={recencyIndicator} aria-hidden="true"></span>
+                {#each recencyOptions as option}
+                  <button
+                    type="button"
+                    class="recency-tab"
+                    class:active={recencyFilter === option.value}
+                    role="tab"
+                    aria-selected={recencyFilter === option.value}
+                    title={option.label}
+                    on:click={() => handleRecencyChange(option.value)}
+                    use:recencyButtonAction={option.value}
+                  >
+                    {option.value}
+                  </button>
+                {/each}
+              </div>
             </div>
           </div>
         </div>
@@ -829,7 +880,7 @@
         </div>
       {:else}
         <div class="charts-container">
-          <div class="chart-wrapper" bind:this={ratioChartCard}>
+          <div class="chart-wrapper" class:is-hidden={activeChart !== 'ratio'} bind:this={ratioChartCard} aria-hidden={activeChart !== 'ratio'}>
             <div class="chart-header">
               <span class="chart-label">Rating vs. Ratio</span>
               <span class="chart-value">{formatRatioValue(ratioTarget)}</span>
@@ -842,7 +893,7 @@
             />
           </div>
           
-          <div class="chart-wrapper">
+          <div class="chart-wrapper" class:is-hidden={activeChart !== 'time'} aria-hidden={activeChart !== 'time'}>
             <div class="chart-header">
               <span class="chart-label">Rating vs. Brew Time</span>
               <span class="chart-value">{formatTimeValue(timeTarget)}</span>
@@ -889,6 +940,24 @@
               {/each}
             </tbody>
           </table>
+        </div>
+
+        <div class="analysis-list">
+          {#each analysisData as brew}
+            <a class="analysis-list-item" href={`/brews/${brew.id}`}>
+              <div class="analysis-list-title">{brew.name || brew.bag_name || 'Brew'}</div>
+              <div class="analysis-list-meta">
+                Rating {formatRating(brew.y_rating)} · Ratio {formatRatio(brew.x_ratio)} · Time {formatBrewTime(brew.x_brew_time)}
+                {#if brew.grind_setting}
+                  · Grind {brew.grind_setting}
+                {/if}
+              </div>
+            </a>
+          {/each}
+        </div>
+
+        <div class="analysis-footer">
+          <a class="back-to-top" href="#home-top">Back to top</a>
         </div>
       {/if}
     {/if}
@@ -962,6 +1031,68 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+  }
+
+  .analysis-controls-header {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 0.95rem;
+    color: var(--text-ink-secondary);
+  }
+
+  .analysis-mobile-tools {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .filter-trigger {
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-surface-paper-secondary);
+    color: var(--text-ink-secondary);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.95rem;
+    font-size: 0.9rem;
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    cursor: pointer;
+  }
+
+  .chart-toggle {
+    display: inline-flex;
+    gap: 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(123, 94, 58, 0.3);
+    padding: 0.2rem;
+    background: rgba(123, 94, 58, 0.12);
+  }
+
+  .chart-toggle-button {
+    border: none;
+    background: transparent;
+    color: var(--text-ink-secondary);
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  }
+
+  .chart-toggle-button.active {
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+  }
+
+  .analysis-controls-shell {
+    position: relative;
+  }
+
+  .analysis-controls-backdrop {
+    display: none;
   }
 
   .cascade-select {
@@ -1311,9 +1442,107 @@
     border-bottom: none;
   }
 
+  .analysis-list {
+    display: none;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .analysis-list-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(123, 94, 58, 0.2);
+    background: var(--bg-surface-paper);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .analysis-list-title {
+    font-family: "Libre Baskerville", serif;
+    font-size: 1rem;
+    color: var(--text-ink-primary);
+  }
+
+  .analysis-list-meta {
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-ink-muted);
+  }
+
+  .analysis-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .back-to-top {
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-ink-muted);
+  }
+
   @media (max-width: 768px) {
     .analysis-shell {
-      padding: 1rem;
+      padding: 0;
+      background: transparent;
+      border: none;
+    }
+
+    .analysis-controls {
+      margin-bottom: 0;
+      background: var(--bg-surface-paper);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .analysis-controls-shell {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      align-items: end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--motion-medium) ease;
+      z-index: 30;
+    }
+
+    .analysis-controls-shell.sheet-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .analysis-controls-backdrop {
+      display: block;
+      position: absolute;
+      inset: 0;
+      background: rgba(43, 33, 24, 0.5);
+      border: none;
+    }
+
+    .analysis-controls {
+      position: relative;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      transform: translateY(12%);
+      transition: transform var(--motion-medium) ease;
+    }
+
+    .analysis-controls-shell.sheet-open .analysis-controls {
+      transform: translateY(0);
+    }
+
+    .analysis-controls-header {
+      display: flex;
+    }
+
+    .analysis-mobile-tools {
+      display: flex;
     }
 
     .selector-row {
@@ -1325,6 +1554,10 @@
       gap: 1.5rem;
     }
 
+    .chart-wrapper.is-hidden {
+      display: none;
+    }
+
     .recency-tabs {
       width: 100%;
       justify-content: space-between;
@@ -1334,6 +1567,20 @@
     .recency-tab {
       flex: 1;
       text-align: center;
+    }
+
+    .analysis-table {
+      display: none;
+    }
+
+    .analysis-list {
+      display: flex;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .chart-wrapper.is-hidden {
+      display: flex;
     }
   }
 </style>

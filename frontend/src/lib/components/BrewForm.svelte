@@ -4,7 +4,7 @@
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { CheckCircle, DocumentDuplicate, XMark } from '$lib/icons';
+  import { CheckCircle, ChevronDown, DocumentDuplicate, XMark } from '$lib/icons';
   import { buildBrewName } from '$lib/utils/brew-naming';
   import { editableField, formHelperText, formLabel, formSection, readOnlyField } from '$lib/ui/components/form';
   import { toStyleString } from '$lib/ui/style';
@@ -380,247 +380,306 @@
       </div>
     {/if}
 
-    <div class="form-section card">
-      <div class="form-group name-group">
-        <div class="label-row">
-          <label for="name">Brew Name</label>
-          {#if !brew}
-            <span class={`auto-indicator ${isNameAuto ? 'auto' : 'custom'}`}>
-              {isNameAuto ? 'Auto-generated' : 'Custom'}
-            </span>
-            {#if !isNameAuto}
-              <button class="reset-auto" type="button" on:click={resetAutoName} disabled={loading}>
-                Use auto name
-              </button>
-            {/if}
-          {/if}
+    <details class="waypoint-details form-waypoint" open>
+      <summary class="waypoint-summary">
+        <div class="waypoint-summary-title">
+          <h3>Brew Name</h3>
         </div>
-        <input
-          id="name"
-          type="text"
-          bind:value={name}
-          on:input={markNameTouched}
-          on:keydown={(event) => handleEnterAdvance(event, () => machineSelector?.focusTrigger())}
-          enterkeyhint="next"
-          placeholder={autoName || 'Auto brew name'}
-          disabled={loading}
-        />
-        <small>
-          {#if bag_id}
-            {isNameAuto
-              ? 'We will keep updating this name from your selections until you edit it.'
-              : 'Name customized. We will keep your changes even if other fields change.'}
-          {:else}
-            Select a bag to generate an automatic name, or type your own.
-          {/if}
-        </small>
+        <span class="waypoint-summary-icon" aria-hidden="true">
+          <ChevronDown size={18} />
+        </span>
+      </summary>
+      <div class="waypoint-body">
+        <div class="form-section card">
+          <div class="form-group name-group">
+            <div class="label-row">
+              <label for="name">Brew Name</label>
+              {#if !brew}
+                <span class={`auto-indicator ${isNameAuto ? 'auto' : 'custom'}`}>
+                  {isNameAuto ? 'Auto-generated' : 'Custom'}
+                </span>
+                {#if !isNameAuto}
+                  <button class="reset-auto" type="button" on:click={resetAutoName} disabled={loading}>
+                    Use auto name
+                  </button>
+                {/if}
+              {/if}
+            </div>
+            <input
+              id="name"
+              type="text"
+              bind:value={name}
+              on:input={markNameTouched}
+              on:keydown={(event) => handleEnterAdvance(event, () => machineSelector?.focusTrigger())}
+              enterkeyhint="next"
+              placeholder={autoName || 'Auto brew name'}
+              disabled={loading}
+            />
+            <small>
+              {#if bag_id}
+                {isNameAuto
+                  ? 'We will keep updating this name from your selections until you edit it.'
+                  : 'Name customized. We will keep your changes even if other fields change.'}
+              {:else}
+                Select a bag to generate an automatic name, or type your own.
+              {/if}
+            </small>
+          </div>
+        </div>
       </div>
-
-    </div>
+    </details>
 
     <!-- Equipment Selection -->
-    <div class="form-section card">
-      <h3>Equipment</h3>
-      
-      <div class="form-group">
-        <label for="machine">Machine *</label>
-        <MachineSelector
-          bind:value={machine_id}
-          disabled={loading}
-          bind:this={machineSelector}
-          on:selected={focusNextFromMachine}
-        />
-        {#if validationErrors.machine_id}
-          <span class="error-text">{validationErrors.machine_id}</span>
-        {/if}
-      </div>
+    <details class="waypoint-details form-waypoint">
+      <summary class="waypoint-summary">
+        <div class="waypoint-summary-title">
+          <h3>Equipment</h3>
+        </div>
+        <span class="waypoint-summary-icon" aria-hidden="true">
+          <ChevronDown size={18} />
+        </span>
+      </summary>
+      <div class="waypoint-body">
+        <div class="form-section card">
+          <h3>Equipment</h3>
+          
+          <div class="form-group">
+            <label for="machine">Machine *</label>
+            <MachineSelector
+              bind:value={machine_id}
+              disabled={loading}
+              bind:this={machineSelector}
+              on:selected={focusNextFromMachine}
+            />
+            {#if validationErrors.machine_id}
+              <span class="error-text">{validationErrors.machine_id}</span>
+            {/if}
+          </div>
 
-      <div class="form-group">
-        <label for="grinder">Grinder *</label>
-        <GrinderSelector
-          bind:value={grinder_id}
-          disabled={loading}
-          bind:this={grinderSelector}
-          on:selected={focusNextFromGrinder}
-        />
-        {#if validationErrors.grinder_id}
-          <span class="error-text">{validationErrors.grinder_id}</span>
-        {/if}
-      </div>
+          <div class="form-group">
+            <label for="grinder">Grinder *</label>
+            <GrinderSelector
+              bind:value={grinder_id}
+              disabled={loading}
+              bind:this={grinderSelector}
+              on:selected={focusNextFromGrinder}
+            />
+            {#if validationErrors.grinder_id}
+              <span class="error-text">{validationErrors.grinder_id}</span>
+            {/if}
+          </div>
 
-      <div class="form-group">
-        <label for="bag">Coffee Bag *</label>
-        <BagSelector
-          bind:value={bag_id}
-          disabled={loading}
-          bind:this={bagSelector}
-          on:bagSelected={handleBagSelected}
-          on:brewsLoaded={handleBrewsLoaded}
-          on:selected={focusNextFromBag}
-        />
-        {#if validationErrors.bag_id}
-          <span class="error-text">{validationErrors.bag_id}</span>
-        {/if}
+          <div class="form-group">
+            <label for="bag">Coffee Bag *</label>
+            <BagSelector
+              bind:value={bag_id}
+              disabled={loading}
+              bind:this={bagSelector}
+              on:bagSelected={handleBagSelected}
+              on:brewsLoaded={handleBrewsLoaded}
+              on:selected={focusNextFromBag}
+            />
+            {#if validationErrors.bag_id}
+              <span class="error-text">{validationErrors.bag_id}</span>
+            {/if}
+          </div>
+        </div>
       </div>
-    </div>
+    </details>
 
     <!-- Input Parameters -->
-    <div class="form-section card">
-      <h3>Input Parameters</h3>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label for="dose">Dose (g) *</label>
-          <input
-            id="dose"
-            type="number"
-            inputmode="decimal"
-            bind:value={dose_g}
-            step="0.1"
-            min="0"
-            placeholder="e.g., 18"
-            disabled={loading}
-            required
-            on:keydown={(event) => handleEnterAdvance(event, () => grindSettingInput?.focus())}
-            enterkeyhint="next"
-            bind:this={doseInput}
-          />
-          {#if validationErrors.dose_g}
-            <span class="error-text">{validationErrors.dose_g}</span>
-          {/if}
+    <details class="waypoint-details form-waypoint">
+      <summary class="waypoint-summary">
+        <div class="waypoint-summary-title">
+          <h3>Input Parameters</h3>
         </div>
+        <span class="waypoint-summary-icon" aria-hidden="true">
+          <ChevronDown size={18} />
+        </span>
+      </summary>
+      <div class="waypoint-body">
+        <div class="form-section card">
+          <h3>Input Parameters</h3>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="dose">Dose (g) *</label>
+              <input
+                id="dose"
+                type="number"
+                inputmode="decimal"
+                bind:value={dose_g}
+                step="0.1"
+                min="0"
+                placeholder="e.g., 18"
+                disabled={loading}
+                required
+                on:keydown={(event) => handleEnterAdvance(event, () => grindSettingInput?.focus())}
+                enterkeyhint="next"
+                bind:this={doseInput}
+              />
+              {#if validationErrors.dose_g}
+                <span class="error-text">{validationErrors.dose_g}</span>
+              {/if}
+            </div>
 
-        <div class="form-group">
-          <label for="grind_setting">Grind Setting</label>
-          <input
-            id="grind_setting"
-            type="text"
-            inputmode="decimal"
-            bind:value={grind_setting}
-            placeholder="e.g., 2.5"
-            disabled={loading}
-            on:keydown={(event) => handleEnterAdvance(event, () => brewTimeInput?.focus())}
-            enterkeyhint="next"
-            bind:this={grindSettingInput}
-          />
+            <div class="form-group">
+              <label for="grind_setting">Grind Setting</label>
+              <input
+                id="grind_setting"
+                type="text"
+                inputmode="decimal"
+                bind:value={grind_setting}
+                placeholder="e.g., 2.5"
+                disabled={loading}
+                on:keydown={(event) => handleEnterAdvance(event, () => brewTimeInput?.focus())}
+                enterkeyhint="next"
+                bind:this={grindSettingInput}
+              />
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </details>
 
     <!-- Output Measurements -->
-    <div class="form-section card" bind:this={outputSection}>
-      <h3>Output Measurements</h3>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label for="brew_time">Brew Time (s)</label>
-          <input
-            id="brew_time"
-            type="number"
-            inputmode="decimal"
-            bind:value={brew_time_s}
-            step="0.1"
-            min="0.1"
-            placeholder="e.g., 28"
-            disabled={loading}
-            on:keydown={(event) => handleEnterAdvance(event, () => yieldInput?.focus())}
-            enterkeyhint="next"
-            bind:this={brewTimeInput}
-          />
-          {#if validationErrors.brew_time_s}
-            <span class="error-text">{validationErrors.brew_time_s}</span>
-          {/if}
+    <details class="waypoint-details form-waypoint">
+      <summary class="waypoint-summary">
+        <div class="waypoint-summary-title">
+          <h3>Output Measurements</h3>
         </div>
+        <span class="waypoint-summary-icon" aria-hidden="true">
+          <ChevronDown size={18} />
+        </span>
+      </summary>
+      <div class="waypoint-body">
+        <div class="form-section card" bind:this={outputSection}>
+          <h3>Output Measurements</h3>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="brew_time">Brew Time (s)</label>
+              <input
+                id="brew_time"
+                type="number"
+                inputmode="decimal"
+                bind:value={brew_time_s}
+                step="0.1"
+                min="0.1"
+                placeholder="e.g., 28"
+                disabled={loading}
+                on:keydown={(event) => handleEnterAdvance(event, () => yieldInput?.focus())}
+                enterkeyhint="next"
+                bind:this={brewTimeInput}
+              />
+              {#if validationErrors.brew_time_s}
+                <span class="error-text">{validationErrors.brew_time_s}</span>
+              {/if}
+            </div>
 
-        <div class="form-group">
-          <label for="yield">Yield (g)</label>
-          <input
-            id="yield"
-            type="number"
-            inputmode="decimal"
-            bind:value={yield_g}
-            step="0.1"
-            min="0.1"
-            placeholder="e.g., 36"
-            disabled={loading}
-            on:keydown={(event) => handleEnterAdvance(event, () => ratingInput?.focus())}
-            enterkeyhint="next"
-            bind:this={yieldInput}
-          />
-          {#if validationErrors.yield_g}
-            <span class="error-text">{validationErrors.yield_g}</span>
+            <div class="form-group">
+              <label for="yield">Yield (g)</label>
+              <input
+                id="yield"
+                type="number"
+                inputmode="decimal"
+                bind:value={yield_g}
+                step="0.1"
+                min="0.1"
+                placeholder="e.g., 36"
+                disabled={loading}
+                on:keydown={(event) => handleEnterAdvance(event, () => ratingInput?.focus())}
+                enterkeyhint="next"
+                bind:this={yieldInput}
+              />
+              {#if validationErrors.yield_g}
+                <span class="error-text">{validationErrors.yield_g}</span>
+              {/if}
+            </div>
+          </div>
+
+          <!-- Calculated Fields Display -->
+          {#if ratio || flow_rate_g_per_s}
+            <div class="calculated-fields">
+              {#if ratio}
+                <div class="calc-field">
+                  <span class="label">Ratio:</span>
+                  <span class="value">1:{ratio.toFixed(2)}</span>
+                </div>
+              {/if}
+              {#if flow_rate_g_per_s}
+                <div class="calc-field">
+                  <span class="label">Flow Rate:</span>
+                  <span class="value">{flow_rate_g_per_s.toFixed(1)} g/s</span>
+                </div>
+              {/if}
+            </div>
           {/if}
         </div>
       </div>
-
-      <!-- Calculated Fields Display -->
-      {#if ratio || flow_rate_g_per_s}
-        <div class="calculated-fields">
-          {#if ratio}
-            <div class="calc-field">
-              <span class="label">Ratio:</span>
-              <span class="value">1:{ratio.toFixed(2)}</span>
-            </div>
-          {/if}
-          {#if flow_rate_g_per_s}
-            <div class="calc-field">
-              <span class="label">Flow Rate:</span>
-              <span class="value">{flow_rate_g_per_s.toFixed(1)} g/s</span>
-            </div>
-          {/if}
-        </div>
-      {/if}
-    </div>
+    </details>
 
     <!-- Evaluation -->
-    <div class="form-section card">
-      <h3>Evaluation</h3>
-      
-      <div class="form-group">
-        <label for="rating">Rating (1-10)</label>
-        <input
-          id="rating"
-          type="number"
-          inputmode="numeric"
-          bind:value={rating}
-          min="1"
-          max="10"
-          step="1"
-          placeholder="e.g., 8"
-          disabled={loading}
-          on:keydown={(event) => handleEnterAdvance(event, () => tastingNotesInput?.focus())}
-          enterkeyhint="next"
-          bind:this={ratingInput}
-        />
-        {#if validationErrors.rating}
-          <span class="error-text">{validationErrors.rating}</span>
-        {/if}
-      </div>
+    <details class="waypoint-details form-waypoint">
+      <summary class="waypoint-summary">
+        <div class="waypoint-summary-title">
+          <h3>Evaluation</h3>
+        </div>
+        <span class="waypoint-summary-icon" aria-hidden="true">
+          <ChevronDown size={18} />
+        </span>
+      </summary>
+      <div class="waypoint-body">
+        <div class="form-section card">
+          <h3>Evaluation</h3>
+          
+          <div class="form-group">
+            <label for="rating">Rating (1-10)</label>
+            <input
+              id="rating"
+              type="number"
+              inputmode="numeric"
+              bind:value={rating}
+              min="1"
+              max="10"
+              step="1"
+              placeholder="e.g., 8"
+              disabled={loading}
+              on:keydown={(event) => handleEnterAdvance(event, () => tastingNotesInput?.focus())}
+              enterkeyhint="next"
+              bind:this={ratingInput}
+            />
+            {#if validationErrors.rating}
+              <span class="error-text">{validationErrors.rating}</span>
+            {/if}
+          </div>
 
-      <div class="form-group">
-        <label for="tasting_notes">Tasting Notes</label>
-        <textarea
-          id="tasting_notes"
-          bind:value={tasting_notes}
-          rows="3"
-          placeholder="e.g., notes of cacao and orange"
-          disabled={loading}
-          bind:this={tastingNotesInput}
-        />
-      </div>
+          <div class="form-group">
+            <label for="tasting_notes">Tasting Notes</label>
+            <textarea
+              id="tasting_notes"
+              bind:value={tasting_notes}
+              rows="3"
+              placeholder="e.g., notes of cacao and orange"
+              disabled={loading}
+              bind:this={tastingNotesInput}
+            />
+          </div>
 
-      <div class="form-group">
-        <label for="reflections">Reflections</label>
-        <textarea
-          id="reflections"
-          bind:value={reflections}
-          rows="3"
-          placeholder="e.g., What worked? What would you change?"
-          disabled={loading}
-          bind:this={reflectionsInput}
-        />
+          <div class="form-group">
+            <label for="reflections">Reflections</label>
+            <textarea
+              id="reflections"
+              bind:value={reflections}
+              rows="3"
+              placeholder="e.g., What worked? What would you change?"
+              disabled={loading}
+              bind:this={reflectionsInput}
+            />
+          </div>
+        </div>
       </div>
-    </div>
+    </details>
 
     <!-- Form Actions -->
     <div class="form-actions">
@@ -658,6 +717,30 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+  }
+
+  .waypoint-summary {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    background: var(--bg-surface-paper-secondary);
+  }
+
+  .waypoint-summary-title h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text-ink-secondary);
+  }
+
+  .waypoint-summary-icon {
+    display: inline-flex;
+    align-items: center;
+    transition: transform 0.2s ease;
+  }
+
+  .waypoint-details[open] .waypoint-summary-icon {
+    transform: rotate(180deg);
   }
 
   .form-section {
@@ -817,6 +900,22 @@
     justify-content: flex-end;
     padding-top: 1rem;
     border-top: 1px solid var(--border-subtle);
+  }
+
+  @media (max-width: 768px) {
+    form {
+      gap: 1.5rem;
+    }
+
+    .form-section.card {
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+
+    .form-section h3 {
+      display: none;
+    }
   }
 
 </style>

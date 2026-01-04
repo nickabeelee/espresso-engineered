@@ -4,7 +4,7 @@
   import LoadingIndicator from './LoadingIndicator.svelte';
   import ErrorDisplay from './ErrorDisplay.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ChevronLeft, ChevronRight } from '$lib/icons';
+  import { ChevronLeft, ChevronRight, XMark } from '$lib/icons';
   import { apiClient } from '$lib/api-client';
   import { animations, gsap } from '$lib/ui/animations';
   import { recordListShell } from '$lib/ui/components/card';
@@ -21,6 +21,7 @@
   let error: string | null = null;
   let brewGroups: LayeredBrewGroup[] = [];
   let stackOrders: number[][] = [];
+  let activeGroupIndex: number | null = null;
 
   // DOM references
   let scrollContainer: HTMLElement | null = null;
@@ -258,6 +259,7 @@
       const response = await apiClient.getWeekBrews(params);
       brewGroups = response.data || [];
       stackOrders = brewGroups.map((group) => group.brews.map((_, index) => index));
+      activeGroupIndex = null;
       stackRenderedIds = brewGroups.map((group, groupIndex) => {
         const stackedBrews = getStackedBrews(group, groupIndex, stackOrders);
         return new Set(stackedBrews.map((item) => item.brew.id));
@@ -345,6 +347,17 @@
       : [currentOrder[currentOrder.length - 1], ...currentOrder.slice(0, -1)];
 
     animateStackShuffle(groupIndex, rotated, direction);
+  }
+
+  function openGroupOverlay(groupIndex: number) {
+    if (typeof window !== 'undefined' && window.innerWidth > 720) {
+      return;
+    }
+    activeGroupIndex = groupIndex;
+  }
+
+  function closeGroupOverlay() {
+    activeGroupIndex = null;
   }
 
   function handleStackPointerDown(groupIndex: number, event: PointerEvent) {
@@ -464,7 +477,7 @@
     </div>
   {:else}
     <div class="brewing-shell" style={stackShellStyle}>
-      <div class="group-scroll" bind:this={scrollContainer}>
+      <div class="group-scroll edge-rail" bind:this={scrollContainer}>
         <div class="group-row">
           {#each brewGroups as group, groupIndex (getGroupKey(group))}
             {@const averageRating = getGroupAverageRating(group)}
@@ -493,6 +506,7 @@
                 on:pointerdown={(event) => handleStackPointerDown(groupIndex, event)}
                 on:pointerup={(event) => handleStackPointerUp(groupIndex, event)}
                 on:pointercancel={() => swipeStates.delete(groupIndex)}
+                on:click={() => openGroupOverlay(groupIndex)}
               >
                 {#each getStackedBrews(group, groupIndex, stackOrders) as stackItem (stackItem.brew.id)}
                   <div
@@ -534,6 +548,34 @@
 
               </div>
             </article>
+          {/each}
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  {#if activeGroupIndex !== null && brewGroups[activeGroupIndex]}
+    {@const activeGroup = brewGroups[activeGroupIndex]}
+    <div class="group-overlay" role="dialog" aria-modal="true">
+      <button class="group-overlay-backdrop" type="button" on:click={closeGroupOverlay} aria-label="Close brew stack"></button>
+      <div class="group-overlay-panel">
+        <div class="group-overlay-header">
+          <div class="group-overlay-title">
+            <h3 style={groupTitleStyle}>{activeGroup.bean.name}</h3>
+            <p style={groupMetaStyle}>{activeGroup.barista.display_name} · {getBrewCountText(activeGroup.brews.length)}</p>
+          </div>
+          <IconButton
+            on:click={closeGroupOverlay}
+            ariaLabel="Close brew stack"
+            title="Close"
+            variant="neutral"
+          >
+            <XMark size={18} />
+          </IconButton>
+        </div>
+        <div class="group-overlay-list">
+          {#each activeGroup.brews as brew (brew.id)}
+            <BrewCard brew={brew} baristaName={activeGroup.barista.display_name} />
           {/each}
         </div>
       </div>
@@ -698,6 +740,57 @@
     text-align: center;
   }
 
+  .group-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .group-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(43, 33, 24, 0.55);
+    border: none;
+  }
+
+  .group-overlay-panel {
+    position: relative;
+    width: min(720px, 100%);
+    max-height: 85vh;
+    background: var(--bg-surface-paper);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 1.5rem 1.5rem 2rem;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow: hidden;
+  }
+
+  .group-overlay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .group-overlay-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .group-overlay-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
   @media (max-width: 900px) {
     .group-stack {
       width: 360px;
@@ -711,6 +804,10 @@
       align-items: flex-start;
     }
 
+    .scroll-controls {
+      display: none;
+    }
+
     .group-stack {
       width: 85vw;
       min-width: 85vw;
@@ -718,6 +815,20 @@
 
     .stack-area {
       min-height: 280px;
+    }
+
+    .stack-card.is-active {
+      pointer-events: none;
+    }
+
+    .brewing-shell {
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+
+    .group-overlay-panel {
+      padding: 1.25rem 1rem 1.5rem;
     }
   }
 

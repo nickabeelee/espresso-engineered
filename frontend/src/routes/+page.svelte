@@ -208,12 +208,19 @@
 </svelte:head>
 
 {#if $isAuthenticated && $barista}
-  <div class="home-dashboard">
+  <div class="home-dashboard" id="home-top">
     <div class="page-header">
       <p class="voice-line" style={voiceLineStyle}>Settle in.</p>
       <h1 style={pageTitleStyle}>Home</h1>
       <p style={pageSubtitleStyle}>Your brewing dashboard.</p>
     </div>
+    <nav class="home-index" aria-label="Home sections">
+      <a href="#shelf">Shelf</a>
+      <span class="index-divider" aria-hidden="true">•</span>
+      <a href="#week">Week</a>
+      <span class="index-divider" aria-hidden="true">•</span>
+      <a href="#analysis">Analyze</a>
+    </nav>
     <!-- Voice Greeting Section -->
     {#if loading}
       <div class="loading-container">
@@ -228,7 +235,7 @@
     {:else}
       <!-- Bean Inventory Section -->
       {#if inventoryLoaded && BeanInventorySection}
-        <div class="section-container inventory-section">
+        <div class="section-container inventory-section" id="shelf">
           <svelte:component 
             this={BeanInventorySection}
             on:bagUpdated={handleBagUpdated}
@@ -248,7 +255,7 @@
 
       <!-- Week in Brewing Section -->
       {#if weekLoaded && WeekInBrewingSection}
-        <div class="section-container week-section">
+        <div class="section-container week-section" id="week">
           <svelte:component this={WeekInBrewingSection} />
         </div>
       {:else if weekLoaded}
@@ -265,7 +272,7 @@
 
       <!-- Bean Analysis Section -->
       {#if analysisLoaded && BeanAnalysisSection}
-        <div class="section-container analysis-section">
+        <div class="section-container analysis-section" id="analysis">
           <svelte:component 
             this={BeanAnalysisSection}
             {selectedBean}
@@ -332,13 +339,36 @@
     gap: 3rem;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 1rem;
+    padding: 0;
   }
 
   .page-header {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+  }
+
+  .home-index {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-ink-muted);
+  }
+
+  .home-index a {
+    color: inherit;
+  }
+
+  .home-index a:hover {
+    color: var(--text-ink-secondary);
+  }
+
+  .index-divider {
+    opacity: 0.6;
   }
 
   .page-header h1 {
@@ -501,7 +531,11 @@
   @media (max-width: 768px) {
     .home-dashboard {
       gap: 2rem;
-      padding: 0.5rem;
+    }
+
+    .section-skeleton {
+      padding: 1rem;
+      border-radius: var(--radius-md);
     }
 
     .cta-buttons {
