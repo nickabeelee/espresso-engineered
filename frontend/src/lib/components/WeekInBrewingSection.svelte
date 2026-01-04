@@ -36,10 +36,7 @@
   let scrollTrackingInitialized = false;
 
   // Swipe tracking
-  const swipeStates = new Map<
-    number,
-    { x: number; y: number; scrollLeft: number; pointerId: number; isDragging: boolean }
-  >();
+  const swipeStates = new Map<number, { x: number; y: number; scrollLeft: number }>();
   const stackAnimating = new Set<number>();
 
   const maxStackDepth = 3;
@@ -350,49 +347,12 @@
     animateStackShuffle(groupIndex, rotated, direction);
   }
 
-  function setDragVisuals(groupIndex: number, dx: number) {
-    const groupElement = groupElements[groupIndex];
-    if (!groupElement) return;
-
-    const clampedX = Math.max(-120, Math.min(120, dx));
-    groupElement.style.setProperty('--drag-x', `${clampedX}px`);
-    groupElement.style.setProperty('--drag-rotate', `${clampedX * 0.08}deg`);
-  }
-
-  function clearDragVisuals(groupIndex: number) {
-    const groupElement = groupElements[groupIndex];
-    if (!groupElement) return;
-    groupElement.style.setProperty('--drag-x', '0px');
-    groupElement.style.setProperty('--drag-rotate', '0deg');
-    groupElement.classList.remove('is-dragging');
-  }
-
   function handleStackPointerDown(groupIndex: number, event: PointerEvent) {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    event.currentTarget?.setPointerCapture?.(event.pointerId);
     swipeStates.set(groupIndex, {
       x: event.clientX,
       y: event.clientY,
-      scrollLeft: scrollContainer?.scrollLeft ?? 0,
-      pointerId: event.pointerId,
-      isDragging: false
+      scrollLeft: scrollContainer?.scrollLeft ?? 0
     });
-  }
-
-  function handleStackPointerMove(groupIndex: number, event: PointerEvent) {
-    const state = swipeStates.get(groupIndex);
-    if (!state || state.pointerId !== event.pointerId) return;
-
-    const dx = event.clientX - state.x;
-    const dy = event.clientY - state.y;
-
-    if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-    if (Math.abs(dx) < Math.abs(dy)) return;
-
-    state.isDragging = true;
-    groupElements[groupIndex]?.classList.add('is-dragging');
-    event.preventDefault();
-    setDragVisuals(groupIndex, dx);
   }
 
   function handleStackPointerUp(groupIndex: number, event: PointerEvent) {
@@ -405,21 +365,10 @@
     const dy = event.clientY - state.y;
     const scrollDelta = Math.abs((scrollContainer?.scrollLeft ?? 0) - state.scrollLeft);
 
-    event.currentTarget?.releasePointerCapture?.(event.pointerId);
-    clearDragVisuals(groupIndex);
-
     if (scrollDelta > 8) return;
     if (Math.abs(dx) < 42 || Math.abs(dx) < Math.abs(dy)) return;
 
     navigateBrew(groupIndex, dx < 0 ? 1 : -1);
-  }
-
-  function handleStackPointerCancel(groupIndex: number, event: PointerEvent) {
-    const state = swipeStates.get(groupIndex);
-    if (!state || state.pointerId !== event.pointerId) return;
-    swipeStates.delete(groupIndex);
-    event.currentTarget?.releasePointerCapture?.(event.pointerId);
-    clearDragVisuals(groupIndex);
   }
 
   function handleGroupKeydown(event: KeyboardEvent, groupIndex: number) {
@@ -542,9 +491,8 @@
               <div
                 class="stack-area"
                 on:pointerdown={(event) => handleStackPointerDown(groupIndex, event)}
-                on:pointermove={(event) => handleStackPointerMove(groupIndex, event)}
                 on:pointerup={(event) => handleStackPointerUp(groupIndex, event)}
-                on:pointercancel={(event) => handleStackPointerCancel(groupIndex, event)}
+                on:pointercancel={() => swipeStates.delete(groupIndex)}
               >
                 {#each getStackedBrews(group, groupIndex, stackOrders) as stackItem (stackItem.brew.id)}
                   <div
@@ -716,7 +664,6 @@
     min-height: 320px;
     overflow: hidden;
     border-radius: var(--radius-md);
-    touch-action: pan-y;
   }
 
   .stack-card {
@@ -731,13 +678,6 @@
 
   .stack-card.is-active {
     pointer-events: auto;
-    transform: translateX(var(--drag-x, 0px)) rotate(var(--drag-rotate, 0deg))
-      translateY(calc(var(--stack-offset) * 10px))
-      scale(calc(1 - var(--stack-offset) * 0.02));
-  }
-
-  .group-stack.is-dragging .stack-card.is-active {
-    transition: opacity 160ms ease;
   }
 
   .stack-footer {
