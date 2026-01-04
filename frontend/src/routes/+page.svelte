@@ -284,13 +284,6 @@
       <h1 style={pageTitleStyle}>Home</h1>
       <p style={pageSubtitleStyle}>Your brewing dashboard.</p>
     </div>
-    <nav class="home-index" aria-label="Home sections">
-      <a href="#shelf">Shelf</a>
-      <span class="index-divider" aria-hidden="true">•</span>
-      <a href="#week">Week</a>
-      <span class="index-divider" aria-hidden="true">•</span>
-      <a href="#analysis">Analyze</a>
-    </nav>
     <!-- Voice Greeting Section -->
     {#if loading}
       <div class="loading-container">
@@ -373,6 +366,8 @@
       open={inspectOpen}
       title="Your bag"
       subtitle={inspectedBag.name || inspectedBag.bean?.name || 'Bag details'}
+      stickyHeader={true}
+      edgeFade={true}
       on:close={closeBagInspect}
     >
       <BagCard
@@ -396,6 +391,7 @@
       subtitle={`${activeBrewGroup.barista.display_name} · ${getBrewCountText(activeBrewGroup.brews.length)}`}
       closeLabel="Close brew stack"
       stickyHeader={true}
+      edgeFade={true}
       on:close={closeBrewGroupSheet}
     >
       <div class="brew-stack-sheet-list">
@@ -463,28 +459,6 @@
     gap: 0.35rem;
   }
 
-  .home-index {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-ink-muted);
-  }
-
-  .home-index a {
-    color: inherit;
-  }
-
-  .home-index a:hover {
-    color: var(--text-ink-secondary);
-  }
-
-  .index-divider {
-    opacity: 0.6;
-  }
 
   .page-header h1 {
     margin: 0;

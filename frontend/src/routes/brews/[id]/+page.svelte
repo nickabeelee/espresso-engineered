@@ -1313,7 +1313,6 @@
   }
 
   .bag-card--clickable:hover {
-    box-shadow: var(--equipment-card-hover-shadow);
     border-color: var(--equipment-card-hover-border);
   }
 

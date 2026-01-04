@@ -633,7 +633,7 @@
 
   .group-scroll {
     overflow-x: auto;
-    padding-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
     scrollbar-width: thin;
     scrollbar-color: var(--border-subtle) transparent;
     scroll-snap-type: x mandatory;
@@ -705,15 +705,15 @@
   }
 
   .stack-area {
+    display: grid;
     position: relative;
-    min-height: 300px;
+    min-height: 270px;
     overflow: hidden;
     border-radius: var(--radius-md);
   }
 
   .stack-card {
-    position: absolute;
-    inset: 0;
+    grid-area: 1 / 1;
     transform: translateY(calc(var(--stack-offset) * 10px))
       scale(calc(1 - var(--stack-offset) * 0.02));
     transform-origin: top center;
@@ -760,11 +760,15 @@
     }
 
     .stack-area {
-      min-height: 260px;
+      min-height: 270px;
     }
 
     .stack-card.is-active {
       pointer-events: none;
+    }
+
+    .stack-footer {
+      display: none;
     }
 
     .brewing-shell {

@@ -761,7 +761,6 @@
   }
 
   .bag-card:hover {
-    box-shadow: var(--editable-card-hover-shadow, var(--shadow-soft));
     border-color: var(--editable-card-hover-border, var(--accent-primary));
   }
 

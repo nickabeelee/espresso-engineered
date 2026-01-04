@@ -11,11 +11,17 @@ const sheet = {
     background: colorCss.bg.surface.paper.primary,
     radius: radius.lg,
     padding: "1.5rem 1.5rem 2rem",
+    paddingTop: "1.5rem",
+    paddingX: "1.5rem",
+    paddingBottom: "2rem",
     shadow: elevation.soft,
     width: "min(760px, 100%)",
     maxHeight: "88vh",
     mobile: {
       padding: "1.25rem 1rem 1.5rem",
+      paddingTop: "1.25rem",
+      paddingX: "1rem",
+      paddingBottom: "1.5rem",
       maxHeight: "92vh",
     },
     desktop: {

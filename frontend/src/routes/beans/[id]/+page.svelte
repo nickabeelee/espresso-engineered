@@ -732,6 +732,8 @@
     open={bagSheetOpen}
     title={isCreatingBag ? 'New bag' : 'Bag details'}
     subtitle={isCreatingBag ? bean?.name : selectedBag?.name || bean?.name}
+    stickyHeader={true}
+    edgeFade={true}
     on:close={closeBagSheet}
   >
     {#if isCreatingBag && bean}
