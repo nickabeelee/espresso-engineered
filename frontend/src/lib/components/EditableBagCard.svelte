@@ -22,6 +22,7 @@
   export let beanRoastLevel: string | null = null;
   export let tastingNotes: string | null = null;
   export let baristasById: Record<string, BaristaType> = {};
+  export let viewVariant: 'full' | 'beanDetail' = 'full';
   
   // Props for new bag mode
   export let beanId: string | null = null;
@@ -262,6 +263,9 @@
   $: ratingCount = bag?.rating_count ?? 0;
   $: brewCount = bag?.brew_count ?? 0;
   $: beanLinkId = !isEditing ? (bag?.bean_id ?? beanId ?? null) : null;
+  $: showMedia = !isEditing && viewVariant === 'full';
+  $: showBeanDetails = !isEditing && viewVariant === 'full';
+  $: showTastingNotes = !isEditing && viewVariant === 'full';
 
   const style = toStyleString({
     '--editable-card-bg': editableCard.container.background,
@@ -350,6 +354,7 @@
   class:editing={isEditing}
   class:new-bag={isNewBag}
   class:has-media={!isEditing}
+  class:bean-detail={viewVariant === 'beanDetail'}
   on:keydown={handleKeydown}
   style={style}
 >
@@ -379,7 +384,9 @@
                 <h4>{beanName}</h4>
               {/if}
             </div>
-            <span class="bag-roast-meta">Roasted {bag?.roast_date ? formatRoastDate(bag.roast_date) : 'Not specified'}</span>
+            {#if !isEditing}
+              <span class="bag-roast-meta">Roasted {bag?.roast_date ? formatRoastDate(bag.roast_date) : 'Not specified'}</span>
+            {/if}
           </div>
           <div class="bag-header-status">
             {#if !isEditing && !isNewBag && bag?.inventory_status}
@@ -403,7 +410,7 @@
       {/if}
       
       <div class="bag-content">
-        {#if !isEditing}
+        {#if showMedia}
           <div class="bag-media">
             <div
               class="card-media"
@@ -428,7 +435,7 @@
           </div>
         {/if}
         <div class="bag-details">
-          {#if beanRoastLevel && !isEditing}
+          {#if beanRoastLevel && showBeanDetails}
             <div class="bag-detail">
               <span class="detail-label">Roast level</span>
               <div class="detail-value">
@@ -436,7 +443,7 @@
               </div>
             </div>
           {/if}
-          {#if !isNewBag}
+          {#if !isNewBag && !isEditing}
             <div class="bag-detail">
               <span class="detail-label">Avg rating</span>
               {#if averageRating !== null && ratingCount > 0}
@@ -448,9 +455,9 @@
               {/if}
             </div>
           {/if}
-          <div class="bag-detail">
-            <span class="detail-label">Price</span>
-            {#if isEditing}
+          {#if isEditing}
+            <div class="bag-detail">
+              <span class="detail-label">Price</span>
               <input
                 type="number"
                 inputmode="decimal"
@@ -461,16 +468,54 @@
                 step="0.01"
                 disabled={isSaving}
               />
-            {:else if pricePerUnit}
-              <span class="detail-value">{pricePerUnit}</span>
-            {:else}
-              <span class="detail-value detail-empty">Not specified</span>
-            {/if}
-          </div>
-          
+            </div>
+          {/if}
+
+          {#if viewVariant === 'beanDetail' && !isEditing && !isNewBag}
+            <div class="bag-detail">
+              <span class="detail-label">Purchase price</span>
+              {#if bag?.price !== null && bag?.price !== undefined}
+                <span class="detail-value">${bag.price.toFixed(2)}</span>
+              {:else}
+                <span class="detail-value detail-empty">Not specified</span>
+              {/if}
+            </div>
+            <div class="bag-detail">
+              <span class="detail-label">Bag weight</span>
+              {#if bag?.weight_g !== null && bag?.weight_g !== undefined}
+                <span class="detail-value">{bag.weight_g} g</span>
+              {:else}
+                <span class="detail-value detail-empty">Not specified</span>
+              {/if}
+            </div>
+          {/if}
+
+          {#if !isEditing}
+            <div class="bag-detail">
+              <span class="detail-label">Unit price</span>
+              {#if pricePerUnit}
+                <span class="detail-value">{pricePerUnit}</span>
+              {:else}
+                <span class="detail-value detail-empty">Not specified</span>
+              {/if}
+            </div>
+          {/if}
+
           {#if isEditing}
             <div class="bag-detail">
-              <span class="detail-label">Weight</span>
+              <span class="detail-label">Roast date</span>
+              <input
+                type="date"
+                bind:value={formData.roast_date}
+                class="detail-input"
+                disabled={isSaving}
+              />
+            </div>
+          {/if}
+
+          {#if isEditing}
+            <div class="bag-detail">
+              <span class="detail-label">Weight (g)</span>
               <input
                 type="number"
                 inputmode="decimal"
@@ -483,7 +528,20 @@
               />
             </div>
           {/if}
-          
+
+          {#if isEditing}
+            <div class="bag-detail">
+              <span class="detail-label">Purchase location</span>
+              <input
+                type="text"
+                bind:value={formData.purchase_location}
+                class="detail-input"
+                placeholder="e.g., Local roaster"
+                disabled={isSaving}
+              />
+            </div>
+          {/if}
+
           {#if isEditing}
             <div class="bag-detail">
               <span class="detail-label">Status</span>
@@ -493,6 +551,7 @@
                 disabled={isSaving}
               >
                 <option value="">Select status</option>
+                <option value="unopened">Unopened</option>
                 <option value="plenty">Plenty</option>
                 <option value="getting_low">Getting Low</option>
                 <option value="empty">Empty</option>
@@ -502,7 +561,7 @@
         </div>
       </div>
 
-      {#if !isEditing && tastingNotes}
+      {#if showTastingNotes && tastingNotes}
         <div class="bag-notes">
           <p class="notes-preview">
             {tastingNotes.length > 100
@@ -758,6 +817,10 @@
 
   .bag-card.has-media .bag-details {
     grid-template-columns: 1fr;
+  }
+
+  .bag-card.bean-detail .bag-details {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 
 
