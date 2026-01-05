@@ -182,9 +182,7 @@
   {:else}
     <div class="brew-header">
       <div class="brew-chips">
-        {#if baristaName}
-          <span class="barista-chip">{baristaName}</span>
-        {/if}
+        <span class="brew-barista">{baristaName ?? 'Unknown barista'}</span>
         <div class="status-group">
           {#if isDraft(brew)}
             <a
@@ -195,9 +193,15 @@
               Complete
             </a>
           {/if}
-          <span class="status-chip" class:draft={isDraft(brew)} class:complete={!isDraft(brew)}>
+          <Chip variant={isDraft(brew) ? 'warning' : 'success'} size="sm">
             {isDraft(brew) ? 'Draft' : 'Complete'}
-          </span>
+          </Chip>
+          <Chip variant={typeof brew.rating === 'number' ? 'accent' : 'neutral'} size="sm">
+            <span class="rating-chip">
+              {getDisplayRating()}
+              <StarMicro size={14} />
+            </span>
+          </Chip>
         </div>
       </div>
       <div class="brew-heading">
@@ -256,6 +260,36 @@
         </p>
       </div>
     {/if}
+
+    <div class="summary-thumbs">
+      <div class="thumb-frame" class:placeholder={!beanImagePath} aria-hidden={!beanImagePath ? 'true' : undefined}>
+        {#if beanImagePath}
+          <img
+            src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
+            alt={beanName ?? 'Bean'}
+            loading="lazy"
+          />
+        {/if}
+      </div>
+      <div class="thumb-frame" class:placeholder={!grinderImagePath} aria-hidden={!grinderImagePath ? 'true' : undefined}>
+        {#if grinderImagePath}
+          <img
+            src={getTransformedImageUrl(grinderImagePath, 'grinder', imageSizes.card)}
+            alt="Grinder"
+            loading="lazy"
+          />
+        {/if}
+      </div>
+      <div class="thumb-frame" class:placeholder={!machineImagePath} aria-hidden={!machineImagePath ? 'true' : undefined}>
+        {#if machineImagePath}
+          <img
+            src={getTransformedImageUrl(machineImagePath, 'machine', imageSizes.card)}
+            alt="Machine"
+            loading="lazy"
+          />
+        {/if}
+      </div>
+    </div>
   {/if}
 </article>
 
@@ -416,54 +450,21 @@
     flex-wrap: wrap;
   }
 
+  .brew-barista {
+    color: var(--text-ink-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 45%;
+  }
+
   .status-group {
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.5rem;
     margin-left: auto;
-  }
-
-  .status-chip {
-    padding: 0.25rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border: 1px solid transparent;
-  }
-
-  .status-chip.draft {
-    background: rgba(138, 106, 62, 0.18);
-    color: var(--semantic-warning);
-    border-color: rgba(138, 106, 62, 0.35);
-  }
-
-  .status-chip.complete {
-    background: rgba(85, 98, 74, 0.18);
-    color: var(--semantic-success);
-    border-color: rgba(85, 98, 74, 0.35);
-  }
-
-  .barista-chip {
-    display: inline-block;
-    padding: 0.2rem 0.75rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: rgba(123, 94, 58, 0.12);
-    color: var(--text-ink-secondary);
-    border: 1px solid rgba(123, 94, 58, 0.25);
-    max-width: 14rem;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .brew-meta {
-    margin-bottom: 1rem;
-    color: var(--text-ink-muted);
-    font-size: 0.9rem;
   }
 
   .brew-details {

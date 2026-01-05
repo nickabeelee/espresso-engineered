@@ -435,6 +435,10 @@
           <BrewCard
             brew={brew}
             baristaName={activeBrewGroup.barista.display_name}
+            beanName={activeBrewGroup.bean?.name ?? null}
+            beanImagePath={activeBrewGroup.bean?.image_path ?? null}
+            grinderImagePath={brew.grinder?.image_path ?? null}
+            machineImagePath={brew.machine?.image_path ?? null}
             variant="detail"
           />
         {/each}

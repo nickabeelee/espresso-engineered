@@ -219,6 +219,10 @@
         <BrewCard
           brew={brew}
           baristaName={baristaRecord?.display_name ?? 'Unknown barista'}
+          beanName={brew.bag?.bean?.name ?? null}
+          beanImagePath={brew.bag?.bean?.image_path ?? null}
+          grinderImagePath={brew.grinder?.image_path ?? null}
+          machineImagePath={brew.machine?.image_path ?? null}
           variant="detail"
         />
       {/each}
