@@ -8,7 +8,7 @@
   import Chip from '$lib/components/Chip.svelte';
   import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
-  import { ArrowTopRightOnSquareMini, PencilSquare, CheckCircle, XMark } from '$lib/icons';
+  import { ArrowTopRightOnSquareMini, PencilSquare, CheckCircle, XMark, StarMicro } from '$lib/icons';
   import { editableCard, editableCardVariants } from '$lib/ui/components/editable-card';
   import { imageSizes } from '$lib/ui/components/image';
   import { toStyleString } from '$lib/ui/style';
@@ -396,7 +396,15 @@
     >
       <div class="bag-preview-top">
         <span class="bag-preview-owner">{ownershipStatus === 'owned' ? 'Your bag' : ownerName}</span>
-        <Chip variant={inventoryVariant} size="sm">{inventoryLabel}</Chip>
+        <div class="bag-preview-chips">
+          <Chip variant={inventoryVariant} size="sm">{inventoryLabel}</Chip>
+          <Chip variant={averageRating !== null && ratingCount > 0 ? 'accent' : 'neutral'} size="sm">
+            <span class="rating-chip">
+              {averageRating !== null && ratingCount > 0 ? averageRating.toFixed(1) : '—'}
+              <StarMicro size={14} />
+            </span>
+          </Chip>
+        </div>
       </div>
       <div class="bag-preview-title-full">
         <h4>{beanName}</h4>
@@ -472,6 +480,12 @@
               <Chip variant={inventoryVariant} size="sm">{inventoryLabel}</Chip>
               <Chip variant="neutral" size="sm">
                 {brewCount} {brewCount === 1 ? 'brew' : 'brews'}
+              </Chip>
+              <Chip variant={averageRating !== null && ratingCount > 0 ? 'accent' : 'neutral'} size="sm">
+                <span class="rating-chip">
+                  {averageRating !== null && ratingCount > 0 ? averageRating.toFixed(1) : '—'}
+                  <StarMicro size={14} />
+                </span>
               </Chip>
             {/if}
           </div>
@@ -790,6 +804,20 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
+  }
+
+  .bag-preview-chips {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .rating-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
   }
 
   .bag-preview-title-full h4 {

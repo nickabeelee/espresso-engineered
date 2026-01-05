@@ -132,8 +132,8 @@
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
-    height: env(safe-area-inset-bottom, 0px);
+    bottom: -2px;
+    height: calc(env(safe-area-inset-bottom, 0px) + 2px);
     background: var(--sheet-panel-bg, var(--bg-surface-paper));
     z-index: 1;
     pointer-events: none;
