@@ -52,7 +52,27 @@ export class BrewRepository extends BaseRepository<Brew> {
    * Find brews with advanced filtering
    */
   async findWithFilters(filters: BrewFilters, baristaId?: string): Promise<Brew[]> {
-    let query = supabase.from('brew').select('*');
+    let query = supabase
+      .from('brew')
+      .select(`
+        *,
+        bag:bag_id (
+          id,
+          bean:bean_id (
+            id,
+            name,
+            image_path
+          )
+        ),
+        machine:machine_id (
+          id,
+          image_path
+        ),
+        grinder:grinder_id (
+          id,
+          image_path
+        )
+      `);
 
     // Apply barista filter for user-owned data
     if (baristaId) {
@@ -227,6 +247,7 @@ export class BrewRepository extends BaseRepository<Brew> {
             id,
             name,
             roast_level,
+            image_path,
             roaster:roaster_id (
               id,
               name
@@ -240,12 +261,14 @@ export class BrewRepository extends BaseRepository<Brew> {
         machine:machine_id (
           id,
           manufacturer,
-          name
+          name,
+          image_path
         ),
         grinder:grinder_id (
           id,
           manufacturer,
-          name
+          name,
+          image_path
         )
       `)
       .gte('created_at', currentWeekStart.toISOString())

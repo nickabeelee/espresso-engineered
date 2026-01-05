@@ -63,9 +63,25 @@ export interface Brew {
     grind_setting?: string;
     flow_rate_g_per_s?: number;
     ratio?: number;
-    rating?: number;
-    tasting_notes?: string;
-    reflections?: string;
+  rating?: number;
+  tasting_notes?: string;
+  reflections?: string;
+  bag?: {
+    id: string;
+    bean?: {
+      id: string;
+      name?: string;
+      image_path?: string | null;
+    } | null;
+  } | null;
+  machine?: {
+    id: string;
+    image_path?: string | null;
+  } | null;
+  grinder?: {
+    id: string;
+    image_path?: string | null;
+  } | null;
 }
 export interface BrewDraft extends Partial<Brew> {
     barista_id: string;

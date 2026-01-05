@@ -123,6 +123,22 @@ export interface Brew {
   rating?: number;
   tasting_notes?: string;
   reflections?: string;
+  bag?: {
+    id: string;
+    bean?: {
+      id: string;
+      name?: string;
+      image_path?: string | null;
+    } | null;
+  } | null;
+  machine?: {
+    id: string;
+    image_path?: string | null;
+  } | null;
+  grinder?: {
+    id: string;
+    image_path?: string | null;
+  } | null;
 }
 
 // Draft brew interface for offline storage

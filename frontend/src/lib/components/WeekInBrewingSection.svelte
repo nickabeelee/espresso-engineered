@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { onDestroy, onMount, tick } from 'svelte';
+  import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
   import BrewCard from './BrewCard.svelte';
   import LoadingIndicator from './LoadingIndicator.svelte';
   import ErrorDisplay from './ErrorDisplay.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { ChevronLeft, ChevronRight } from '$lib/icons';
+  import { ChevronLeft, ChevronRight, StarMini } from '$lib/icons';
   import { apiClient } from '$lib/api-client';
   import { animations, gsap } from '$lib/ui/animations';
   import { recordListShell } from '$lib/ui/components/card';
@@ -21,6 +21,7 @@
   let error: string | null = null;
   let brewGroups: LayeredBrewGroup[] = [];
   let stackOrders: number[][] = [];
+  const dispatch = createEventDispatcher<{ openGroup: { group: LayeredBrewGroup } }>();
 
   // DOM references
   let scrollContainer: HTMLElement | null = null;
@@ -75,6 +76,15 @@
   });
 
   // Types for the component
+  interface BrewWithEquipment extends Brew {
+    grinder?: {
+      image_path?: string | null;
+    };
+    machine?: {
+      image_path?: string | null;
+    };
+  }
+
   interface LayeredBrewGroup {
     barista: {
       id: string;
@@ -84,12 +94,13 @@
       id: string;
       name: string;
       roast_level: string;
+      image_path?: string | null;
       roaster: {
         id: string;
         name: string;
       };
     };
-    brews: Brew[];
+    brews: BrewWithEquipment[];
     stackDepth: number;
   }
 
@@ -347,6 +358,15 @@
     animateStackShuffle(groupIndex, rotated, direction);
   }
 
+  function openGroupOverlay(groupIndex: number) {
+    if (typeof window !== 'undefined' && window.innerWidth > 720) {
+      return;
+    }
+    const group = brewGroups[groupIndex];
+    if (!group) return;
+    dispatch('openGroup', { group });
+  }
+
   function handleStackPointerDown(groupIndex: number, event: PointerEvent) {
     swipeStates.set(groupIndex, {
       x: event.clientX,
@@ -463,7 +483,7 @@
       <p class="voice-text" style={voiceLineStyle}>The week is just beginning. Check back soon to see what everyone's brewing!</p>
     </div>
   {:else}
-    <div class="brewing-shell" style={stackShellStyle}>
+    <div class="brewing-shell edge-rail" style={stackShellStyle}>
       <div class="group-scroll" bind:this={scrollContainer}>
         <div class="group-row">
           {#each brewGroups as group, groupIndex (getGroupKey(group))}
@@ -480,12 +500,14 @@
                   <h3 class="group-title" style={groupTitleStyle}>{group.bean.name}</h3>
                   <p class="group-meta" style={groupMetaStyle}>
                     {group.barista.display_name}
-                    {#if averageRating !== null}
-                      • Avg rating {averageRating.toFixed(1)}/10
-                    {/if}
                   </p>
                 </div>
-                <p class="group-count" style={groupMetaStyle}>{getBrewCountText(group.brews.length)}</p>
+                <div class="group-metrics" style={groupMetaStyle}>
+                  <span class="group-count">{getBrewCountText(group.brews.length)}</span>
+                  {#if averageRating !== null}
+                    <span class="avg-rating">{averageRating.toFixed(1)} <StarMini size={16} /> avg</span>
+                  {/if}
+                </div>
               </div>
 
               <div
@@ -493,6 +515,7 @@
                 on:pointerdown={(event) => handleStackPointerDown(groupIndex, event)}
                 on:pointerup={(event) => handleStackPointerUp(groupIndex, event)}
                 on:pointercancel={() => swipeStates.delete(groupIndex)}
+                on:click={() => openGroupOverlay(groupIndex)}
               >
                 {#each getStackedBrews(group, groupIndex, stackOrders) as stackItem (stackItem.brew.id)}
                   <div
@@ -502,7 +525,15 @@
                     data-brew-id={stackItem.brew.id}
                     style={`--stack-offset: ${stackItem.offset}; --stack-depth: ${getStackDepth(group)}; z-index: ${getStackDepth(group) - stackItem.offset}; opacity: ${1 - stackItem.offset * 0.12};`}
                   >
-                    <BrewCard brew={stackItem.brew} baristaName={group.barista.display_name} />
+                    <BrewCard
+                      brew={stackItem.brew}
+                      baristaName={group.barista.display_name}
+                      beanName={group.bean?.name ?? null}
+                      beanImagePath={group.bean?.image_path ?? null}
+                      grinderImagePath={stackItem.brew.grinder?.image_path ?? null}
+                      machineImagePath={stackItem.brew.machine?.image_path ?? null}
+                      variant="summary"
+                    />
                   </div>
                 {/each}
               </div>
@@ -539,6 +570,7 @@
       </div>
     </div>
   {/if}
+
 </section>
 
 <style>
@@ -601,7 +633,7 @@
 
   .group-scroll {
     overflow-x: auto;
-    padding-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
     scrollbar-width: thin;
     scrollbar-color: var(--border-subtle) transparent;
     scroll-snap-type: x mandatory;
@@ -627,8 +659,8 @@
   }
 
   .group-stack {
-    width: 420px;
-    min-width: 420px;
+    width: 320px;
+    min-width: 320px;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -655,20 +687,33 @@
     gap: 0.35rem;
   }
 
+  .avg-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
   .group-count {
     white-space: nowrap;
   }
 
+  .group-metrics {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+  }
+
   .stack-area {
+    display: grid;
     position: relative;
-    min-height: 320px;
+    min-height: 270px;
     overflow: hidden;
     border-radius: var(--radius-md);
   }
 
   .stack-card {
-    position: absolute;
-    inset: 0;
+    grid-area: 1 / 1;
     transform: translateY(calc(var(--stack-offset) * 10px))
       scale(calc(1 - var(--stack-offset) * 0.02));
     transform-origin: top center;
@@ -698,26 +743,59 @@
     text-align: center;
   }
 
-  @media (max-width: 900px) {
-    .group-stack {
-      width: 360px;
-      min-width: 360px;
-    }
-  }
-
-  @media (max-width: 720px) {
+  @media (max-width: 768px) {
     .section-header {
       flex-direction: column;
       align-items: flex-start;
+      margin-bottom: 0;
+    }
+
+    .scroll-controls {
+      display: none;
     }
 
     .group-stack {
-      width: 85vw;
-      min-width: 85vw;
+      width: min(82vw, 320px);
+      min-width: min(82vw, 320px);
     }
 
     .stack-area {
-      min-height: 280px;
+      min-height: 270px;
+    }
+
+    .stack-card.is-active {
+      pointer-events: none;
+    }
+
+    .stack-footer {
+      display: none;
+    }
+
+    .brewing-shell {
+      background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+      border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid)
+        var(--record-list-border, rgba(123, 94, 58, 0.2));
+      border-radius: 0;
+      padding: 0.75rem 0;
+    }
+
+    .group-scroll {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      scroll-padding-left: 1rem;
+      scroll-padding-right: 1rem;
+    }
+
+    .group-row {
+      padding-right: 1rem;
+    }
+
+  }
+
+  @media (max-width: 480px) {
+    .group-stack {
+      width: min(86vw, 280px);
+      min-width: min(86vw, 280px);
     }
   }
 
