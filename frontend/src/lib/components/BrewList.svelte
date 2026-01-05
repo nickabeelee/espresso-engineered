@@ -216,7 +216,15 @@
     <div class="brew-grid">
       {#each filteredBrews as brew (brew.id)}
         {@const baristaRecord = baristasById[brew.barista_id]}
-        <BrewCard brew={brew} baristaName={baristaRecord?.display_name ?? 'Unknown barista'} />
+        <BrewCard
+          brew={brew}
+          baristaName={baristaRecord?.display_name ?? 'Unknown barista'}
+          beanName={brew.bag?.bean?.name ?? null}
+          beanImagePath={brew.bag?.bean?.image_path ?? null}
+          grinderImagePath={brew.grinder?.image_path ?? null}
+          machineImagePath={brew.machine?.image_path ?? null}
+          variant="detail"
+        />
       {/each}
     </div>
   </div>

@@ -1,13 +1,30 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import Chip from '$lib/components/Chip.svelte';
+  import { StarMicro } from '$lib/icons';
   import { recordCard } from '$lib/ui/components/card';
+  import { imageFrame, imageSizes } from '$lib/ui/components/image';
   import { toStyleString } from '$lib/ui/style';
+  import { getTransformedImageUrl } from '$lib/utils/image-utils';
 
   export let brew: Brew;
   export let baristaName: string | null = null;
+  export let beanName: string | null = null;
+  export let beanImagePath: string | null = null;
+  export let grinderImagePath: string | null = null;
+  export let machineImagePath: string | null = null;
+  export let variant: 'detail' | 'summary' = 'detail';
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString();
+  }
+
+  function formatShortDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: '2-digit'
+    });
   }
 
   function formatTime(dateString: string): string {
@@ -24,6 +41,22 @@
   function getBrewTitle(entry: Brew): string {
     if (entry.name) return entry.name;
     return `Brew ${formatDate(entry.created_at)}`;
+  }
+
+  function formatRatio(value?: number): string {
+    if (!value) return '—';
+    return `1:${value.toFixed(2)}`;
+  }
+
+  function formatBrewTime(value?: number): string {
+    if (!value) return '—';
+    const rounded = Math.round(value * 10) / 10;
+    return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}s`;
+  }
+
+  function getDisplayRating(): string {
+    if (typeof brew.rating !== 'number') return '—';
+    return `${Math.round(brew.rating)}`;
   }
 
   function handleCardClick() {
@@ -71,12 +104,18 @@
     '--record-card-notes-padding': recordCard.notes.padding,
     '--record-card-notes-color': recordCard.notes.textColor,
     '--record-card-notes-size': recordCard.notes.fontSize,
-    '--record-card-notes-line-height': recordCard.notes.lineHeight
+    '--record-card-notes-line-height': recordCard.notes.lineHeight,
+    '--brew-thumb-bg': imageFrame.background,
+    '--brew-thumb-border': imageFrame.borderColor,
+    '--brew-thumb-border-width': imageFrame.borderWidth,
+    '--brew-thumb-border-style': imageFrame.borderStyle,
+    '--brew-thumb-radius': imageFrame.borderRadius
   });
 </script>
 
 <article
   class="brew-card"
+  class:summary={variant === 'summary'}
   style={style}
   role="link"
   tabindex="0"
@@ -84,83 +123,156 @@
   on:click={handleCardClick}
   on:keydown={handleCardKeydown}
 >
-  <div class="brew-header">
-    <div class="brew-chips">
-      {#if baristaName}
-        <span class="barista-chip">{baristaName}</span>
+  {#if variant === 'summary'}
+    <div class="brew-summary">
+      <div class="summary-top">
+        <span class="summary-meta summary-barista">{baristaName ?? 'Unknown barista'}</span>
+        <div class="summary-chips">
+          <Chip variant={isDraft(brew) ? 'warning' : 'success'} size="sm">
+            {isDraft(brew) ? 'Draft' : 'Complete'}
+          </Chip>
+          <Chip variant={typeof brew.rating === 'number' ? 'accent' : 'neutral'} size="sm">
+            <span class="rating-chip">
+              {getDisplayRating()}
+              <StarMicro size={14} />
+            </span>
+          </Chip>
+        </div>
+      </div>
+
+      <h3 class="summary-title">{beanName ?? getBrewTitle(brew)}</h3>
+      <p class="summary-meta">{formatShortDate(brew.created_at)} · {formatTime(brew.created_at)}</p>
+
+      <div class="summary-kpis">
+        <span class="kpi">Grind: {brew.grind_setting ?? '—'}</span>
+        <span class="kpi">{formatRatio(brew.ratio)}</span>
+        <span class="kpi">{formatBrewTime(brew.brew_time_s)}</span>
+      </div>
+
+      <div class="summary-thumbs">
+        <div class="thumb-frame" class:placeholder={!beanImagePath} aria-hidden={!beanImagePath ? 'true' : undefined}>
+          {#if beanImagePath}
+            <img
+              src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
+              alt={beanName ?? 'Bean'}
+              loading="lazy"
+            />
+          {/if}
+        </div>
+        <div class="thumb-frame" class:placeholder={!grinderImagePath} aria-hidden={!grinderImagePath ? 'true' : undefined}>
+          {#if grinderImagePath}
+            <img
+              src={getTransformedImageUrl(grinderImagePath, 'grinder', imageSizes.card)}
+              alt="Grinder"
+              loading="lazy"
+            />
+          {/if}
+        </div>
+        <div class="thumb-frame" class:placeholder={!machineImagePath} aria-hidden={!machineImagePath ? 'true' : undefined}>
+          {#if machineImagePath}
+            <img
+              src={getTransformedImageUrl(machineImagePath, 'machine', imageSizes.card)}
+              alt="Machine"
+              loading="lazy"
+            />
+          {/if}
+        </div>
+      </div>
+    </div>
+  {:else}
+    <div class="brew-header">
+      <div class="brew-chips">
+        <span class="brew-barista">{baristaName ?? 'Unknown barista'}</span>
+        <div class="status-group">
+          {#if isDraft(brew)}
+            <a
+              href="/brews/{brew.id}?reflect=true"
+              class="action-link"
+              on:click|stopPropagation
+            >
+              Complete
+            </a>
+          {/if}
+          <Chip variant={isDraft(brew) ? 'warning' : 'success'} size="sm">
+            {isDraft(brew) ? 'Draft' : 'Complete'}
+          </Chip>
+          <Chip variant={typeof brew.rating === 'number' ? 'accent' : 'neutral'} size="sm">
+            <span class="rating-chip">
+              {getDisplayRating()}
+              <StarMicro size={14} />
+            </span>
+          </Chip>
+        </div>
+      </div>
+      <div class="brew-heading">
+        <h3 class="brew-title">{getBrewTitle(brew)}</h3>
+        <span class="brew-date">
+          {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
+        </span>
+      </div>
+    </div>
+
+    <div class="detail-kpis summary-kpis">
+      <span class="kpi">Grind: {brew.grind_setting ?? '—'}</span>
+      <span class="kpi">{formatRatio(brew.ratio)}</span>
+      <span class="kpi">{formatBrewTime(brew.brew_time_s)}</span>
+    </div>
+
+    <div class="brew-details">
+      <div class="detail-row">
+        <span class="label">Dose:</span>
+        <span class="value">{brew.dose_g.toFixed(1)}g</span>
+      </div>
+
+      {#if brew.flow_rate_g_per_s}
+        <div class="detail-row">
+          <span class="label">Flow rate:</span>
+          <span class="value">{brew.flow_rate_g_per_s.toFixed(1)} g/s</span>
+        </div>
       {/if}
-      <div class="status-group">
-        {#if isDraft(brew)}
-          <a
-            href="/brews/{brew.id}?reflect=true"
-            class="action-link"
-            on:click|stopPropagation
-          >
-            Complete
-          </a>
+
+    </div>
+
+    {#if brew.tasting_notes}
+      <div class="brew-notes">
+        <p class="notes-preview">
+          {brew.tasting_notes.length > 100
+            ? brew.tasting_notes.substring(0, 100) + '...'
+            : brew.tasting_notes}
+        </p>
+      </div>
+    {/if}
+
+    <div class="detail-media summary-thumbs">
+      <div class="thumb-frame" class:placeholder={!beanImagePath} aria-hidden={!beanImagePath ? 'true' : undefined}>
+        {#if beanImagePath}
+          <img
+            src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
+            alt={beanName ?? 'Bean'}
+            loading="lazy"
+          />
         {/if}
-        <span class="status-chip" class:draft={isDraft(brew)} class:complete={!isDraft(brew)}>
-          {isDraft(brew) ? 'Draft' : 'Complete'}
-        </span>
       </div>
-    </div>
-    <div class="brew-heading">
-      <h3 class="brew-title">{getBrewTitle(brew)}</h3>
-      <span class="brew-date">
-        {formatDate(brew.created_at)} at {formatTime(brew.created_at)}
-      </span>
-    </div>
-  </div>
-
-  <div class="brew-details">
-    <div class="detail-row">
-      <span class="label">Dose:</span>
-      <span class="value">{brew.dose_g.toFixed(1)}g</span>
-    </div>
-
-    {#if brew.grind_setting}
-      <div class="detail-row">
-        <span class="label">Grind:</span>
-        <span class="value">{brew.grind_setting}</span>
+      <div class="thumb-frame" class:placeholder={!grinderImagePath} aria-hidden={!grinderImagePath ? 'true' : undefined}>
+        {#if grinderImagePath}
+          <img
+            src={getTransformedImageUrl(grinderImagePath, 'grinder', imageSizes.card)}
+            alt="Grinder"
+            loading="lazy"
+          />
+        {/if}
       </div>
-    {/if}
-
-    {#if brew.ratio}
-      <div class="detail-row">
-        <span class="label">Ratio:</span>
-        <span class="value">1:{brew.ratio.toFixed(2)}</span>
+      <div class="thumb-frame" class:placeholder={!machineImagePath} aria-hidden={!machineImagePath ? 'true' : undefined}>
+        {#if machineImagePath}
+          <img
+            src={getTransformedImageUrl(machineImagePath, 'machine', imageSizes.card)}
+            alt="Machine"
+            loading="lazy"
+          />
+        {/if}
       </div>
-    {/if}
-
-    {#if brew.brew_time_s}
-      <div class="detail-row">
-        <span class="label">Time:</span>
-        <span class="value">{brew.brew_time_s.toFixed(1)}s</span>
-      </div>
-    {/if}
-
-    {#if brew.rating}
-      <div class="detail-row rating-row">
-        <span class="label">Rating:</span>
-        <span class="value rating">
-          {'★'.repeat(Math.floor(brew.rating))}
-          {brew.rating % 1 !== 0 ? '½' : ''}
-          <span class="rating-number">({brew.rating}/10)</span>
-        </span>
-      </div>
-    {/if}
-  </div>
-
-  {#if brew.tasting_notes}
-    <div class="brew-notes">
-      <p class="notes-preview">
-        {brew.tasting_notes.length > 100
-          ? brew.tasting_notes.substring(0, 100) + '...'
-          : brew.tasting_notes}
-      </p>
     </div>
   {/if}
-
 </article>
 
 <style>
@@ -169,18 +281,126 @@
     border: var(--record-card-border-width, 1px) var(--record-card-border-style, solid) var(--record-card-border, rgba(123, 94, 58, 0.2));
     border-radius: var(--record-card-radius, var(--radius-md));
     padding: var(--record-card-padding, 1.5rem);
-    transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
+    transition: border-color var(--motion-fast);
     cursor: pointer;
   }
 
   .brew-card:hover {
-    box-shadow: var(--record-card-hover-shadow, var(--shadow-soft));
     border-color: var(--record-card-hover-border, var(--accent-primary));
   }
 
   .brew-card:focus-visible {
     outline: var(--record-card-focus-width, 2px) solid var(--record-card-focus-color, rgba(176, 138, 90, 0.4));
     outline-offset: var(--record-card-focus-offset, 2px);
+  }
+
+  .brew-card.summary {
+    padding: 1.1rem;
+  }
+
+  .brew-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .summary-chips {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+  }
+
+  .rating-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .summary-title {
+    margin: 0;
+    font-size: 1.05rem;
+    color: var(--text-ink-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .summary-meta {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-ink-muted);
+  }
+
+  .summary-barista {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 45%;
+  }
+
+  .summary-kpis {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.98rem;
+    color: var(--text-ink-secondary);
+    flex-wrap: wrap;
+  }
+
+  .detail-kpis {
+    margin-bottom: 0.85rem;
+  }
+
+  .summary-kpis .kpi {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 700;
+    font-family: var(--record-card-detail-value-font, inherit);
+    letter-spacing: 0.01em;
+  }
+
+  .summary-kpis .kpi:not(:last-child)::after {
+    content: '•';
+    color: var(--text-ink-muted);
+    margin-left: 0.35rem;
+  }
+
+  .summary-thumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .thumb-frame {
+    flex: 1 1 0;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--brew-thumb-radius, 12px);
+    border: var(--brew-thumb-border-width, 1px) var(--brew-thumb-border-style, solid) var(--brew-thumb-border, rgba(123, 94, 58, 0.2));
+    background: var(--brew-thumb-bg, rgba(123, 94, 58, 0.06));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .thumb-frame.placeholder {
+    border-style: dashed;
+    background: rgba(123, 94, 58, 0.04);
+  }
+
+  .thumb-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .brew-header {
@@ -218,54 +438,21 @@
     flex-wrap: wrap;
   }
 
+  .brew-barista {
+    color: var(--text-ink-muted);
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 45%;
+  }
+
   .status-group {
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.5rem;
     margin-left: auto;
-  }
-
-  .status-chip {
-    padding: 0.25rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border: 1px solid transparent;
-  }
-
-  .status-chip.draft {
-    background: rgba(138, 106, 62, 0.18);
-    color: var(--semantic-warning);
-    border-color: rgba(138, 106, 62, 0.35);
-  }
-
-  .status-chip.complete {
-    background: rgba(85, 98, 74, 0.18);
-    color: var(--semantic-success);
-    border-color: rgba(85, 98, 74, 0.35);
-  }
-
-  .barista-chip {
-    display: inline-block;
-    padding: 0.2rem 0.75rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: rgba(123, 94, 58, 0.12);
-    color: var(--text-ink-secondary);
-    border: 1px solid rgba(123, 94, 58, 0.25);
-    max-width: 14rem;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .brew-meta {
-    margin-bottom: 1rem;
-    color: var(--text-ink-muted);
-    font-size: 0.9rem;
   }
 
   .brew-details {
@@ -321,6 +508,10 @@
     border-left: var(--record-card-notes-border-width, 3px) solid var(--record-card-notes-border, var(--accent-primary));
   }
 
+  .detail-media {
+    margin-top: 0.9rem;
+  }
+
   .notes-preview {
     margin: 0;
     color: var(--record-card-notes-color, var(--text-ink-secondary));
@@ -355,6 +546,14 @@
 
     .barista-chip {
       max-width: 100%;
+    }
+
+    .brew-card.summary {
+      padding: 1rem;
+    }
+
+    .summary-thumbs {
+      gap: 0.5rem;
     }
   }
 </style>

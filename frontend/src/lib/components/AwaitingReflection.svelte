@@ -291,11 +291,10 @@
     border: 1px solid rgba(123, 94, 58, 0.2);
     border-radius: var(--radius-md);
     padding: 1.5rem;
-    transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
+    transition: border-color var(--motion-fast);
   }
 
   .draft-card:hover {
-    box-shadow: var(--shadow-soft);
     border-color: var(--accent-primary);
   }
 

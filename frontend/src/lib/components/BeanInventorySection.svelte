@@ -3,7 +3,7 @@
   import { createEventDispatcher } from 'svelte';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
   import { barista } from '$lib/auth';
-  import EditableBagCard from '$lib/components/EditableBagCard.svelte';
+  import BagCard from '$lib/components/BagCard.svelte';
   import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
@@ -17,6 +17,8 @@
 
   const dispatch = createEventDispatcher<{
     bagUpdated: BagWithBarista;
+    inspect: { bag: BagWithBarista };
+    brew: { bagId: string | null };
   }>();
 
   let bags: BagWithBarista[] = [];
@@ -85,7 +87,7 @@
         barista: $barista!
       }));
 
-      // Create baristas lookup for EditableBagCard
+      // Create baristas lookup for BagCard
       baristasById = {
         [$barista.id]: $barista
       };
@@ -206,10 +208,7 @@
     });
   }
 
-  function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
-    const updatedBag = event.detail;
-    
-    // Update the bag in our local array
+  export function applyBagUpdate(updatedBag: BagWithBarista) {
     const index = bags.findIndex(bag => bag.id === updatedBag.id);
     if (index !== -1) {
       const existingBag = bags[index];
@@ -225,6 +224,18 @@
     }
 
     dispatch('bagUpdated', updatedBag);
+  }
+
+  function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
+    applyBagUpdate(event.detail);
+  }
+
+  function requestInspect(bag: BagWithBarista) {
+    dispatch('inspect', { bag });
+  }
+
+  function requestBrew(event: CustomEvent<{ bagId: string | null }>) {
+    dispatch('brew', event.detail);
   }
 
   $: if (bags.length > 0) {
@@ -295,7 +306,7 @@
       <p class="voice-text" style={voiceLineStyle}>Add a bag to start your bar shelf.</p>
     </div>
   {:else}
-    <div class="inventory-shell" style={inventoryShellStyle}>
+    <div class="inventory-shell edge-rail" style={inventoryShellStyle}>
       <div class="inventory-container">
         <div 
           class="bag-scroll-container" 
@@ -307,14 +318,17 @@
                 class="bag-card-wrapper"
                 bind:this={bagCards[index]}
               >
-                <EditableBagCard
+                <BagCard
+                  variant="preview"
                   {bag}
                   beanName={bag.bean?.name || 'Unknown Bean'}
+                  roasterName={bag.bean?.roaster?.name || null}
                   beanImagePath={bag.bean?.image_path || null}
                   beanRoastLevel={bag.bean?.roast_level || null}
                   tastingNotes={bag.bean?.tasting_notes || null}
                   {baristasById}
-                  on:updated={handleBagUpdated}
+                  on:inspect={() => requestInspect(bag)}
+                  on:brew={requestBrew}
                 />
               </div>
             {/each}
@@ -323,6 +337,7 @@
       </div>
     </div>
   {/if}
+
 </div>
 
 <style>
@@ -393,6 +408,7 @@
     padding: var(--record-list-padding, 1.5rem);
   }
 
+
   .inventory-container {
     position: relative;
   }
@@ -432,8 +448,8 @@
 
   .bag-card-wrapper {
     flex: 0 0 auto;
-    width: 420px;
-    min-width: 420px;
+    width: 320px;
+    min-width: 320px;
     transition: transform var(--motion-fast), opacity var(--motion-fast);
     scroll-snap-align: start;
   }
@@ -444,31 +460,57 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 1rem;
+      margin-bottom: 0;
     }
 
     .scroll-controls {
-      align-self: flex-end;
+      display: none;
     }
 
     .bag-card-wrapper {
-      width: 320px;
-      min-width: 320px;
+      width: min(82vw, 320px);
+      min-width: min(82vw, 320px);
     }
 
     .bag-list {
       gap: 1rem;
     }
+
+    .bag-list {
+      padding-right: 1rem;
+    }
+
+    .inventory-shell {
+      background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+      border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid)
+        var(--record-list-border, rgba(123, 94, 58, 0.2));
+      border-radius: 0;
+      padding: 0.75rem 0;
+    }
+
+    .inventory-shell.edge-rail {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .bag-scroll-container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      scroll-padding-left: 1rem;
+      scroll-padding-right: 1rem;
+    }
+
   }
 
   @media (max-width: 480px) {
     .bag-card-wrapper {
-      width: 260px;
-      min-width: 260px;
+      width: min(86vw, 280px);
+      min-width: min(86vw, 280px);
     }
 
     .bag-card-wrapper.with-image {
-      width: 260px;
-      min-width: 260px;
+      width: min(86vw, 280px);
+      min-width: min(86vw, 280px);
     }
   }
 </style>

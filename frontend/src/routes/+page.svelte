@@ -1,14 +1,19 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
   import { isAuthenticated, barista } from '$lib/auth';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
+  import BagCard from '$lib/components/BagCard.svelte';
+  import BrewCard from '$lib/components/BrewCard.svelte';
+  import Sheet from '$lib/components/Sheet.svelte';
+  import BeanAnalysisFilters from '$lib/components/BeanAnalysisFilters.svelte';
   import { apiClient } from '$lib/api-client';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
   import { toStyleString } from '$lib/ui/style';
-  import type { Bean, Bag, BagWithBarista } from '@shared/types';
+  import type { Bean, Bag, BagWithBarista, Brew } from '@shared/types';
+  import type { RecencyPeriod } from '$lib/ui/viz/d3-integration';
 
   // Lazy load components for better performance
   let BeanInventorySection: any = null;
@@ -25,10 +30,19 @@
   let hasRecentActivity = false;
   let loading = true;
   let error: string | null = null;
+  let inspectedBag: BagWithBarista | null = null;
+  let inspectOpen = false;
+  let activeBrewGroup: LayeredBrewGroup | null = null;
   
   // Analysis section state
   let selectedBean: Bean | null = null;
   let selectedBag: Bag | null = null;
+  let includeCommunity = false;
+  let recencyFilter: RecencyPeriod = 'M';
+  let analysisFiltersOpen = false;
+  let isMobile = false;
+  let viewportQuery: MediaQueryList | null = null;
+  let viewportListener: ((event: MediaQueryListEvent) => void) | null = null;
 
   // Progressive loading state
   let inventoryLoaded = false;
@@ -40,8 +54,34 @@
 
   // Load user activity data when component mounts
   onMount(async () => {
+    if (browser) {
+      viewportQuery = window.matchMedia('(max-width: 768px)');
+      const updateViewport = (event?: MediaQueryListEvent) => {
+        isMobile = event?.matches ?? viewportQuery?.matches ?? false;
+        if (!isMobile) {
+          analysisFiltersOpen = false;
+        }
+      };
+      updateViewport();
+      viewportListener = updateViewport;
+      if (viewportQuery.addEventListener) {
+        viewportQuery.addEventListener('change', updateViewport);
+      } else {
+        viewportQuery.addListener(updateViewport);
+      }
+    }
     if ($barista) {
       await loadDashboardData();
+    }
+  });
+
+  onDestroy(() => {
+    if (viewportQuery && viewportListener) {
+      if (viewportQuery.removeEventListener) {
+        viewportQuery.removeEventListener('change', viewportListener);
+      } else {
+        viewportQuery.removeListener(viewportListener);
+      }
     }
   });
 
@@ -136,22 +176,56 @@
   }
 
   function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
-    // Handle bag updates from inventory section
-    // This could trigger updates in other sections if needed
-    console.log('Bag updated:', event.detail);
+    const updatedBag = event.detail;
+    inventorySectionRef?.applyBagUpdate(updatedBag);
+
+    if (inspectedBag?.id === updatedBag.id) {
+      const existingBean = (inspectedBag as any).bean;
+      const updatedBean = (updatedBag as any).bean;
+      const mergedBean = existingBean || updatedBean ? { ...(existingBean || {}), ...(updatedBean || {}) } : undefined;
+      inspectedBag = {
+        ...updatedBag,
+        ...(mergedBean ? { bean: mergedBean } : {})
+      };
+    }
   }
 
-  function handleBeanChange(event: CustomEvent<{ bean: Bean | null }>) {
-    selectedBean = event.detail.bean;
+  function handleBagInspect(event: CustomEvent<{ bag: BagWithBarista }>) {
+    inspectedBag = event.detail.bag;
+    inspectOpen = true;
   }
 
-  function handleBagChange(event: CustomEvent<{ bag: Bag | null }>) {
-    selectedBag = event.detail.bag;
+  function closeBagInspect() {
+    inspectOpen = false;
+  }
+
+  function handleBagBrew(event: CustomEvent<{ bagId: string | null }>) {
+    const bagId = event.detail.bagId;
+    if (!bagId) return;
+    goto(`/brews/new?bag=${bagId}`);
+  }
+
+  function openAnalysisFilters() {
+    analysisFiltersOpen = true;
+  }
+
+  function closeAnalysisFilters() {
+    analysisFiltersOpen = false;
   }
 
   async function retryLoad() {
     await loadDashboardData();
   }
+
+  function handleBrewGroupOpen(event: CustomEvent<{ group: LayeredBrewGroup }>) {
+    activeBrewGroup = event.detail.group;
+  }
+
+  function closeBrewGroupSheet() {
+    activeBrewGroup = null;
+  }
+
+  const getBrewCountText = (count: number) => (count === 1 ? '1 brew' : `${count} brews`);
 
   const voiceLineStyle = toStyleString({
     ...textStyles.voice,
@@ -200,6 +274,36 @@
     color: colorCss.text.ink.secondary,
     margin: 0
   });
+
+  let inventorySectionRef: any = null;
+
+  type BrewWithEquipment = Brew & {
+    grinder?: {
+      image_path?: string | null;
+    };
+    machine?: {
+      image_path?: string | null;
+    };
+  };
+
+  type LayeredBrewGroup = {
+    barista: {
+      id: string;
+      display_name: string;
+    };
+    bean: {
+      id: string;
+      name: string;
+      roast_level: string;
+      image_path?: string | null;
+      roaster: {
+        id: string;
+        name: string;
+      };
+    };
+    brews: BrewWithEquipment[];
+    stackDepth: number;
+  };
 </script>
 
 <svelte:head>
@@ -208,7 +312,7 @@
 </svelte:head>
 
 {#if $isAuthenticated && $barista}
-  <div class="home-dashboard">
+  <div class="home-dashboard" id="home-top">
     <div class="page-header">
       <p class="voice-line" style={voiceLineStyle}>Settle in.</p>
       <h1 style={pageTitleStyle}>Home</h1>
@@ -228,10 +332,13 @@
     {:else}
       <!-- Bean Inventory Section -->
       {#if inventoryLoaded && BeanInventorySection}
-        <div class="section-container inventory-section">
+        <div class="section-container inventory-section" id="shelf">
           <svelte:component 
             this={BeanInventorySection}
+            bind:this={inventorySectionRef}
             on:bagUpdated={handleBagUpdated}
+            on:inspect={handleBagInspect}
+            on:brew={handleBagBrew}
           />
         </div>
       {:else if inventoryLoaded}
@@ -248,8 +355,8 @@
 
       <!-- Week in Brewing Section -->
       {#if weekLoaded && WeekInBrewingSection}
-        <div class="section-container week-section">
-          <svelte:component this={WeekInBrewingSection} />
+        <div class="section-container week-section" id="week">
+          <svelte:component this={WeekInBrewingSection} on:openGroup={handleBrewGroupOpen} />
         </div>
       {:else if weekLoaded}
         <div class="section-skeleton">
@@ -265,13 +372,15 @@
 
       <!-- Bean Analysis Section -->
       {#if analysisLoaded && BeanAnalysisSection}
-        <div class="section-container analysis-section">
+        <div class="section-container analysis-section" id="analysis">
           <svelte:component 
             this={BeanAnalysisSection}
-            {selectedBean}
-            {selectedBag}
-            on:beanChange={handleBeanChange}
-            on:bagChange={handleBagChange}
+            bind:selectedBean
+            bind:selectedBag
+            bind:includeCommunity
+            bind:recencyFilter
+            showInlineFilters={!isMobile}
+            on:openFilters={openAnalysisFilters}
           />
         </div>
       {:else if analysisLoaded}
@@ -285,8 +394,78 @@
           <div class="skeleton-content analysis-skeleton"></div>
         </div>
       {/if}
+
     {/if}
   </div>
+  {#if inspectedBag}
+    <Sheet
+      open={inspectOpen}
+      title="Your bag"
+      subtitle={inspectedBag.name || inspectedBag.bean?.name || 'Bag details'}
+      stickyHeader={true}
+      edgeFade={true}
+      on:close={closeBagInspect}
+    >
+      <BagCard
+        variant="inspect"
+        surface="sheet"
+        bag={inspectedBag}
+        beanName={inspectedBag.bean?.name || 'Unknown Bean'}
+        roasterName={inspectedBag.bean?.roaster?.name || null}
+        beanImagePath={inspectedBag.bean?.image_path || null}
+        beanRoastLevel={inspectedBag.bean?.roast_level || null}
+        tastingNotes={inspectedBag.bean?.tasting_notes || null}
+        on:updated={handleBagUpdated}
+        on:brew={handleBagBrew}
+      />
+    </Sheet>
+  {/if}
+  {#if activeBrewGroup}
+    <Sheet
+      open={Boolean(activeBrewGroup)}
+      title={activeBrewGroup.bean.name}
+      subtitle={`${activeBrewGroup.barista.display_name} · ${getBrewCountText(activeBrewGroup.brews.length)}`}
+      closeLabel="Close brew stack"
+      stickyHeader={true}
+      edgeFade={true}
+      on:close={closeBrewGroupSheet}
+    >
+      <div class="brew-stack-sheet-list">
+        {#each activeBrewGroup.brews as brew (brew.id)}
+          <BrewCard
+            brew={brew}
+            baristaName={activeBrewGroup.barista.display_name}
+            beanName={activeBrewGroup.bean?.name ?? null}
+            beanImagePath={activeBrewGroup.bean?.image_path ?? null}
+            grinderImagePath={brew.grinder?.image_path ?? null}
+            machineImagePath={brew.machine?.image_path ?? null}
+            variant="detail"
+          />
+        {/each}
+      </div>
+    </Sheet>
+  {/if}
+  {#if analysisLoaded && isMobile}
+    <Sheet
+      open={analysisFiltersOpen}
+      title="Filters"
+      subtitle="Refine the analysis view"
+      closeLabel="Close filters"
+      panelBackground={colorCss.bg.surface.paper.primary}
+      panelMinHeight="70vh"
+      stickyHeader={true}
+      edgeFade={true}
+      on:close={closeAnalysisFilters}
+    >
+      <BeanAnalysisFilters
+        variant="sheet"
+        bind:selectedBean
+        bind:selectedBag
+        bind:includeCommunity
+        bind:recencyFilter
+      />
+    </Sheet>
+  {/if}
 {:else}
   <!-- Landing page for unauthenticated users -->
   <div class="home-page">
@@ -332,7 +511,7 @@
     gap: 3rem;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 1rem;
+    padding: 0;
   }
 
   .page-header {
@@ -340,6 +519,7 @@
     flex-direction: column;
     gap: 0.35rem;
   }
+
 
   .page-header h1 {
     margin: 0;
@@ -381,7 +561,7 @@
     transform: translateY(20px);
     animation: fadeInUp 0.6s ease-out forwards;
     will-change: opacity, transform;
-    contain: layout style paint;
+    contain: none;
   }
 
   .inventory-section {
@@ -399,7 +579,7 @@
   @keyframes fadeInUp {
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: none;
     }
   }
 
@@ -439,6 +619,15 @@
     height: 300px;
   }
 
+  .brew-stack-sheet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
+
   @keyframes shimmer {
     0% {
       background-position: -200% 0;
@@ -457,6 +646,10 @@
   /* Performance optimizations */
   .home-dashboard {
     transform: translateZ(0); /* Force hardware acceleration */
+  }
+
+  :global(body.sheet-open) .home-dashboard {
+    transform: none;
   }
 
   /* Reduce motion for users who prefer it */
@@ -501,12 +694,18 @@
   @media (max-width: 768px) {
     .home-dashboard {
       gap: 2rem;
-      padding: 0.5rem;
     }
+
+    .section-skeleton {
+      padding: 1rem;
+      border-radius: var(--radius-md);
+    }
+
 
     .cta-buttons {
       flex-direction: column;
       align-items: flex-start;
     }
   }
+
 </style>

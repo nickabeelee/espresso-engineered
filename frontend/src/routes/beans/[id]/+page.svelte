@@ -4,9 +4,10 @@
   import { goto } from '$app/navigation';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
+  import Sheet from '$lib/components/Sheet.svelte';
   import Chip from '$lib/components/Chip.svelte';
   import BeanRating from '$lib/components/BeanRating.svelte';
-  import EditableBagCard from '$lib/components/EditableBagCard.svelte';
+  import BagCard from '$lib/components/BagCard.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import ImageUpload from '$lib/components/ImageUpload.svelte';
   import RoasterSelector from '$lib/components/RoasterSelector.svelte';
@@ -35,7 +36,9 @@
   let isSaving = false;
   let editFormData: Partial<CreateBeanRequest> = {};
   let editRoastLevel: RoastLevel | null = null;
-  let showBagCreator = false;
+  let selectedBag: BagWithBarista | null = null;
+  let bagSheetOpen = false;
+  let isCreatingBag = false;
 
   const roastLevels: RoastLevel[] = ['Light', 'Medium Light', 'Medium', 'Medium Dark', 'Dark'];
 
@@ -127,24 +130,6 @@
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
     return '★'.repeat(fullStars) + (hasHalfStar ? '½' : '');
-  }
-
-  function getBagOwnershipStatus(bag: BagWithBarista): 'owned' | 'other' {
-    return bag.owner_id === $barista?.id ? 'owned' : 'other';
-  }
-
-  function getBagOwnerName(bag: BagWithBarista): string {
-    // Use embedded barista information if available, otherwise fall back to lookup
-    if (bag.barista?.display_name) {
-      return bag.barista.display_name;
-    }
-    const owner = baristasById[bag.owner_id];
-    return owner ? owner.display_name : 'Unknown';
-  }
-
-  function formatInventoryStatus(status?: string): string {
-    if (!status) return 'Unknown';
-    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
   function handleEditBean() {
@@ -315,6 +300,16 @@
         ...(mergedBean ? { bean: mergedBean } : {})
       };
     });
+
+    if (selectedBag?.id === updatedBag.id) {
+      const existingBean = (selectedBag as any).bean;
+      const updatedBean = (updatedBag as any).bean;
+      const mergedBean = existingBean || updatedBean ? { ...(existingBean || {}), ...(updatedBean || {}) } : undefined;
+      selectedBag = {
+        ...updatedBag,
+        ...(mergedBean ? { bean: mergedBean } : {})
+      };
+    }
   }
 
   async function handleBagCreated(event: CustomEvent<BagWithBarista>) {
@@ -322,13 +317,36 @@
     
     // Add the new bag to the beginning of the list
     bags = [newBag, ...bags];
-    
-    // Hide the bag creator
-    showBagCreator = false;
+
+    bagSheetOpen = false;
+    isCreatingBag = false;
+  }
+  function handleBagCancel() {
+    if (!isCreatingBag) return;
+    bagSheetOpen = false;
+    isCreatingBag = false;
   }
 
-  function handleNewBagCancel() {
-    showBagCreator = false;
+  function openInspect(bag: BagWithBarista) {
+    selectedBag = bag;
+    isCreatingBag = false;
+    bagSheetOpen = true;
+  }
+
+  function openNewBag() {
+    selectedBag = null;
+    isCreatingBag = true;
+    bagSheetOpen = true;
+  }
+
+  function closeBagSheet() {
+    bagSheetOpen = false;
+  }
+
+  function handleStartBrew(event: CustomEvent<{ bagId: string | null }>) {
+    const bagId = event.detail.bagId;
+    if (!bagId) return;
+    goto(`/brews/new?bag=${bagId}`);
   }
 
   async function handleRoasterCreated(event: CustomEvent<Roaster>) {
@@ -342,6 +360,7 @@
       editFormData.roaster_id = newRoaster.id;
     }
   }
+
 
 </script>
 
@@ -665,7 +684,7 @@
             </div>
             <div class="section-actions">
               <IconButton 
-                on:click={() => showBagCreator = true} 
+                on:click={openNewBag} 
                 ariaLabel="New bag" 
                 title="Create new bag for this bean" 
                 variant="accent" 
@@ -676,20 +695,6 @@
             </div>
           </div>
 
-          {#if showBagCreator}
-            <EditableBagCard
-              beanId={bean.id}
-              beanName={bean.name}
-              beanImagePath={bean.image_path || null}
-              beanRoastLevel={bean.roast_level || null}
-              tastingNotes={bean.tasting_notes || null}
-              viewVariant="beanDetail"
-              isNewBag={true}
-              on:created={handleBagCreated}
-              on:cancel={handleNewBagCancel}
-            />
-          {/if}
-
           {#if bags.length === 0}
             <div class="empty-state">
               <p>No bags found for this bean.</p>
@@ -698,19 +703,22 @@
           {:else}
             <div class="bags-grid">
               {#each bags as bag}
-                <EditableBagCard
+                <BagCard
+                  variant="preview"
                   {bag}
                   beanName={bean.name}
+                  roasterName={roaster?.name || null}
                   beanImagePath={bean.image_path || null}
                   beanRoastLevel={bean.roast_level || null}
                   tastingNotes={bean.tasting_notes || null}
-                  viewVariant="beanDetail"
                   {baristasById}
-                  on:updated={handleBagUpdated}
+                  on:inspect={() => openInspect(bag)}
+                  on:brew={handleStartBrew}
                 />
               {/each}
             </div>
           {/if}
+
         </div>
       </div>
     {:else}
@@ -718,6 +726,47 @@
     {/if}
   </div>
 </AuthGuard>
+
+{#if selectedBag || isCreatingBag}
+  <Sheet
+    open={bagSheetOpen}
+    title={isCreatingBag ? 'New bag' : 'Bag details'}
+    subtitle={isCreatingBag ? bean?.name : selectedBag?.name || bean?.name}
+    stickyHeader={true}
+    edgeFade={true}
+    on:close={closeBagSheet}
+  >
+    {#if isCreatingBag && bean}
+      <BagCard
+        variant="edit"
+        surface="sheet"
+        isNewBag={true}
+        beanId={bean.id}
+        beanName={bean.name}
+        roasterName={roaster?.name || null}
+        beanImagePath={bean.image_path || null}
+        beanRoastLevel={bean.roast_level || null}
+        tastingNotes={bean.tasting_notes || null}
+        on:created={handleBagCreated}
+        on:cancel={handleBagCancel}
+      />
+    {:else if selectedBag && bean}
+      <BagCard
+        variant="inspect"
+        surface="sheet"
+        bag={selectedBag}
+        beanName={bean.name}
+        roasterName={roaster?.name || null}
+        beanImagePath={bean.image_path || null}
+        beanRoastLevel={bean.roast_level || null}
+        tastingNotes={bean.tasting_notes || null}
+        {baristasById}
+        on:updated={handleBagUpdated}
+        on:brew={handleStartBrew}
+      />
+    {/if}
+  </Sheet>
+{/if}
 
 <style>
   .bean-detail-page {
@@ -1114,6 +1163,7 @@
     gap: 1rem;
   }
 
+
   @media (max-width: 768px) {
     .two-field-row {
       grid-template-columns: 1fr;
@@ -1139,6 +1189,7 @@
       grid-template-columns: 1fr;
     }
 
+
     .activity-item {
       flex-direction: column;
       align-items: flex-start;
@@ -1151,4 +1202,5 @@
       gap: 0.5rem;
     }
   }
+
 </style>

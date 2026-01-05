@@ -226,13 +226,12 @@
     border: var(--record-card-border-width, 1px) var(--record-card-border-style, solid) var(--record-card-border, rgba(123, 94, 58, 0.2));
     border-radius: var(--record-card-radius, var(--radius-md));
     padding: var(--record-card-padding, 1.5rem);
-    transition: box-shadow var(--motion-fast), border-color var(--motion-fast);
+    transition: border-color var(--motion-fast);
     cursor: pointer;
     position: relative;
   }
 
   .bean-card:hover {
-    box-shadow: var(--record-card-hover-shadow, var(--shadow-soft));
     border-color: var(--record-card-hover-border, var(--accent-primary));
   }
 

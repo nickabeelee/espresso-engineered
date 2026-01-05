@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BrewForm from '$lib/components/BrewForm.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
@@ -14,6 +15,9 @@
   let loading = false;
   let error = null;
   let isOnline = true;
+  let prefillBagId: string | null = null;
+
+  $: prefillBagId = $page.url.searchParams.get('bag');
 
   onMount(() => {
     // Set up connectivity monitoring
@@ -112,7 +116,7 @@
       </div>
     {/if}
 
-    <BrewForm on:save={handleSave} on:cancel={handleCancel} />
+    <BrewForm prefillBagId={prefillBagId} on:save={handleSave} on:cancel={handleCancel} />
 
     {#if error}
       <div class="notice error">{error}</div>
