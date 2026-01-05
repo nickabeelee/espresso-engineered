@@ -1,24 +1,34 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import { apiClient } from '$lib/api-client';
-  import { adminService } from '$lib/admin-service';
-  import { barista } from '$lib/auth';
-  import { getBagPermissions } from '$lib/permissions';
-  import IconButton from '$lib/components/IconButton.svelte';
-  import Chip from '$lib/components/Chip.svelte';
-  import BagStatusUpdater from '$lib/components/BagStatusUpdater.svelte';
-  import RoastLevel from '$lib/components/RoastLevel.svelte';
-  import { ArrowTopRightOnSquareMini, PencilSquare, CheckCircle, XMark, StarMicro } from '$lib/icons';
-  import { editableCard, editableCardVariants } from '$lib/ui/components/editable-card';
-  import { imageSizes } from '$lib/ui/components/image';
-  import { toStyleString } from '$lib/ui/style';
-  import { getTransformedImageUrl } from '$lib/utils/image-utils';
+  import { createEventDispatcher } from "svelte";
+  import { apiClient } from "$lib/api-client";
+  import { adminService } from "$lib/admin-service";
+  import { barista } from "$lib/auth";
+  import { getBagPermissions } from "$lib/permissions";
+  import IconButton from "$lib/components/IconButton.svelte";
+  import Chip from "$lib/components/Chip.svelte";
+  import BagStatusUpdater from "$lib/components/BagStatusUpdater.svelte";
+  import RoastLevel from "$lib/components/RoastLevel.svelte";
+  import {
+    ArrowTopRightOnSquareMini,
+    PencilSquare,
+    CheckCircle,
+    XMark,
+    StarMicro,
+    Calendar,
+  } from "$lib/icons";
+  import {
+    editableCard,
+    editableCardVariants,
+  } from "$lib/ui/components/editable-card";
+  import { imageSizes } from "$lib/ui/components/image";
+  import { toStyleString } from "$lib/ui/style";
+  import { getTransformedImageUrl } from "$lib/utils/image-utils";
   import type {
     BagWithBarista,
     Barista as BaristaType,
     UpdateBagRequest,
-    CreateBagRequest
-  } from '@shared/types';
+    CreateBagRequest,
+  } from "@shared/types";
 
   /*
     BagCard variants
@@ -31,8 +41,8 @@
     - Inspect/edit live in a sheet overlay so only one paper surface shows at a time.
   */
 
-  export type BagCardVariant = 'preview' | 'inspect' | 'edit';
-  export type BagCardSurface = 'card' | 'sheet';
+  export type BagCardVariant = "preview" | "inspect" | "edit";
+  export type BagCardSurface = "card" | "sheet";
 
   // Props for existing bag mode
   export let bag: BagWithBarista | null = null;
@@ -42,8 +52,8 @@
   export let beanRoastLevel: string | null = null;
   export let tastingNotes: string | null = null;
   export let baristasById: Record<string, BaristaType> = {};
-  export let variant: BagCardVariant = 'inspect';
-  export let surface: BagCardSurface = 'card';
+  export let variant: BagCardVariant = "inspect";
+  export let surface: BagCardSurface = "card";
 
   // Props for new bag mode
   export let beanId: string | null = null;
@@ -62,24 +72,27 @@
   let internalEdit = false;
   let formData: Partial<CreateBagRequest & UpdateBagRequest> = {};
   let lastVariant: BagCardVariant = variant;
-  let lastBeanId = '';
+  let lastBeanId = "";
 
-  $: bagPermissions = bag ? getBagPermissions($barista, bag) : { canEdit: true, canDelete: false };
+  $: bagPermissions = bag
+    ? getBagPermissions($barista, bag)
+    : { canEdit: true, canDelete: false };
   $: canEdit = bagPermissions.canEdit;
 
   $: if (variant !== lastVariant) {
-    if (variant === 'edit' && !isNewBag) {
+    if (variant === "edit" && !isNewBag) {
       internalEdit = true;
       initializeFormData();
     }
     lastVariant = variant;
   }
 
-  $: isEditing = isNewBag || internalEdit || variant === 'edit';
-  $: activeVariant = variant === 'preview' ? 'preview' : isEditing ? 'edit' : 'inspect';
+  $: isEditing = isNewBag || internalEdit || variant === "edit";
+  $: activeVariant =
+    variant === "preview" ? "preview" : isEditing ? "edit" : "inspect";
 
-  $: if (isNewBag && lastBeanId !== (beanId || '')) {
-    lastBeanId = beanId || '';
+  $: if (isNewBag && lastBeanId !== (beanId || "")) {
+    lastBeanId = beanId || "";
     initializeFormData();
   }
 
@@ -96,47 +109,52 @@
   $: inventoryVariant = getInventoryVariant(bag?.inventory_status);
 
   function formatRoastDate(dateString?: string): string {
-    if (!dateString) return 'Not specified';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: '2-digit'
+    if (!dateString) return "Not specified";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "2-digit",
     });
   }
 
-  function getBagOwnershipStatus(): 'owned' | 'other' {
-    if (!bag) return 'owned';
-    return bag.owner_id === $barista?.id ? 'owned' : 'other';
+  function getBagOwnershipStatus(): "owned" | "other" {
+    if (!bag) return "owned";
+    return bag.owner_id === $barista?.id ? "owned" : "other";
   }
 
   function getBagOwnerName(): string {
-    if (!bag) return 'Your bag';
+    if (!bag) return "Your bag";
     if (bag.barista?.display_name) {
       return bag.barista.display_name;
     }
     const owner = baristasById[bag.owner_id];
-    return owner ? owner.display_name : 'Unknown';
+    return owner ? owner.display_name : "Unknown";
   }
 
   function formatInventoryStatus(status?: string): string {
-    if (!status) return 'Unknown';
-    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    if (!status) return "Unknown";
+    return status.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase());
   }
 
-  function getInventoryVariant(status?: string): 'success' | 'warning' | 'error' | 'neutral' {
+  function getInventoryVariant(
+    status?: string,
+  ): "success" | "warning" | "error" | "neutral" {
     switch (status) {
-      case 'plenty':
-        return 'success';
-      case 'getting_low':
-        return 'warning';
-      case 'empty':
-        return 'error';
+      case "plenty":
+        return "success";
+      case "getting_low":
+        return "warning";
+      case "empty":
+        return "error";
       default:
-        return 'neutral';
+        return "neutral";
     }
   }
 
-  function formatPricePerGram(price?: number | null, weight_g?: number | null): string | null {
+  function formatPricePerGram(
+    price?: number | null,
+    weight_g?: number | null,
+  ): string | null {
     if (price === null || price === undefined) return null;
     if (weight_g === null || weight_g === undefined) return null;
     if (weight_g <= 0) return null;
@@ -148,25 +166,25 @@
   function initializeFormData() {
     if (isNewBag) {
       formData = {
-        bean_id: beanId || '',
-        name: '',
-        roast_date: '',
+        bean_id: beanId || "",
+        name: "",
+        roast_date: "",
         weight_g: undefined,
         price: undefined,
-        purchase_location: '',
-        inventory_status: undefined
+        purchase_location: "",
+        inventory_status: undefined,
       };
       return;
     }
 
     if (bag) {
       formData = {
-        name: bag.name || '',
-        roast_date: bag.roast_date || '',
+        name: bag.name || "",
+        roast_date: bag.roast_date || "",
         weight_g: bag.weight_g || undefined,
         price: bag.price || undefined,
-        purchase_location: bag.purchase_location || '',
-        inventory_status: bag.inventory_status
+        purchase_location: bag.purchase_location || "",
+        inventory_status: bag.inventory_status,
       };
     }
   }
@@ -180,28 +198,28 @@
 
   function handleCancel() {
     if (isNewBag) {
-      dispatch('cancel');
+      dispatch("cancel");
       return;
     }
     internalEdit = false;
     formData = {};
     error = null;
-    dispatch('cancel');
+    dispatch("cancel");
   }
 
   function validateForm(): boolean {
     if (!formData.bean_id && isNewBag) {
-      error = 'Bean is required';
+      error = "Bean is required";
       return false;
     }
 
     if (formData.weight_g !== undefined && formData.weight_g < 0) {
-      error = 'Weight cannot be negative';
+      error = "Weight cannot be negative";
       return false;
     }
 
     if (formData.price !== undefined && formData.price < 0) {
-      error = 'Price cannot be negative';
+      error = "Price cannot be negative";
       return false;
     }
 
@@ -224,20 +242,20 @@
           weight_g: formData.weight_g || undefined,
           price: formData.price,
           purchase_location: formData.purchase_location?.trim() || undefined,
-          inventory_status: formData.inventory_status
+          inventory_status: formData.inventory_status,
         };
 
         const response = await apiClient.createBag(createData);
 
         if (response.data) {
-          dispatch('created', response.data);
+          dispatch("created", response.data);
         } else {
-          throw new Error('Failed to create bag');
+          throw new Error("Failed to create bag");
         }
       } else if (bag) {
         const updateData: UpdateBagRequest = {
           id: bag.id,
-          ...formData
+          ...formData,
         };
 
         const isAdmin = $barista?.is_admin === true;
@@ -255,21 +273,27 @@
           const updatedBag = { ...response.data, barista: bag.barista };
           const existingBean = (bag as any)?.bean;
           const updatedBean = (updatedBag as any).bean;
-          const mergedBean = existingBean || updatedBean ? { ...(existingBean || {}), ...(updatedBean || {}) } : undefined;
+          const mergedBean =
+            existingBean || updatedBean
+              ? { ...(existingBean || {}), ...(updatedBean || {}) }
+              : undefined;
           const enrichedBag = {
             ...updatedBag,
-            ...(mergedBean ? { bean: mergedBean } : {})
+            ...(mergedBean ? { bean: mergedBean } : {}),
           };
-          dispatch('updated', enrichedBag);
+          dispatch("updated", enrichedBag);
           internalEdit = false;
           formData = {};
         } else {
-          throw new Error('Failed to update bag');
+          throw new Error("Failed to update bag");
         }
       }
     } catch (err) {
-      error = err instanceof Error ? err.message : `Failed to ${isNewBag ? 'create' : 'update'} bag`;
-      console.error(`Failed to ${isNewBag ? 'create' : 'update'} bag:`, err);
+      error =
+        err instanceof Error
+          ? err.message
+          : `Failed to ${isNewBag ? "create" : "update"} bag`;
+      console.error(`Failed to ${isNewBag ? "create" : "update"} bag:`, err);
     } finally {
       isSaving = false;
     }
@@ -279,128 +303,147 @@
     if (!bag) return;
     const updatedBag = event.detail;
     const bagWithBarista = { ...updatedBag, barista: bag.barista };
-    dispatch('updated', bagWithBarista);
+    dispatch("updated", bagWithBarista);
   }
 
   function handlePreviewKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter' || event.key === ' ') {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      dispatch('inspect');
+      dispatch("inspect");
     }
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
+    if (event.key === "Escape") {
       handleCancel();
-    } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+    } else if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
       handleSave();
     }
   }
 
   function handleStartBrew(event?: Event) {
     event?.stopPropagation();
-    dispatch('brew', { bagId: bag?.id ?? null });
+    dispatch("brew", { bagId: bag?.id ?? null });
   }
 
   const style = toStyleString({
-    '--editable-card-bg': editableCard.container.background,
-    '--editable-card-border': editableCard.container.borderColor,
-    '--editable-card-border-width': editableCard.container.borderWidth,
-    '--editable-card-border-style': editableCard.container.borderStyle,
-    '--editable-card-radius': editableCard.container.borderRadius,
-    '--editable-card-padding': editableCard.container.padding,
-    '--editable-card-transition': editableCard.container.transition,
-    '--editable-card-hover-shadow': editableCard.container.hover.shadow,
-    '--editable-card-hover-border': editableCard.container.hover.borderColor,
-    '--editable-card-edit-border': editableCard.state.editing.borderColor,
-    '--editable-card-edit-shadow': editableCard.state.editing.shadow,
-    '--editable-card-new-border': editableCard.state.newCard.borderColor,
-    '--editable-card-new-border-style': editableCard.state.newCard.borderStyle,
-    '--editable-card-new-bg': editableCard.state.newCard.background,
-    '--editable-card-new-margin': editableCard.state.newCard.marginBottom,
-    '--editable-card-new-edit-border-style': editableCard.state.newEditing.borderStyle,
-    '--editable-card-new-edit-bg': editableCard.state.newEditing.background,
-    '--editable-card-new-edit-margin': editableCard.state.newEditing.marginBottom,
-    '--editable-card-header-gap': editableCard.header.gap,
-    '--editable-card-header-margin': editableCard.header.marginBottom,
-    '--editable-card-title-font': editableCard.title.fontFamily,
-    '--editable-card-title-size': editableCard.title.fontSize,
-    '--editable-card-title-weight': editableCard.title.fontWeight,
-    '--editable-card-title-color': editableCard.title.textColor,
-    '--editable-card-info-font': editableCard.info.fontFamily,
-    '--editable-card-info-size': editableCard.info.fontSize,
-    '--editable-card-info-color': editableCard.info.textColor,
-    '--editable-card-owner-color': editableCard.owner.textColor,
-    '--editable-card-owner-highlight': editableCard.owner.highlightColor,
-    '--editable-card-owner-size': editableCard.owner.fontSize,
-    '--editable-card-owner-weight': editableCard.owner.fontWeight,
-    '--editable-card-actions-gap': editableCard.actions.gap,
-    '--editable-card-edit-actions-gap': editableCard.actions.editActionsGap,
-    '--editable-card-status-font-size': editableCard.statusPill.fontSize,
-    '--editable-card-status-font-weight': editableCard.statusPill.fontWeight,
-    '--editable-card-status-radius': editableCard.statusPill.borderRadius,
-    '--editable-card-status-padding': editableCard.statusPill.padding,
-    '--editable-card-status-success-bg': editableCard.statusPill.variants.success.background,
-    '--editable-card-status-success-color': editableCard.statusPill.variants.success.textColor,
-    '--editable-card-status-warning-bg': editableCard.statusPill.variants.warning.background,
-    '--editable-card-status-warning-color': editableCard.statusPill.variants.warning.textColor,
-    '--editable-card-status-error-bg': editableCard.statusPill.variants.error.background,
-    '--editable-card-status-error-color': editableCard.statusPill.variants.error.textColor,
-    '--editable-card-error-bg': editableCard.error.background,
-    '--editable-card-error-border': editableCard.error.borderColor,
-    '--editable-card-error-color': editableCard.error.textColor,
-    '--editable-card-error-radius': editableCard.error.borderRadius,
-    '--editable-card-error-padding': editableCard.error.padding,
-    '--editable-card-error-font': editableCard.error.fontFamily,
-    '--editable-card-error-size': editableCard.error.fontSize,
-    '--editable-card-grid-gap': editableCard.detailGrid.gap,
-    '--editable-card-detail-min-col': editableCardVariants.compact.detailMinColumnWidth,
-    '--editable-card-label-font': editableCard.detail.label.fontFamily,
-    '--editable-card-label-size': editableCard.detail.label.fontSize,
-    '--editable-card-label-weight': editableCard.detail.label.fontWeight,
-    '--editable-card-label-color': editableCard.detail.label.textColor,
-    '--editable-card-value-font': editableCard.detail.value.fontFamily,
-    '--editable-card-value-size': editableCard.detail.value.fontSize,
-    '--editable-card-value-color': editableCard.detail.value.textColor,
-    '--editable-card-empty-font': editableCard.detail.empty.fontFamily,
-    '--editable-card-empty-style': editableCard.detail.empty.fontStyle,
-    '--editable-card-empty-color': editableCard.detail.empty.textColor,
-    '--editable-card-input-font': editableCard.input.fontFamily,
-    '--editable-card-input-size': editableCard.input.fontSize,
-    '--editable-card-input-color': editableCard.input.textColor,
-    '--editable-card-input-bg': editableCard.input.background,
-    '--editable-card-input-border': editableCard.input.borderColor,
-    '--editable-card-input-border-width': editableCard.input.borderWidth,
-    '--editable-card-input-radius': editableCard.input.borderRadius,
-    '--editable-card-input-padding': editableCard.input.padding,
-    '--editable-card-input-focus': editableCard.input.focusRing,
-    '--editable-card-section-divider': editableCard.section.dividerColor,
-    '--editable-card-section-title-font': editableCard.section.title.fontFamily,
-    '--editable-card-section-title-size': editableCard.section.title.fontSize,
-    '--editable-card-section-title-weight': editableCard.section.title.fontWeight,
-    '--editable-card-section-title-color': editableCard.section.title.textColor,
-    '--editable-card-image-width': `${imageSizes.card.width}px`,
-    '--editable-card-image-height': `${imageSizes.card.height}px`
+    "--editable-card-bg": editableCard.container.background,
+    "--editable-card-border": editableCard.container.borderColor,
+    "--editable-card-border-width": editableCard.container.borderWidth,
+    "--editable-card-border-style": editableCard.container.borderStyle,
+    "--editable-card-radius": editableCard.container.borderRadius,
+    "--editable-card-padding": editableCard.container.padding,
+    "--editable-card-transition": editableCard.container.transition,
+    "--editable-card-hover-shadow": editableCard.container.hover.shadow,
+    "--editable-card-hover-border": editableCard.container.hover.borderColor,
+    "--editable-card-edit-border": editableCard.state.editing.borderColor,
+    "--editable-card-edit-shadow": editableCard.state.editing.shadow,
+    "--editable-card-new-border": editableCard.state.newCard.borderColor,
+    "--editable-card-new-border-style": editableCard.state.newCard.borderStyle,
+    "--editable-card-new-bg": editableCard.state.newCard.background,
+    "--editable-card-new-margin": editableCard.state.newCard.marginBottom,
+    "--editable-card-new-edit-border-style":
+      editableCard.state.newEditing.borderStyle,
+    "--editable-card-new-edit-bg": editableCard.state.newEditing.background,
+    "--editable-card-new-edit-margin":
+      editableCard.state.newEditing.marginBottom,
+    "--editable-card-header-gap": editableCard.header.gap,
+    "--editable-card-header-margin": editableCard.header.marginBottom,
+    "--editable-card-title-font": editableCard.title.fontFamily,
+    "--editable-card-title-size": editableCard.title.fontSize,
+    "--editable-card-title-weight": editableCard.title.fontWeight,
+    "--editable-card-title-color": editableCard.title.textColor,
+    "--editable-card-info-font": editableCard.info.fontFamily,
+    "--editable-card-info-size": editableCard.info.fontSize,
+    "--editable-card-info-color": editableCard.info.textColor,
+    "--editable-card-owner-color": editableCard.owner.textColor,
+    "--editable-card-owner-highlight": editableCard.owner.highlightColor,
+    "--editable-card-owner-size": editableCard.owner.fontSize,
+    "--editable-card-owner-weight": editableCard.owner.fontWeight,
+    "--editable-card-actions-gap": editableCard.actions.gap,
+    "--editable-card-edit-actions-gap": editableCard.actions.editActionsGap,
+    "--editable-card-status-font-size": editableCard.statusPill.fontSize,
+    "--editable-card-status-font-weight": editableCard.statusPill.fontWeight,
+    "--editable-card-status-radius": editableCard.statusPill.borderRadius,
+    "--editable-card-status-padding": editableCard.statusPill.padding,
+    "--editable-card-status-success-bg":
+      editableCard.statusPill.variants.success.background,
+    "--editable-card-status-success-color":
+      editableCard.statusPill.variants.success.textColor,
+    "--editable-card-status-warning-bg":
+      editableCard.statusPill.variants.warning.background,
+    "--editable-card-status-warning-color":
+      editableCard.statusPill.variants.warning.textColor,
+    "--editable-card-status-error-bg":
+      editableCard.statusPill.variants.error.background,
+    "--editable-card-status-error-color":
+      editableCard.statusPill.variants.error.textColor,
+    "--editable-card-error-bg": editableCard.error.background,
+    "--editable-card-error-border": editableCard.error.borderColor,
+    "--editable-card-error-color": editableCard.error.textColor,
+    "--editable-card-error-radius": editableCard.error.borderRadius,
+    "--editable-card-error-padding": editableCard.error.padding,
+    "--editable-card-error-font": editableCard.error.fontFamily,
+    "--editable-card-error-size": editableCard.error.fontSize,
+    "--editable-card-grid-gap": editableCard.detailGrid.gap,
+    "--editable-card-detail-min-col":
+      editableCardVariants.compact.detailMinColumnWidth,
+    "--editable-card-label-font": editableCard.detail.label.fontFamily,
+    "--editable-card-label-size": editableCard.detail.label.fontSize,
+    "--editable-card-label-weight": editableCard.detail.label.fontWeight,
+    "--editable-card-label-color": editableCard.detail.label.textColor,
+    "--editable-card-value-font": editableCard.detail.value.fontFamily,
+    "--editable-card-value-size": editableCard.detail.value.fontSize,
+    "--editable-card-value-color": editableCard.detail.value.textColor,
+    "--editable-card-empty-font": editableCard.detail.empty.fontFamily,
+    "--editable-card-empty-style": editableCard.detail.empty.fontStyle,
+    "--editable-card-empty-color": editableCard.detail.empty.textColor,
+    "--editable-card-input-font": editableCard.input.fontFamily,
+    "--editable-card-input-size": editableCard.input.fontSize,
+    "--editable-card-input-color": editableCard.input.textColor,
+    "--editable-card-input-bg": editableCard.input.background,
+    "--editable-card-input-border": editableCard.input.borderColor,
+    "--editable-card-input-border-width": editableCard.input.borderWidth,
+    "--editable-card-input-radius": editableCard.input.borderRadius,
+    "--editable-card-input-padding": editableCard.input.padding,
+    "--editable-card-input-focus": editableCard.input.focusRing,
+    "--editable-card-section-divider": editableCard.section.dividerColor,
+    "--editable-card-section-title-font": editableCard.section.title.fontFamily,
+    "--editable-card-section-title-size": editableCard.section.title.fontSize,
+    "--editable-card-section-title-weight":
+      editableCard.section.title.fontWeight,
+    "--editable-card-section-title-color": editableCard.section.title.textColor,
+    "--editable-card-image-width": `${imageSizes.card.width}px`,
+    "--editable-card-image-height": `${imageSizes.card.height}px`,
   });
 </script>
 
-{#if activeVariant === 'preview'}
-  <article class="bag-card preview" style={style}>
+{#if activeVariant === "preview"}
+  <article class="bag-card preview" {style}>
     <div
       class="bag-preview"
       role="button"
       tabindex="0"
       aria-label={`Inspect ${bagTitle}`}
-      on:click={() => dispatch('inspect')}
+      on:click={() => dispatch("inspect")}
       on:keydown={handlePreviewKeydown}
     >
       <div class="bag-preview-top">
-        <span class="bag-preview-owner">{ownershipStatus === 'owned' ? 'Your bag' : ownerName}</span>
+        <span class="bag-preview-owner"
+          >{ownershipStatus === "owned" ? "Your bag" : ownerName}</span
+        >
         <div class="bag-preview-chips">
           <Chip variant={inventoryVariant} size="sm">{inventoryLabel}</Chip>
-          <Chip variant={averageRating !== null && ratingCount > 0 ? 'accent' : 'neutral'} size="sm">
+          <Chip
+            variant={averageRating !== null && ratingCount > 0
+              ? "accent"
+              : "neutral"}
+            size="sm"
+          >
             <span class="rating-chip">
-              {averageRating !== null && ratingCount > 0 ? averageRating.toFixed(1) : '—'}
+              {averageRating !== null && ratingCount > 0
+                ? averageRating.toFixed(1)
+                : "—"}
               <StarMicro size={14} />
             </span>
           </Chip>
@@ -413,10 +456,14 @@
         <div class="bag-preview-media" class:placeholder={!beanImagePath}>
           {#if beanImagePath}
             <img
-              src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
+              src={getTransformedImageUrl(
+                beanImagePath,
+                "bean",
+                imageSizes.card,
+              )}
               alt={beanName}
               loading="lazy"
-              on:error={(e) => (e.currentTarget.style.display = 'none')}
+              on:error={(e) => (e.currentTarget.style.display = "none")}
             />
           {/if}
         </div>
@@ -445,30 +492,34 @@
 {:else}
   <article
     class="bag-card"
-    class:sheet-surface={surface === 'sheet'}
-    class:editing={activeVariant === 'edit'}
+    class:sheet-surface={surface === "sheet"}
+    class:editing={activeVariant === "edit"}
     class:new-bag={isNewBag}
     class:has-media={!isEditing}
     on:keydown={handleKeydown}
-    style={style}
+    {style}
   >
     <div class="bag-card-body">
       <div class="bag-header">
         <div class="bag-header-main">
           <div class="bag-header-text">
             {#if !isNewBag}
-              <span class="bag-owner" class:own={ownershipStatus === 'owned'}>
-                {ownershipStatus === 'owned' ? 'Your bag' : ownerName}
+              <span class="bag-owner" class:own={ownershipStatus === "owned"}>
+                {ownershipStatus === "owned" ? "Your bag" : ownerName}
               </span>
             {:else}
               <span class="bag-owner">New bag</span>
             {/if}
             <div class="bag-title">
-              <h4>{isNewBag ? 'New Bag' : bagTitle}</h4>
+              <h4>{isNewBag ? "New Bag" : bagTitle}</h4>
             </div>
-            {#if activeVariant === 'inspect'}
+            {#if activeVariant === "inspect"}
               <div class="bag-header-meta">
-                <span class="bag-roast-meta">Roasted {bag?.roast_date ? formatRoastDate(bag.roast_date) : 'Not specified'}</span>
+                <span class="bag-roast-meta"
+                  >Roasted {bag?.roast_date
+                    ? formatRoastDate(bag.roast_date)
+                    : "Not specified"}</span
+                >
                 {#if roasterName}
                   <span class="bag-roaster-meta">{roasterName}</span>
                 {/if}
@@ -476,14 +527,22 @@
             {/if}
           </div>
           <div class="bag-header-status">
-            {#if activeVariant === 'inspect'}
+            {#if activeVariant === "inspect"}
               <Chip variant={inventoryVariant} size="sm">{inventoryLabel}</Chip>
               <Chip variant="neutral" size="sm">
-                {brewCount} {brewCount === 1 ? 'brew' : 'brews'}
+                {brewCount}
+                {brewCount === 1 ? "brew" : "brews"}
               </Chip>
-              <Chip variant={averageRating !== null && ratingCount > 0 ? 'accent' : 'neutral'} size="sm">
+              <Chip
+                variant={averageRating !== null && ratingCount > 0
+                  ? "accent"
+                  : "neutral"}
+                size="sm"
+              >
                 <span class="rating-chip">
-                  {averageRating !== null && ratingCount > 0 ? averageRating.toFixed(1) : '—'}
+                  {averageRating !== null && ratingCount > 0
+                    ? averageRating.toFixed(1)
+                    : "—"}
                   <StarMicro size={14} />
                 </span>
               </Chip>
@@ -498,20 +557,24 @@
         </div>
       {/if}
 
-      {#if activeVariant === 'inspect'}
+      {#if activeVariant === "inspect"}
         <div class="bag-content">
           <div class="bag-media">
             <div
               class="card-media"
               class:placeholder={!beanImagePath}
-              aria-hidden={!beanImagePath ? 'true' : undefined}
+              aria-hidden={!beanImagePath ? "true" : undefined}
             >
               {#if beanImagePath}
                 <img
-                  src={getTransformedImageUrl(beanImagePath, 'bean', imageSizes.card)}
+                  src={getTransformedImageUrl(
+                    beanImagePath,
+                    "bean",
+                    imageSizes.card,
+                  )}
                   alt={bagTitle}
                   loading="lazy"
-                  on:error={(e) => (e.currentTarget.style.display = 'none')}
+                  on:error={(e) => (e.currentTarget.style.display = "none")}
                 />
               {/if}
             </div>
@@ -535,7 +598,9 @@
               <span class="detail-label">Avg rating</span>
               {#if averageRating !== null && ratingCount > 0}
                 <span class="detail-value">
-                  {averageRating.toFixed(1)}/10 {ratingCount > 0 ? `(${ratingCount})` : ''}
+                  {averageRating.toFixed(1)}/10 {ratingCount > 0
+                    ? `(${ratingCount})`
+                    : ""}
                 </span>
               {:else}
                 <span class="detail-value detail-empty">No ratings yet</span>
@@ -592,15 +657,24 @@
         <div class="bag-actions-row">
           <div class="bag-actions">
             {#if bag}
-              <button type="button" class="btn-primary" on:click={handleStartBrew}>
+              <button
+                type="button"
+                class="btn-primary"
+                on:click={handleStartBrew}
+              >
                 Start brew with this bag
               </button>
             {/if}
             {#if canEdit && !isNewBag}
-              <button type="button" class="btn-secondary" on:click={handleEdit}>
+              <IconButton
+                type="button"
+                on:click={handleEdit}
+                ariaLabel="Edit bag"
+                title="Edit bag"
+                variant="accent"
+              >
                 <PencilSquare size={16} />
-                Edit
-              </button>
+              </IconButton>
             {/if}
           </div>
         </div>
@@ -616,19 +690,26 @@
                   type="text"
                   bind:value={formData.name}
                   class="detail-input"
-                  placeholder={isNewBag ? `Name for this ${beanName} bag` : beanName}
+                  placeholder={isNewBag
+                    ? `Name for this ${beanName} bag`
+                    : beanName}
                   disabled={isSaving}
                 />
               </div>
               <div class="bag-edit-field">
                 <label for="bag-roast-date">Roast date</label>
-                <input
-                  id="bag-roast-date"
-                  type="date"
-                  bind:value={formData.roast_date}
-                  class="detail-input"
-                  disabled={isSaving}
-                />
+                <div class="date-input-wrapper">
+                  <span class="date-input-icon" aria-hidden="true">
+                    <Calendar size={16} />
+                  </span>
+                  <input
+                    id="bag-roast-date"
+                    type="date"
+                    bind:value={formData.roast_date}
+                    class="detail-input detail-input--date"
+                    disabled={isSaving}
+                  />
+                </div>
               </div>
             </div>
           </section>
@@ -693,7 +774,12 @@
             <div class="bag-edit-grid">
               <div class="bag-edit-field">
                 <label for="bag-status">Status</label>
-                <select id="bag-status" bind:value={formData.inventory_status} class="detail-select" disabled={isSaving}>
+                <select
+                  id="bag-status"
+                  bind:value={formData.inventory_status}
+                  class="detail-select"
+                  disabled={isSaving}
+                >
                   <option value="">Select status</option>
                   <option value="unopened">Unopened</option>
                   <option value="plenty">Plenty</option>
@@ -730,8 +816,8 @@
             </IconButton>
             <IconButton
               on:click={handleSave}
-              ariaLabel={isNewBag ? 'Create bag' : 'Save changes'}
-              title={isNewBag ? 'Create bag' : 'Save'}
+              ariaLabel={isNewBag ? "Create bag" : "Save changes"}
+              title={isNewBag ? "Create bag" : "Save"}
               variant="success"
               size="sm"
               disabled={isSaving}
@@ -748,10 +834,15 @@
 <style>
   .bag-card {
     background: var(--editable-card-bg, var(--bg-surface-paper));
-    border: var(--editable-card-border-width, 1px) var(--editable-card-border-style, solid) var(--editable-card-border, rgba(123, 94, 58, 0.2));
+    border: var(--editable-card-border-width, 1px)
+      var(--editable-card-border-style, solid)
+      var(--editable-card-border, rgba(123, 94, 58, 0.2));
     border-radius: var(--editable-card-radius, var(--radius-md));
     padding: var(--editable-card-padding, 1rem);
-    transition: var(--editable-card-transition, border-color var(--motion-fast));
+    transition: var(
+      --editable-card-transition,
+      border-color var(--motion-fast)
+    );
   }
 
   .bag-card.preview {
@@ -780,7 +871,10 @@
 
   .bag-card.editing {
     border-color: var(--editable-card-edit-border, var(--accent-primary));
-    box-shadow: var(--editable-card-edit-shadow, 0 0 0 2px rgba(176, 138, 90, 0.1));
+    box-shadow: var(
+      --editable-card-edit-shadow,
+      0 0 0 2px rgba(176, 138, 90, 0.1)
+    );
   }
 
   .bag-card.new-bag {
@@ -797,7 +891,6 @@
     gap: 0.75rem;
     cursor: pointer;
   }
-
 
   .bag-preview-top {
     display: flex;
@@ -906,7 +999,6 @@
     gap: 0.5rem;
     flex-wrap: wrap;
   }
-
 
   .card-media {
     width: min(100%, var(--editable-card-image-width, 200px));
@@ -1030,7 +1122,10 @@
 
   .bag-content {
     display: grid;
-    grid-template-columns: var(--editable-card-image-width, 200px) minmax(240px, 1fr);
+    grid-template-columns: var(--editable-card-image-width, 200px) minmax(
+        240px,
+        1fr
+      );
     gap: 1rem;
     align-items: start;
   }
@@ -1076,7 +1171,8 @@
     font-size: var(--editable-card-input-size, 0.9rem);
     font-family: var(--editable-card-input-font, inherit);
     background: var(--editable-card-input-bg, var(--bg-surface-paper));
-    border: var(--editable-card-input-border-width, 1px) solid var(--editable-card-input-border, rgba(123, 94, 58, 0.3));
+    border: var(--editable-card-input-border-width, 1px) solid
+      var(--editable-card-input-border, rgba(123, 94, 58, 0.3));
     border-radius: var(--editable-card-input-radius, var(--radius-sm));
     padding: var(--editable-card-input-padding, 0.4rem 0.6rem);
     transition: border-color var(--motion-fast);
@@ -1090,13 +1186,23 @@
   .detail-input[type="date"] {
     width: 100%;
     max-width: 100%;
+    min-width: 0;
+    padding: var(--editable-card-input-padding, 0.4rem 0.6rem);
+    line-height: 1.2;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    appearance: none;
+    -webkit-appearance: none;
   }
 
   .detail-input:focus,
   .detail-select:focus {
     outline: none;
     border-color: var(--editable-card-edit-border, var(--accent-primary));
-    box-shadow: var(--editable-card-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.1));
+    box-shadow: var(
+      --editable-card-input-focus,
+      0 0 0 2px rgba(176, 138, 90, 0.1)
+    );
   }
 
   .detail-input:disabled,
@@ -1122,7 +1228,8 @@
     padding: var(--record-card-notes-padding, 0.75rem);
     background: var(--record-card-notes-bg, rgba(123, 94, 58, 0.08));
     border-radius: var(--record-card-notes-radius, var(--radius-sm));
-    border-left: var(--record-card-notes-border-width, 3px) solid var(--record-card-notes-border, var(--accent-primary));
+    border-left: var(--record-card-notes-border-width, 3px) solid
+      var(--record-card-notes-border, var(--accent-primary));
   }
 
   .notes-preview {
@@ -1136,7 +1243,8 @@
   .bag-actions-row {
     margin-top: 1rem;
     padding-top: 0.75rem;
-    border-top: 1px solid var(--editable-card-section-divider, rgba(123, 94, 58, 0.15));
+    border-top: 1px solid
+      var(--editable-card-section-divider, rgba(123, 94, 58, 0.15));
     display: flex;
     justify-content: flex-end;
   }
@@ -1181,6 +1289,30 @@
     min-width: 0;
   }
 
+  .date-input-wrapper {
+    position: relative;
+  }
+
+  .detail-input--date {
+    text-align: left;
+    text-align-last: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .date-input-icon {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    color: var(--text-ink-muted);
+    display: inline-flex;
+    align-items: center;
+    pointer-events: none;
+  }
+
   .bag-edit-field label {
     font-weight: var(--editable-card-label-weight, 500);
     color: var(--editable-card-label-color, var(--text-ink-secondary));
@@ -1210,7 +1342,6 @@
     .bag-preview {
       grid-template-columns: 1fr;
     }
-
 
     .bag-content {
       grid-template-columns: 1fr;
