@@ -212,43 +212,25 @@
       </div>
     </div>
 
+    <div class="detail-kpis summary-kpis">
+      <span class="kpi">Grind: {brew.grind_setting ?? '—'}</span>
+      <span class="kpi">{formatRatio(brew.ratio)}</span>
+      <span class="kpi">{formatBrewTime(brew.brew_time_s)}</span>
+    </div>
+
     <div class="brew-details">
       <div class="detail-row">
         <span class="label">Dose:</span>
         <span class="value">{brew.dose_g.toFixed(1)}g</span>
       </div>
 
-      {#if brew.grind_setting}
+      {#if brew.flow_rate_g_per_s}
         <div class="detail-row">
-          <span class="label">Grind:</span>
-          <span class="value">{brew.grind_setting}</span>
+          <span class="label">Flow rate:</span>
+          <span class="value">{brew.flow_rate_g_per_s.toFixed(1)} g/s</span>
         </div>
       {/if}
 
-      {#if brew.ratio}
-        <div class="detail-row">
-          <span class="label">Ratio:</span>
-          <span class="value">1:{brew.ratio.toFixed(2)}</span>
-        </div>
-      {/if}
-
-      {#if brew.brew_time_s}
-        <div class="detail-row">
-          <span class="label">Time:</span>
-          <span class="value">{brew.brew_time_s.toFixed(1)}s</span>
-        </div>
-      {/if}
-
-      {#if brew.rating}
-        <div class="detail-row rating-row">
-          <span class="label">Rating:</span>
-          <span class="value rating">
-            {'★'.repeat(Math.floor(brew.rating))}
-            {brew.rating % 1 !== 0 ? '½' : ''}
-            <span class="rating-number">({brew.rating}/10)</span>
-          </span>
-        </div>
-      {/if}
     </div>
 
     {#if brew.tasting_notes}
@@ -261,7 +243,7 @@
       </div>
     {/if}
 
-    <div class="summary-thumbs">
+    <div class="detail-media summary-thumbs">
       <div class="thumb-frame" class:placeholder={!beanImagePath} aria-hidden={!beanImagePath ? 'true' : undefined}>
         {#if beanImagePath}
           <img
@@ -367,16 +349,22 @@
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    font-size: 0.88rem;
+    font-size: 0.98rem;
     color: var(--text-ink-secondary);
     flex-wrap: wrap;
+  }
+
+  .detail-kpis {
+    margin-bottom: 0.85rem;
   }
 
   .summary-kpis .kpi {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    font-weight: 600;
+    font-weight: 700;
+    font-family: var(--record-card-detail-value-font, inherit);
+    letter-spacing: 0.01em;
   }
 
   .summary-kpis .kpi:not(:last-child)::after {
@@ -518,6 +506,10 @@
     background: var(--record-card-notes-bg, rgba(123, 94, 58, 0.08));
     border-radius: var(--record-card-notes-radius, var(--radius-sm));
     border-left: var(--record-card-notes-border-width, 3px) solid var(--record-card-notes-border, var(--accent-primary));
+  }
+
+  .detail-media {
+    margin-top: 0.9rem;
   }
 
   .notes-preview {

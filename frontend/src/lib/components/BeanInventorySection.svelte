@@ -307,7 +307,7 @@
     </div>
   {:else}
     <div class="inventory-shell edge-rail" style={inventoryShellStyle}>
-      <div class="inventory-container edge-rail">
+      <div class="inventory-container">
         <div 
           class="bag-scroll-container" 
           bind:this={scrollContainer}
