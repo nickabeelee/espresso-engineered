@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
   import { isAuthenticated, barista } from '$lib/auth';
@@ -7,11 +7,13 @@
   import BagCard from '$lib/components/BagCard.svelte';
   import BrewCard from '$lib/components/BrewCard.svelte';
   import Sheet from '$lib/components/Sheet.svelte';
+  import BeanAnalysisFilters from '$lib/components/BeanAnalysisFilters.svelte';
   import { apiClient } from '$lib/api-client';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
   import { toStyleString } from '$lib/ui/style';
   import type { Bean, Bag, BagWithBarista, Brew } from '@shared/types';
+  import type { RecencyPeriod } from '$lib/ui/viz/d3-integration';
 
   // Lazy load components for better performance
   let BeanInventorySection: any = null;
@@ -35,6 +37,12 @@
   // Analysis section state
   let selectedBean: Bean | null = null;
   let selectedBag: Bag | null = null;
+  let includeCommunity = false;
+  let recencyFilter: RecencyPeriod = 'M';
+  let analysisFiltersOpen = false;
+  let isMobile = false;
+  let viewportQuery: MediaQueryList | null = null;
+  let viewportListener: ((event: MediaQueryListEvent) => void) | null = null;
 
   // Progressive loading state
   let inventoryLoaded = false;
@@ -46,8 +54,34 @@
 
   // Load user activity data when component mounts
   onMount(async () => {
+    if (browser) {
+      viewportQuery = window.matchMedia('(max-width: 768px)');
+      const updateViewport = (event?: MediaQueryListEvent) => {
+        isMobile = event?.matches ?? viewportQuery?.matches ?? false;
+        if (!isMobile) {
+          analysisFiltersOpen = false;
+        }
+      };
+      updateViewport();
+      viewportListener = updateViewport;
+      if (viewportQuery.addEventListener) {
+        viewportQuery.addEventListener('change', updateViewport);
+      } else {
+        viewportQuery.addListener(updateViewport);
+      }
+    }
     if ($barista) {
       await loadDashboardData();
+    }
+  });
+
+  onDestroy(() => {
+    if (viewportQuery && viewportListener) {
+      if (viewportQuery.removeEventListener) {
+        viewportQuery.removeEventListener('change', viewportListener);
+      } else {
+        viewportQuery.removeListener(viewportListener);
+      }
     }
   });
 
@@ -171,12 +205,12 @@
     goto(`/brews/new?bag=${bagId}`);
   }
 
-  function handleBeanChange(event: CustomEvent<{ bean: Bean | null }>) {
-    selectedBean = event.detail.bean;
+  function openAnalysisFilters() {
+    analysisFiltersOpen = true;
   }
 
-  function handleBagChange(event: CustomEvent<{ bag: Bag | null }>) {
-    selectedBag = event.detail.bag;
+  function closeAnalysisFilters() {
+    analysisFiltersOpen = false;
   }
 
   async function retryLoad() {
@@ -341,10 +375,12 @@
         <div class="section-container analysis-section" id="analysis">
           <svelte:component 
             this={BeanAnalysisSection}
-            {selectedBean}
-            {selectedBag}
-            on:beanChange={handleBeanChange}
-            on:bagChange={handleBagChange}
+            bind:selectedBean
+            bind:selectedBag
+            bind:includeCommunity
+            bind:recencyFilter
+            showInlineFilters={!isMobile}
+            on:openFilters={openAnalysisFilters}
           />
         </div>
       {:else if analysisLoaded}
@@ -403,6 +439,27 @@
           />
         {/each}
       </div>
+    </Sheet>
+  {/if}
+  {#if analysisLoaded && isMobile}
+    <Sheet
+      open={analysisFiltersOpen}
+      title="Filters"
+      subtitle="Refine the analysis view"
+      closeLabel="Close filters"
+      panelBackground={colorCss.bg.surface.paper.primary}
+      panelMinHeight="70vh"
+      stickyHeader={true}
+      edgeFade={true}
+      on:close={closeAnalysisFilters}
+    >
+      <BeanAnalysisFilters
+        variant="sheet"
+        bind:selectedBean
+        bind:selectedBag
+        bind:includeCommunity
+        bind:recencyFilter
+      />
     </Sheet>
   {/if}
 {:else}
@@ -585,6 +642,10 @@
   /* Performance optimizations */
   .home-dashboard {
     transform: translateZ(0); /* Force hardware acceleration */
+  }
+
+  :global(body.sheet-open) .home-dashboard {
+    transform: none;
   }
 
   /* Reduce motion for users who prefer it */

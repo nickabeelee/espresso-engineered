@@ -14,6 +14,8 @@
   export let showHeader = true;
   export let stickyHeader = false;
   export let edgeFade = false;
+  export let panelBackground: string | null = null;
+  export let panelMinHeight: string | null = null;
 
   const dispatch = createEventDispatcher<{ close: void }>();
 
@@ -43,7 +45,7 @@
 
   const style = toStyleString({
     '--sheet-overlay-bg': sheet.overlay.background,
-    '--sheet-panel-bg': sheet.panel.background,
+    '--sheet-panel-bg': panelBackground ?? sheet.panel.background,
     '--sheet-panel-radius': sheet.panel.radius,
     '--sheet-panel-padding': sheet.panel.padding,
     '--sheet-panel-padding-top': sheet.panel.paddingTop,
@@ -52,6 +54,7 @@
     '--sheet-panel-shadow': sheet.panel.shadow,
     '--sheet-panel-width': sheet.panel.width,
     '--sheet-panel-max-height': sheet.panel.maxHeight,
+    '--sheet-panel-min-height': panelMinHeight ?? undefined,
     '--sheet-panel-mobile-padding': sheet.panel.mobile.padding,
     '--sheet-panel-mobile-padding-top': sheet.panel.mobile.paddingTop,
     '--sheet-panel-mobile-padding-x': sheet.panel.mobile.paddingX,
@@ -140,6 +143,7 @@
     position: relative;
     width: var(--sheet-panel-width, min(760px, 100%));
     max-height: var(--sheet-panel-max-height, 88vh);
+    min-height: var(--sheet-panel-min-height, auto);
     background: var(--sheet-panel-bg, var(--bg-surface-paper));
     border-radius: var(--sheet-panel-radius, var(--radius-lg)) var(--sheet-panel-radius, var(--radius-lg)) 0 0;
     --sheet-panel-safe-bottom: env(safe-area-inset-bottom, 0px);
