@@ -308,6 +308,58 @@ export class ScatterPlot {
     }
   }
 
+  private getPointerPosition(event: MouseEvent | TouchEvent): { x: number; y: number } {
+    if ('touches' in event && event.touches.length > 0) {
+      const touch = event.touches[0];
+      return { x: touch.clientX, y: touch.clientY };
+    }
+
+    if ('changedTouches' in event && event.changedTouches.length > 0) {
+      const touch = event.changedTouches[0];
+      return { x: touch.clientX, y: touch.clientY };
+    }
+
+    const mouseEvent = event as MouseEvent;
+    return { x: mouseEvent.clientX, y: mouseEvent.clientY };
+  }
+
+  private positionTooltip(event: MouseEvent | TouchEvent) {
+    const tooltipNode = this.tooltip.node();
+    if (!tooltipNode) return;
+
+    const { x, y } = this.getPointerPosition(event);
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const tooltipRect = tooltipNode.getBoundingClientRect();
+    const offset = 12;
+    const gutter = 8;
+
+    const canPlaceRight = x + offset + tooltipRect.width <= viewportWidth - gutter;
+    const canPlaceLeft = x - offset - tooltipRect.width >= gutter;
+    const canPlaceBelow = y + offset + tooltipRect.height <= viewportHeight - gutter;
+    const canPlaceAbove = y - offset - tooltipRect.height >= gutter;
+
+    let left = canPlaceRight || !canPlaceLeft
+      ? x + offset
+      : x - tooltipRect.width - offset;
+    let top = canPlaceBelow || !canPlaceAbove
+      ? y + offset
+      : y - tooltipRect.height - offset;
+
+    left = Math.min(
+      Math.max(left, gutter),
+      viewportWidth - tooltipRect.width - gutter
+    );
+    top = Math.min(
+      Math.max(top, gutter),
+      viewportHeight - tooltipRect.height - gutter
+    );
+
+    this.tooltip
+      .style('left', `${left + window.scrollX}px`)
+      .style('top', `${top + window.scrollY}px`);
+  }
+
   private render() {
     const chartArea = this.svg.select('.chart-area');
     const chartWidth = Math.max(0, this.config.width - this.config.margin.left - this.config.margin.right);
@@ -474,11 +526,36 @@ export class ScatterPlot {
         this.tooltip
           .style('visibility', 'visible')
           .html(tooltipContent);
+        this.positionTooltip(event);
       })
       .on('mousemove', (event) => {
+        this.positionTooltip(event);
+      })
+      .on('touchstart', (event, d) => {
+        // Highlight point
+        d3.select(event.currentTarget)
+          .transition()
+          .duration(150)
+          .attr('r', this.config.hoverRadius ?? 6)
+          .attr('opacity', 1);
+
+        const tooltipContent = this.formatTooltip(d);
         this.tooltip
-          .style('top', (event.pageY - 10) + 'px')
-          .style('left', (event.pageX + 10) + 'px');
+          .style('visibility', 'visible')
+          .html(tooltipContent);
+        this.positionTooltip(event);
+      })
+      .on('touchmove', (event) => {
+        this.positionTooltip(event);
+      })
+      .on('touchend', (event) => {
+        d3.select(event.currentTarget)
+          .transition()
+          .duration(150)
+          .attr('r', this.config.pointRadius ?? 4)
+          .attr('opacity', 0.85);
+
+        this.tooltip.style('visibility', 'hidden');
       })
       .on('mouseout', (event) => {
         // Reset point
