@@ -5,6 +5,7 @@ import { vizPalette } from './palette';
 import { axisDefaults } from './axes';
 import { tooltipDefaults } from './tooltip';
 import { scaleDefaults } from './scales';
+import { gsap } from '../animations';
 import type { Brew } from '../../../../shared/types';
 
 /**
@@ -122,6 +123,7 @@ export class ScatterPlot {
   private resizeObserver?: ResizeObserver;
   private data: BrewDataPoint[] = [];
   private clipId: string;
+  private tooltipVisible = false;
 
   constructor(container: HTMLElement, config: ScatterPlotConfig) {
     this.container = container;
@@ -152,6 +154,7 @@ export class ScatterPlot {
       .append('div')
       .style('position', 'absolute')
       .style('visibility', 'hidden')
+      .style('opacity', '0')
       .style('background', tooltipDefaults.background)
       .style('border', `1px solid ${tooltipDefaults.borderColor}`)
       .style('border-radius', tooltipDefaults.borderRadius)
@@ -160,8 +163,47 @@ export class ScatterPlot {
       .style('font-size', tooltipDefaults.text.fontSize)
       .style('color', tooltipDefaults.text.color)
       .style('box-shadow', tooltipDefaults.shadow)
+      .style('will-change', 'transform, opacity')
       .style('pointer-events', 'none')
       .style('z-index', '1000');
+  }
+
+  private showTooltip(content: string, event: MouseEvent | TouchEvent) {
+    const tooltipNode = this.tooltip.node();
+    if (!tooltipNode) return;
+
+    this.tooltip.html(content);
+    this.positionTooltip(event);
+
+    if (!this.tooltipVisible) {
+      this.tooltipVisible = true;
+      gsap.killTweensOf(tooltipNode);
+      this.tooltip.style('visibility', 'visible');
+      gsap.fromTo(
+        tooltipNode,
+        { opacity: 0, y: 6 },
+        { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' }
+      );
+    }
+  }
+
+  private hideTooltip() {
+    const tooltipNode = this.tooltip.node();
+    if (!tooltipNode || !this.tooltipVisible) return;
+
+    this.tooltipVisible = false;
+    gsap.killTweensOf(tooltipNode);
+    gsap.to(tooltipNode, {
+      opacity: 0,
+      y: 6,
+      duration: 0.18,
+      ease: 'power2.in',
+      onComplete: () => {
+        if (!this.tooltipVisible) {
+          this.tooltip.style('visibility', 'hidden');
+        }
+      }
+    });
   }
 
   private createSVG() {
@@ -306,6 +348,58 @@ export class ScatterPlot {
           .text(this.config.yLabel);
       }
     }
+  }
+
+  private getPointerPosition(event: MouseEvent | TouchEvent): { x: number; y: number } {
+    if ('touches' in event && event.touches.length > 0) {
+      const touch = event.touches[0];
+      return { x: touch.clientX, y: touch.clientY };
+    }
+
+    if ('changedTouches' in event && event.changedTouches.length > 0) {
+      const touch = event.changedTouches[0];
+      return { x: touch.clientX, y: touch.clientY };
+    }
+
+    const mouseEvent = event as MouseEvent;
+    return { x: mouseEvent.clientX, y: mouseEvent.clientY };
+  }
+
+  private positionTooltip(event: MouseEvent | TouchEvent) {
+    const tooltipNode = this.tooltip.node();
+    if (!tooltipNode) return;
+
+    const { x, y } = this.getPointerPosition(event);
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const tooltipRect = tooltipNode.getBoundingClientRect();
+    const offset = 12;
+    const gutter = 8;
+
+    const canPlaceRight = x + offset + tooltipRect.width <= viewportWidth - gutter;
+    const canPlaceLeft = x - offset - tooltipRect.width >= gutter;
+    const canPlaceBelow = y + offset + tooltipRect.height <= viewportHeight - gutter;
+    const canPlaceAbove = y - offset - tooltipRect.height >= gutter;
+
+    let left = canPlaceRight || !canPlaceLeft
+      ? x + offset
+      : x - tooltipRect.width - offset;
+    let top = canPlaceBelow || !canPlaceAbove
+      ? y + offset
+      : y - tooltipRect.height - offset;
+
+    left = Math.min(
+      Math.max(left, gutter),
+      viewportWidth - tooltipRect.width - gutter
+    );
+    top = Math.min(
+      Math.max(top, gutter),
+      viewportHeight - tooltipRect.height - gutter
+    );
+
+    this.tooltip
+      .style('left', `${left + window.scrollX}px`)
+      .style('top', `${top + window.scrollY}px`);
   }
 
   private render() {
@@ -471,14 +565,33 @@ export class ScatterPlot {
         
         // Show tooltip
         const tooltipContent = this.formatTooltip(d);
-        this.tooltip
-          .style('visibility', 'visible')
-          .html(tooltipContent);
+        this.showTooltip(tooltipContent, event);
       })
       .on('mousemove', (event) => {
-        this.tooltip
-          .style('top', (event.pageY - 10) + 'px')
-          .style('left', (event.pageX + 10) + 'px');
+        this.positionTooltip(event);
+      })
+      .on('touchstart', (event, d) => {
+        // Highlight point
+        d3.select(event.currentTarget)
+          .transition()
+          .duration(150)
+          .attr('r', this.config.hoverRadius ?? 6)
+          .attr('opacity', 1);
+
+        const tooltipContent = this.formatTooltip(d);
+        this.showTooltip(tooltipContent, event);
+      })
+      .on('touchmove', (event) => {
+        this.positionTooltip(event);
+      })
+      .on('touchend', (event) => {
+        d3.select(event.currentTarget)
+          .transition()
+          .duration(150)
+          .attr('r', this.config.pointRadius ?? 4)
+          .attr('opacity', 0.85);
+
+        this.hideTooltip();
       })
       .on('mouseout', (event) => {
         // Reset point
@@ -489,7 +602,7 @@ export class ScatterPlot {
           .attr('opacity', 0.85);
         
         // Hide tooltip
-        this.tooltip.style('visibility', 'hidden');
+        this.hideTooltip();
       });
     
     // Animate entrance
