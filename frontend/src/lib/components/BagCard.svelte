@@ -73,6 +73,9 @@
   let formData: Partial<CreateBagRequest & UpdateBagRequest> = {};
   let lastVariant: BagCardVariant = variant;
   let lastBeanId = "";
+  let autoName = "";
+  let isNameAuto = false;
+  let nameTouched = false;
 
   $: bagPermissions = bag
     ? getBagPermissions($barista, bag)
@@ -107,6 +110,27 @@
   $: bagTitle = bag?.name?.trim() || beanName;
   $: inventoryLabel = formatInventoryStatus(bag?.inventory_status);
   $: inventoryVariant = getInventoryVariant(bag?.inventory_status);
+  $: if (isNewBag) {
+    const trimmedBeanName = beanName?.trim() || "";
+    const roastDate = formData.roast_date || "";
+    const isAutoReady = Boolean(trimmedBeanName && roastDate);
+    if (isAutoReady) {
+      autoName = buildBagName(trimmedBeanName, roastDate);
+      if (isNameAuto || (!nameTouched && !formData.name?.trim())) {
+        formData.name = autoName;
+        isNameAuto = true;
+      }
+    } else {
+      autoName = "";
+      if (isNameAuto && !nameTouched) {
+        formData.name = "";
+        isNameAuto = false;
+      }
+    }
+  } else {
+    autoName = "";
+    isNameAuto = false;
+  }
 
   function formatRoastDate(dateString?: string): string {
     if (!dateString) return "Not specified";
@@ -174,6 +198,9 @@
         purchase_location: "",
         inventory_status: undefined,
       };
+      nameTouched = false;
+      isNameAuto = false;
+      autoName = "";
       return;
     }
 
@@ -186,6 +213,9 @@
         purchase_location: bag.purchase_location || "",
         inventory_status: bag.inventory_status,
       };
+      nameTouched = Boolean(bag.name?.trim());
+      isNameAuto = false;
+      autoName = "";
     }
   }
 
@@ -324,6 +354,23 @@
   function handleStartBrew(event?: Event) {
     event?.stopPropagation();
     dispatch("brew", { bagId: bag?.id ?? null });
+  }
+
+  function buildBagName(bean: string, roastDate: string): string {
+    const formattedDate = formatRoastDate(roastDate);
+    return [bean, formattedDate].filter(Boolean).join(" · ");
+  }
+
+  function markNameTouched() {
+    nameTouched = true;
+    isNameAuto = false;
+  }
+
+  function applyAutoName() {
+    if (!autoName) return;
+    formData.name = autoName;
+    isNameAuto = true;
+    nameTouched = false;
   }
 
   const style = toStyleString({
@@ -684,17 +731,52 @@
             <h5>Identity</h5>
             <div class="bag-edit-grid">
               <div class="bag-edit-field">
-                <label for="bag-name">Bag name</label>
+                <div class="bag-name-header">
+                  <label for="bag-name">Bag name</label>
+                  {#if isNewBag}
+                    <span
+                      class={`auto-indicator ${isNameAuto ? "auto" : "custom"}`}
+                    >
+                      {#if isNameAuto}
+                        Auto-filled
+                      {:else if autoName}
+                        Auto ready
+                      {:else}
+                        Auto name
+                      {/if}
+                    </span>
+                  {/if}
+                  {#if isNewBag && autoName && !isNameAuto}
+                    <button
+                      type="button"
+                      class="reset-auto"
+                      on:click={applyAutoName}
+                      disabled={isSaving}
+                    >
+                      Use auto name
+                    </button>
+                  {/if}
+                </div>
                 <input
                   id="bag-name"
                   type="text"
                   bind:value={formData.name}
+                  on:input={markNameTouched}
                   class="detail-input"
-                  placeholder={isNewBag
-                    ? `Name for this ${beanName} bag`
-                    : beanName}
+                  placeholder={autoName || beanName}
                   disabled={isSaving}
                 />
+                {#if isNewBag}
+                  <small class="auto-hint">
+                    {#if autoName}
+                      {isNameAuto
+                        ? "We'll keep this name in sync until you edit it."
+                        : "This will auto-fill when your roast date is set."}
+                    {:else}
+                      Set a roast date to generate an automatic name.
+                    {/if}
+                  </small>
+                {/if}
               </div>
               <div class="bag-edit-field">
                 <label for="bag-roast-date">Roast date</label>
@@ -1287,6 +1369,44 @@
     flex-direction: column;
     gap: 0.35rem;
     min-width: 0;
+  }
+
+  .bag-name-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .auto-indicator {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-ink-muted);
+  }
+
+  .auto-indicator.auto {
+    color: var(--accent-primary);
+  }
+
+  .reset-auto {
+    border: none;
+    background: none;
+    color: var(--accent-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .reset-auto:disabled {
+    color: var(--text-ink-muted);
+    cursor: not-allowed;
+  }
+
+  .auto-hint {
+    color: var(--text-ink-muted);
+    font-size: 0.75rem;
   }
 
   .date-input-wrapper {
