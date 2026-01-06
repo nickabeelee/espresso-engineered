@@ -51,6 +51,14 @@
   let ratioRange = '—';
   let timeRange = '—';
   let activeChart: 'ratio' | 'time' = 'ratio';
+  const recencyLabels: Record<RecencyPeriod, string> = {
+    '2D': 'Last 2 days',
+    W: 'Last week',
+    M: 'Last month',
+    '3M': 'Last 3 months',
+    Y: 'Last year'
+  };
+  let analysisFilterSummary = '';
 
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
@@ -187,6 +195,21 @@
     dispatch('openFilters');
   }
 
+
+  function formatFilterSummary() {
+    const recencyLabel = recencyLabels[recencyFilter] ?? 'Last month';
+    const bagName = selectedBag?.name || (selectedBag ? 'this bag' : null);
+    const beanName = selectedBean?.name || (selectedBean ? 'this bean' : null);
+    const focusText = bagName
+      ? `For ${bagName}.`
+      : beanName
+        ? `For ${beanName}.`
+        : 'No bean selected.';
+    const bagScopeText = !bagName && beanName ? 'All bags for this bean.' : null;
+    const communityText = includeCommunity ? 'Community included.' : 'Your data only.';
+    const parts = [`${recencyLabel}.`, focusText, bagScopeText, communityText].filter(Boolean);
+    return parts.join(' ');
+  }
 
   function formatRange(values: number[], suffix = '') {
     if (values.length === 0) return 'No points';
@@ -357,6 +380,8 @@
       opacity: 0.6
     }
   };
+
+  $: analysisFilterSummary = formatFilterSummary();
 </script>
 
 <section class="bean-analysis-section">
@@ -401,6 +426,7 @@
           </button>
         </div>
       </div>
+      <p class="analysis-mobile-summary voice-text" style={voiceLineStyle}>{analysisFilterSummary}</p>
 
       {#if showInlineFilters}
         <BeanAnalysisFilters
@@ -570,6 +596,11 @@
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1.5rem;
+  }
+
+  .analysis-mobile-summary {
+    display: none;
+    margin: -0.5rem 0 1.5rem;
   }
 
   .filter-trigger {
@@ -769,6 +800,10 @@
 
     .analysis-mobile-tools {
       display: flex;
+    }
+
+    .analysis-mobile-summary {
+      display: block;
     }
 
     .charts-container {
