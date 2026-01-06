@@ -226,8 +226,8 @@
   }) {
     const recencyLabel = recencyLabels[recencyFilter] ?? "the last month";
     const communityText = includeCommunity
-      ? "both yours and the community's data"
-      : "your data";
+      ? "the brews from you and the community"
+      : "your brews";
     const beanName = selectedBean?.name ?? null;
     const bagDate = selectedBag?.roast_date
       ? new Date(selectedBag.roast_date).toLocaleDateString("en-US", {
@@ -239,7 +239,7 @@
     const bagOwner = selectedBag
       ? selectedBag.owner_id === baristaId
         ? "your"
-        : "community"
+        : "a community"
       : null;
     const bagPart = selectedBag
       ? bagDate
@@ -250,12 +250,12 @@
         : null;
 
     if (beanName && bagPart) {
-      return `Showing ${communityText} for ${bagPart} of ${beanName} from ${recencyLabel}.`;
+      return `I pulled up ${communityText} for ${bagPart} of ${beanName} from ${recencyLabel}.`;
     }
     if (beanName) {
-      return `Showing ${communityText} for ${beanName} from ${recencyLabel}.`;
+      return `I pulled up ${communityText} for ${beanName} from ${recencyLabel}.`;
     }
-    return `Showing ${communityText} from ${recencyLabel}.`;
+    return `I pulled up ${communityText} from ${recencyLabel}.`;
   }
 
   function formatRange(values: number[], suffix = "") {
@@ -686,7 +686,8 @@
 
   .analysis-mobile-summary {
     display: none;
-    margin: 0 0 1.5rem;
+    margin: 0;
+    padding-bottom: 1.5rem;
   }
 
   .filter-trigger {
