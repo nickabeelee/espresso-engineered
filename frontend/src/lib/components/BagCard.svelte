@@ -5,6 +5,7 @@
   import { barista } from "$lib/auth";
   import { getBagPermissions } from "$lib/permissions";
   import IconButton from "$lib/components/IconButton.svelte";
+  import BeanSelector from "$lib/components/BeanSelector.svelte";
   import Chip from "$lib/components/Chip.svelte";
   import BagStatusUpdater from "$lib/components/BagStatusUpdater.svelte";
   import RoastLevel from "$lib/components/RoastLevel.svelte";
@@ -26,6 +27,7 @@
   import type {
     BagWithBarista,
     Barista as BaristaType,
+    Bean,
     UpdateBagRequest,
     CreateBagRequest,
   } from "@shared/types";
@@ -76,6 +78,13 @@
   let autoName = "";
   let isNameAuto = false;
   let nameTouched = false;
+  let selectedBeanName = "";
+  let selectedRoasterName: string | null = null;
+  let namePlaceholder = "";
+  let headerTitle = "";
+  let headerRoastDate = "";
+  let headerRoasterName: string | null = null;
+  const todayDatePlaceholder = new Date().toISOString().slice(0, 10);
 
   $: bagPermissions = bag
     ? getBagPermissions($barista, bag)
@@ -110,8 +119,31 @@
   $: bagTitle = bag?.name?.trim() || beanName;
   $: inventoryLabel = formatInventoryStatus(bag?.inventory_status);
   $: inventoryVariant = getInventoryVariant(bag?.inventory_status);
+  $: namePlaceholder = autoName || selectedBeanName || beanName;
+  $: headerTitle =
+    activeVariant === "edit"
+      ? formData.name?.trim() ||
+        selectedBeanName ||
+        beanName ||
+        (isNewBag ? "New Bag" : bagTitle)
+      : isNewBag
+        ? "New Bag"
+        : bagTitle;
+  $: headerRoastDate =
+    activeVariant === "edit"
+      ? formData.roast_date
+        ? formatRoastDate(formData.roast_date)
+        : "Not specified"
+      : bag?.roast_date
+        ? formatRoastDate(bag.roast_date)
+        : "Not specified";
+  $: headerRoasterName =
+    activeVariant === "edit"
+      ? selectedRoasterName || roasterName
+      : roasterName;
   $: if (isNewBag) {
-    const trimmedBeanName = beanName?.trim() || "";
+    const trimmedBeanName =
+      selectedBeanName?.trim() || beanName?.trim() || "";
     const roastDate = formData.roast_date || "";
     const isAutoReady = Boolean(trimmedBeanName && roastDate);
     if (isAutoReady) {
@@ -201,11 +233,14 @@
       nameTouched = false;
       isNameAuto = false;
       autoName = "";
+      selectedBeanName = beanName?.trim() || "";
+      selectedRoasterName = roasterName;
       return;
     }
 
     if (bag) {
       formData = {
+        bean_id: bag.bean_id || "",
         name: bag.name || "",
         roast_date: bag.roast_date || "",
         weight_g: bag.weight_g || undefined,
@@ -216,6 +251,8 @@
       nameTouched = Boolean(bag.name?.trim());
       isNameAuto = false;
       autoName = "";
+      selectedBeanName = bag.bean?.name?.trim() || beanName?.trim() || "";
+      selectedRoasterName = bag.bean?.roaster?.name || roasterName;
     }
   }
 
@@ -354,6 +391,13 @@
   function handleStartBrew(event?: Event) {
     event?.stopPropagation();
     dispatch("brew", { bagId: bag?.id ?? null });
+  }
+
+  function handleBeanSelected(
+    event: CustomEvent<{ bean: Bean | null; roasterName: string | null }>,
+  ) {
+    selectedBeanName = event.detail.bean?.name?.trim() || "";
+    selectedRoasterName = event.detail.roasterName;
   }
 
   function buildBagName(bean: string, roastDate: string): string {
@@ -558,17 +602,13 @@
               <span class="bag-owner">New bag</span>
             {/if}
             <div class="bag-title">
-              <h4>{isNewBag ? "New Bag" : bagTitle}</h4>
+              <h4>{headerTitle}</h4>
             </div>
-            {#if activeVariant === "inspect"}
+            {#if activeVariant === "inspect" || activeVariant === "edit"}
               <div class="bag-header-meta">
-                <span class="bag-roast-meta"
-                  >Roasted {bag?.roast_date
-                    ? formatRoastDate(bag.roast_date)
-                    : "Not specified"}</span
-                >
-                {#if roasterName}
-                  <span class="bag-roaster-meta">{roasterName}</span>
+                <span class="bag-roast-meta">Roasted {headerRoastDate}</span>
+                {#if headerRoasterName}
+                  <span class="bag-roaster-meta">{headerRoasterName}</span>
                 {/if}
               </div>
             {/if}
@@ -731,6 +771,14 @@
             <h5>Identity</h5>
             <div class="bag-edit-grid">
               <div class="bag-edit-field">
+                <label>Bean</label>
+                <BeanSelector
+                  bind:value={formData.bean_id}
+                  disabled={isSaving}
+                  on:selected={handleBeanSelected}
+                />
+              </div>
+              <div class="bag-edit-field">
                 <div class="bag-name-header">
                   <label for="bag-name">Bag name</label>
                   {#if isNewBag}
@@ -763,7 +811,7 @@
                   bind:value={formData.name}
                   on:input={markNameTouched}
                   class="detail-input"
-                  placeholder={autoName || beanName}
+                  placeholder={namePlaceholder}
                   disabled={isSaving}
                 />
                 {#if isNewBag}
@@ -789,6 +837,7 @@
                     type="date"
                     bind:value={formData.roast_date}
                     class="detail-input detail-input--date"
+                    placeholder={todayDatePlaceholder}
                     disabled={isSaving}
                   />
                 </div>
@@ -1250,7 +1299,7 @@
   .detail-input,
   .detail-select {
     color: var(--editable-card-input-color, var(--text-ink-primary));
-    font-size: var(--editable-card-input-size, 0.9rem);
+    font-size: max(1rem, var(--editable-card-input-size, 0.9rem));
     font-family: var(--editable-card-input-font, inherit);
     background: var(--editable-card-input-bg, var(--bg-surface-paper));
     border: var(--editable-card-input-border-width, 1px) solid

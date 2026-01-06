@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount, tick } from 'svelte';
+  import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
@@ -11,6 +11,10 @@
 
   export let value: string = '';
   export let disabled = false;
+
+  const dispatch = createEventDispatcher<{
+    selected: { bean: Bean | null; roasterName: string | null };
+  }>();
 
   let beans: Bean[] = [];
   let roasters: Roaster[] = [];
@@ -88,6 +92,7 @@
     const newBean = event.detail;
     beans = [newBean, ...beans];
     value = newBean.id;
+    dispatch('selected', { bean: newBean, roasterName: getRoasterName(newBean.roaster_id) });
     showCreateForm = false;
   }
 
@@ -109,6 +114,7 @@
     value = bean.id;
     isOpen = false;
     searchTerm = '';
+    dispatch('selected', { bean, roasterName: getRoasterName(bean.roaster_id) });
   }
 
   function handleSearchKey(event: KeyboardEvent) {
