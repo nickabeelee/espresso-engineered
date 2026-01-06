@@ -325,6 +325,7 @@
       if (response.data) {
         brew = response.data;
         await loadEquipmentDetails(brew);
+        await goto(`/brews/${brew.id}`);
       } else {
         throw new Error('Failed to update brew');
       }
