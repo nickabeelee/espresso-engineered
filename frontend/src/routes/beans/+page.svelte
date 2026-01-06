@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/stores';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BeanList from '$lib/components/BeanList.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
@@ -11,6 +12,7 @@
 
   let showBeanCreator = false;
   let beanListComponent: BeanList;
+  let handledCreateParam = false;
 
   const breadcrumbLinkStyle = toStyleString({
     ...textStyles.helper,
@@ -29,6 +31,11 @@
 
   function handleCancel() {
     showBeanCreator = false;
+  }
+
+  $: if (!handledCreateParam && $page.url.searchParams.get('create') === 'bean') {
+    showBeanCreator = true;
+    handledCreateParam = true;
   }
 </script>
 

@@ -1,24 +1,25 @@
 <script lang="ts">
-  import { onMount, onDestroy, tick } from 'svelte';
-  import { createEventDispatcher } from 'svelte';
-  import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
-  import { barista } from '$lib/auth';
-  import BagCard from '$lib/components/BagCard.svelte';
-  import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
-  import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
-  import IconButton from '$lib/components/IconButton.svelte';
-  import { ChevronLeft, ChevronRight } from '$lib/icons';
-  import { animations, animationUtils, gsap } from '$lib/ui/animations';
-  import { recordListShell } from '$lib/ui/components/card';
-  import { colorCss } from '$lib/ui/foundations/color';
-  import { textStyles } from '$lib/ui/foundations/typography';
-  import { toStyleString } from '$lib/ui/style';
-  import type { BagWithBarista, Barista as BaristaType } from '@shared/types';
+  import { onMount, onDestroy, tick } from "svelte";
+  import { createEventDispatcher } from "svelte";
+  import { enhancedApiClient } from "$lib/utils/enhanced-api-client";
+  import { barista } from "$lib/auth";
+  import BagCard from "$lib/components/BagCard.svelte";
+  import LoadingIndicator from "$lib/components/LoadingIndicator.svelte";
+  import ErrorDisplay from "$lib/components/ErrorDisplay.svelte";
+  import IconButton from "$lib/components/IconButton.svelte";
+  import { ChevronLeft, ChevronRight } from "$lib/icons";
+  import { animations, animationUtils, gsap } from "$lib/ui/animations";
+  import { recordListShell } from "$lib/ui/components/card";
+  import { colorCss } from "$lib/ui/foundations/color";
+  import { textStyles } from "$lib/ui/foundations/typography";
+  import { toStyleString } from "$lib/ui/style";
+  import type { BagWithBarista, Barista as BaristaType } from "@shared/types";
 
   const dispatch = createEventDispatcher<{
     bagUpdated: BagWithBarista;
     inspect: { bag: BagWithBarista };
     brew: { bagId: string | null };
+    createBag: void;
   }>();
 
   let bags: BagWithBarista[] = [];
@@ -34,30 +35,36 @@
   // Animation cleanup functions
   let scrollCleanup: (() => void) | null = null;
   let hoverCleanups: Array<() => void> = [];
-  let lastBagSignature = '';
+  let lastBagSignature = "";
   let resizeObserver: ResizeObserver | null = null;
 
-  const getBagCards = () => bagCards.filter((card): card is HTMLElement => Boolean(card));
+  const getBagCards = () =>
+    bagCards.filter((card): card is HTMLElement => Boolean(card));
 
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
     color: colorCss.text.ink.primary,
-    margin: '0 0 0.5rem 0'
+    margin: "0 0 0.5rem 0",
   });
 
   const voiceLineStyle = toStyleString({
     ...textStyles.voice,
     color: colorCss.text.ink.muted,
-    margin: 0
+    margin: 0,
   });
 
   const inventoryShellStyle = toStyleString({
-    '--record-list-bg': recordListShell.background,
-    '--record-list-border': recordListShell.borderColor,
-    '--record-list-border-width': recordListShell.borderWidth,
-    '--record-list-border-style': recordListShell.borderStyle,
-    '--record-list-radius': recordListShell.borderRadius,
-    '--record-list-padding': recordListShell.padding
+    "--record-list-bg": recordListShell.background,
+    "--record-list-border": recordListShell.borderColor,
+    "--record-list-border-width": recordListShell.borderWidth,
+    "--record-list-border-style": recordListShell.borderStyle,
+    "--record-list-radius": recordListShell.borderRadius,
+    "--record-list-padding": recordListShell.padding,
+  });
+
+  const actionLinkStyle = toStyleString({
+    ...textStyles.voice,
+    color: colorCss.accent.primary,
   });
 
   onMount(() => {
@@ -80,24 +87,25 @@
       error = null;
 
       const response = await enhancedApiClient.getBagInventory();
-      
+
       // Transform bags to include barista information
-      bags = response.data.map(bag => ({
+      bags = response.data.map((bag) => ({
         ...bag,
-        barista: $barista!
+        barista: $barista!,
       }));
 
       // Create baristas lookup for BagCard
       baristasById = {
-        [$barista.id]: $barista
+        [$barista.id]: $barista,
       };
 
       await tick();
       initScrollTracking();
       initAnimations();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load the coffee shelf';
-      console.error('Failed to load bag inventory:', err);
+      error =
+        err instanceof Error ? err.message : "Failed to load the coffee shelf";
+      console.error("Failed to load bag inventory:", err);
     } finally {
       loading = false;
     }
@@ -107,7 +115,9 @@
     if (!scrollContainer) return;
     const cards = getBagCards();
     const lastCard = cards[cards.length - 1];
-    const contentWidth = lastCard ? lastCard.offsetLeft + lastCard.offsetWidth : 0;
+    const contentWidth = lastCard
+      ? lastCard.offsetLeft + lastCard.offsetWidth
+      : 0;
 
     canScrollLeft = scrollContainer.scrollLeft > 4;
     canScrollRight = contentWidth - scrollContainer.clientWidth > 4;
@@ -116,28 +126,30 @@
   function initScrollTracking() {
     if (!scrollContainer || scrollCleanup) return;
 
-    scrollContainer.addEventListener('scroll', updateScrollButtons, { passive: true });
+    scrollContainer.addEventListener("scroll", updateScrollButtons, {
+      passive: true,
+    });
     updateScrollButtons();
     requestAnimationFrame(updateScrollButtons);
 
-    if (!resizeObserver && 'ResizeObserver' in window) {
+    if (!resizeObserver && "ResizeObserver" in window) {
       resizeObserver = new ResizeObserver(() => {
         updateScrollButtons();
       });
       resizeObserver.observe(scrollContainer);
-      const list = scrollContainer.querySelector('.bag-list');
+      const list = scrollContainer.querySelector(".bag-list");
       if (list) {
         resizeObserver.observe(list);
       }
     }
 
     scrollCleanup = () => {
-      scrollContainer?.removeEventListener('scroll', updateScrollButtons);
+      scrollContainer?.removeEventListener("scroll", updateScrollButtons);
     };
   }
 
   function clearAnimations() {
-    hoverCleanups.forEach(cleanup => cleanup());
+    hoverCleanups.forEach((cleanup) => cleanup());
     hoverCleanups = [];
   }
 
@@ -149,12 +161,12 @@
 
     animations.fadeInUp(cards, {
       duration: 0.18,
-      ease: 'power1.out',
-      stagger: 0.04
+      ease: "power1.out",
+      stagger: 0.04,
     });
-    
+
     // Add hover effects to each card with enhanced lift
-    cards.forEach(card => {
+    cards.forEach((card) => {
       const cleanup = animationUtils.createHoverLift(card);
       hoverCleanups.push(cleanup);
     });
@@ -162,68 +174,98 @@
 
   function scrollLeft() {
     if (!scrollContainer) return;
-    
+
     const cards = getBagCards();
     if (cards.length === 0) return;
 
     const current = scrollContainer.scrollLeft;
     const offsets = cards.map((card) => card.offsetLeft);
-    const previousTarget = [...offsets].reverse().find((offset) => offset < current - 1) ?? 0;
-    const previousSnap = scrollContainer.style.scrollSnapType || getComputedStyle(scrollContainer).scrollSnapType;
-    scrollContainer.style.scrollSnapType = 'none';
-    
+    const previousTarget =
+      [...offsets].reverse().find((offset) => offset < current - 1) ?? 0;
+    const previousSnap =
+      scrollContainer.style.scrollSnapType ||
+      getComputedStyle(scrollContainer).scrollSnapType;
+    scrollContainer.style.scrollSnapType = "none";
+
     // Add smooth GSAP animation for scroll
     gsap.to(scrollContainer, {
       scrollLeft: previousTarget,
       duration: 0.24,
-      ease: 'power2.out',
-      overwrite: 'auto',
+      ease: "power2.out",
+      overwrite: "auto",
       onComplete: () => {
-        scrollContainer?.style.setProperty('scroll-snap-type', previousSnap || 'x mandatory');
-      }
+        scrollContainer?.style.setProperty(
+          "scroll-snap-type",
+          previousSnap || "x mandatory",
+        );
+      },
     });
   }
 
   function scrollRight() {
     if (!scrollContainer) return;
-    
+
     const cards = getBagCards();
     if (cards.length === 0) return;
 
     const current = scrollContainer.scrollLeft;
     const offsets = cards.map((card) => card.offsetLeft);
-    const nextTarget = offsets.find((offset) => offset > current + 1) ?? offsets[offsets.length - 1];
-    const previousSnap = scrollContainer.style.scrollSnapType || getComputedStyle(scrollContainer).scrollSnapType;
-    scrollContainer.style.scrollSnapType = 'none';
-    
+    const nextTarget =
+      offsets.find((offset) => offset > current + 1) ??
+      offsets[offsets.length - 1];
+    const previousSnap =
+      scrollContainer.style.scrollSnapType ||
+      getComputedStyle(scrollContainer).scrollSnapType;
+    scrollContainer.style.scrollSnapType = "none";
+
     // Add smooth GSAP animation for scroll
     gsap.to(scrollContainer, {
       scrollLeft: nextTarget,
       duration: 0.24,
-      ease: 'power2.out',
-      overwrite: 'auto',
+      ease: "power2.out",
+      overwrite: "auto",
       onComplete: () => {
-        scrollContainer?.style.setProperty('scroll-snap-type', previousSnap || 'x mandatory');
-      }
+        scrollContainer?.style.setProperty(
+          "scroll-snap-type",
+          previousSnap || "x mandatory",
+        );
+      },
     });
   }
 
   export function applyBagUpdate(updatedBag: BagWithBarista) {
-    const index = bags.findIndex(bag => bag.id === updatedBag.id);
+    const index = bags.findIndex((bag) => bag.id === updatedBag.id);
     if (index !== -1) {
       const existingBag = bags[index];
       const existingBean = (existingBag as any).bean;
       const updatedBean = (updatedBag as any).bean;
-      const mergedBean = existingBean || updatedBean ? { ...(existingBean || {}), ...(updatedBean || {}) } : undefined;
+      const mergedBean =
+        existingBean || updatedBean
+          ? { ...(existingBean || {}), ...(updatedBean || {}) }
+          : undefined;
       const mergedBag = {
         ...updatedBag,
-        ...(mergedBean ? { bean: mergedBean } : {})
+        ...(mergedBean ? { bean: mergedBean } : {}),
       };
       bags[index] = mergedBag;
       bags = [...bags]; // Trigger reactivity
     }
 
-    dispatch('bagUpdated', updatedBag);
+    dispatch("bagUpdated", updatedBag);
+  }
+
+  export function addBag(newBag: BagWithBarista) {
+    const bagWithBarista = {
+      ...newBag,
+      barista: newBag.barista || $barista,
+    };
+    bags = [bagWithBarista, ...bags];
+    if ($barista) {
+      baristasById = {
+        ...baristasById,
+        [$barista.id]: $barista,
+      };
+    }
   }
 
   function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
@@ -231,15 +273,15 @@
   }
 
   function requestInspect(bag: BagWithBarista) {
-    dispatch('inspect', { bag });
+    dispatch("inspect", { bag });
   }
 
   function requestBrew(event: CustomEvent<{ bagId: string | null }>) {
-    dispatch('brew', event.detail);
+    dispatch("brew", event.detail);
   }
 
   $: if (bags.length > 0) {
-    const signature = bags.map((bag) => bag.id).join('|');
+    const signature = bags.map((bag) => bag.id).join("|");
     if (signature !== lastBagSignature) {
       lastBagSignature = signature;
       void tick().then(() => {
@@ -260,7 +302,9 @@
   <div class="section-header">
     <div class="section-header-text">
       <h2 style={sectionTitleStyle}>Your Coffee Shelf</h2>
-      <p class="voice-text" style={voiceLineStyle}>Keep the bar stocked and the labels honest.</p>
+      <p class="voice-text" style={voiceLineStyle}>
+        Keep the bar stocked and the labels honest.
+      </p>
     </div>
     {#if !loading && !error && bags.length > 0}
       <div class="inventory-controls">
@@ -290,38 +334,49 @@
     {/if}
   </div>
 
+  <div class="section-cta">
+    <a class="section-link" href="/beans?create=bean" style={actionLinkStyle}>
+      New bean
+    </a>
+    or
+    <button
+      class="section-link"
+      type="button"
+      style={actionLinkStyle}
+      on:click={() => dispatch("createBag")}
+    >
+      bag for your shelf
+    </button>
+    ?
+  </div>
+
   {#if loading}
     <div class="loading-container">
       <LoadingIndicator />
-      <p class="voice-text" style={voiceLineStyle}>Setting out your bar shelf...</p>
+      <p class="voice-text" style={voiceLineStyle}>
+        Setting out your bar shelf...
+      </p>
     </div>
   {:else if error}
-    <ErrorDisplay 
-      message={error}
-      onRetry={loadInventoryData}
-    />
+    <ErrorDisplay message={error} onRetry={loadInventoryData} />
   {:else if bags.length === 0}
     <div class="empty-state">
       <p class="voice-text" style={voiceLineStyle}>Your shelf is quiet.</p>
-      <p class="voice-text" style={voiceLineStyle}>Add a bag to start your bar shelf.</p>
+      <p class="voice-text" style={voiceLineStyle}>
+        Add a bag to start your bar shelf.
+      </p>
     </div>
   {:else}
     <div class="inventory-shell edge-rail" style={inventoryShellStyle}>
       <div class="inventory-container">
-        <div 
-          class="bag-scroll-container" 
-          bind:this={scrollContainer}
-        >
+        <div class="bag-scroll-container" bind:this={scrollContainer}>
           <div class="bag-list">
             {#each bags as bag, index (bag.id)}
-              <div 
-                class="bag-card-wrapper"
-                bind:this={bagCards[index]}
-              >
+              <div class="bag-card-wrapper" bind:this={bagCards[index]}>
                 <BagCard
                   variant="preview"
                   {bag}
-                  beanName={bag.bean?.name || 'Unknown Bean'}
+                  beanName={bag.bean?.name || "Unknown Bean"}
                   roasterName={bag.bean?.roaster?.name || null}
                   beanImagePath={bag.bean?.image_path || null}
                   beanRoastLevel={bag.bean?.roast_level || null}
@@ -337,7 +392,6 @@
       </div>
     </div>
   {/if}
-
 </div>
 
 <style>
@@ -361,6 +415,36 @@
     gap: 0.35rem;
   }
 
+  .section-cta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-link {
+    text-decoration: none;
+    font-style: normal;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    font-weight: 400;
+    color: inherit;
+    appearance: none;
+  }
+
+  .section-link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+
   .scroll-controls {
     display: flex;
     gap: 0.5rem;
@@ -376,7 +460,6 @@
     display: flex;
     justify-content: flex-end;
     align-self: flex-end;
-    padding-top: 0.5rem;
   }
 
   .loading-container {
@@ -386,7 +469,6 @@
     gap: 1rem;
     padding: 3rem 1rem;
   }
-
 
   .empty-state {
     text-align: center;
@@ -403,11 +485,12 @@
 
   .inventory-shell {
     background: var(--record-list-bg, var(--bg-surface-paper-secondary));
-    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
+    border: var(--record-list-border-width, 1px)
+      var(--record-list-border-style, solid)
+      var(--record-list-border, rgba(123, 94, 58, 0.2));
     border-radius: var(--record-list-radius, var(--radius-md));
     padding: var(--record-list-padding, 1.5rem);
   }
-
 
   .inventory-container {
     position: relative;
@@ -450,7 +533,9 @@
     flex: 0 0 auto;
     width: 320px;
     min-width: 320px;
-    transition: transform var(--motion-fast), opacity var(--motion-fast);
+    transition:
+      transform var(--motion-fast),
+      opacity var(--motion-fast);
     scroll-snap-align: start;
   }
 
@@ -482,7 +567,8 @@
 
     .inventory-shell {
       background: var(--record-list-bg, var(--bg-surface-paper-secondary));
-      border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid)
+      border: var(--record-list-border-width, 1px)
+        var(--record-list-border-style, solid)
         var(--record-list-border, rgba(123, 94, 58, 0.2));
       border-radius: 0;
       padding: 0.75rem 0;
@@ -499,7 +585,6 @@
       scroll-padding-left: 1rem;
       scroll-padding-right: 1rem;
     }
-
   }
 
   @media (max-width: 480px) {
