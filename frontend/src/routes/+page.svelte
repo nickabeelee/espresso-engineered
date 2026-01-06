@@ -32,6 +32,7 @@
   let error: string | null = null;
   let inspectedBag: BagWithBarista | null = null;
   let inspectOpen = false;
+  let createBagOpen = false;
   let activeBrewGroup: LayeredBrewGroup | null = null;
   
   // Analysis section state
@@ -199,6 +200,19 @@
     inspectOpen = false;
   }
 
+  function openCreateBag() {
+    createBagOpen = true;
+  }
+
+  function closeCreateBag() {
+    createBagOpen = false;
+  }
+
+  function handleBagCreated(event: CustomEvent<BagWithBarista>) {
+    inventorySectionRef?.addBag(event.detail);
+    createBagOpen = false;
+  }
+
   function handleBagBrew(event: CustomEvent<{ bagId: string | null }>) {
     const bagId = event.detail.bagId;
     if (!bagId) return;
@@ -339,6 +353,7 @@
             on:bagUpdated={handleBagUpdated}
             on:inspect={handleBagInspect}
             on:brew={handleBagBrew}
+            on:createBag={openCreateBag}
           />
         </div>
       {:else if inventoryLoaded}
@@ -420,6 +435,30 @@
       />
     </Sheet>
   {/if}
+  {#if createBagOpen}
+    <Sheet
+      open={createBagOpen}
+      title="New bag"
+      subtitle="Add to your shelf"
+      stickyHeader={true}
+      edgeFade={true}
+      on:close={closeCreateBag}
+    >
+      <BagCard
+        variant="edit"
+        surface="sheet"
+        isNewBag={true}
+        beanId={null}
+        beanName=""
+        roasterName={null}
+        beanImagePath={null}
+        beanRoastLevel={null}
+        tastingNotes={null}
+        on:created={handleBagCreated}
+        on:cancel={closeCreateBag}
+      />
+    </Sheet>
+  {/if}
   {#if activeBrewGroup}
     <Sheet
       open={Boolean(activeBrewGroup)}
@@ -454,7 +493,7 @@
       panelBackground={colorCss.bg.surface.paper.primary}
       panelMinHeight="70vh"
       stickyHeader={true}
-      edgeFade={true}
+      edgeFade={false}
       on:close={closeAnalysisFilters}
     >
       <BeanAnalysisFilters

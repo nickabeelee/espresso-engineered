@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
-  import BrewCard from './BrewCard.svelte';
-  import LoadingIndicator from './LoadingIndicator.svelte';
-  import ErrorDisplay from './ErrorDisplay.svelte';
-  import IconButton from '$lib/components/IconButton.svelte';
-  import { ChevronLeft, ChevronRight, StarMini } from '$lib/icons';
-  import { apiClient } from '$lib/api-client';
-  import { animations, gsap } from '$lib/ui/animations';
-  import { recordListShell } from '$lib/ui/components/card';
-  import { colorCss } from '$lib/ui/foundations/color';
-  import { textStyles } from '$lib/ui/foundations/typography';
-  import { toStyleString } from '$lib/ui/style';
-  import type { Brew } from '../../../shared/types';
+  import { createEventDispatcher, onDestroy, onMount, tick } from "svelte";
+  import BrewCard from "./BrewCard.svelte";
+  import LoadingIndicator from "./LoadingIndicator.svelte";
+  import ErrorDisplay from "./ErrorDisplay.svelte";
+  import IconButton from "$lib/components/IconButton.svelte";
+  import { ChevronLeft, ChevronRight, StarMini } from "$lib/icons";
+  import { apiClient } from "$lib/api-client";
+  import { animations, gsap } from "$lib/ui/animations";
+  import { recordListShell } from "$lib/ui/components/card";
+  import { colorCss } from "$lib/ui/foundations/color";
+  import { textStyles } from "$lib/ui/foundations/typography";
+  import { toStyleString } from "$lib/ui/style";
+  import type { Brew } from "../../../shared/types";
 
   // Component props
   export let weekStart: Date | undefined = undefined;
@@ -21,14 +21,17 @@
   let error: string | null = null;
   let brewGroups: LayeredBrewGroup[] = [];
   let stackOrders: number[][] = [];
-  const dispatch = createEventDispatcher<{ openGroup: { group: LayeredBrewGroup } }>();
+  const dispatch = createEventDispatcher<{
+    openGroup: { group: LayeredBrewGroup };
+  }>();
 
   // DOM references
   let scrollContainer: HTMLElement | null = null;
   let groupElements: HTMLElement[] = [];
   let prefersReducedMotion = false;
   let reduceMotionQuery: MediaQueryList | null = null;
-  let reduceMotionListener: ((event: MediaQueryListEvent) => void) | null = null;
+  let reduceMotionListener: ((event: MediaQueryListEvent) => void) | null =
+    null;
   let stackRenderedIds: Array<Set<string>> = [];
 
   // Scroll state
@@ -37,7 +40,10 @@
   let scrollTrackingInitialized = false;
 
   // Swipe tracking
-  const swipeStates = new Map<number, { x: number; y: number; scrollLeft: number }>();
+  const swipeStates = new Map<
+    number,
+    { x: number; y: number; scrollLeft: number }
+  >();
   const stackAnimating = new Set<number>();
 
   const maxStackDepth = 3;
@@ -45,34 +51,39 @@
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
     color: colorCss.text.ink.primary,
-    margin: '0 0 0.5rem 0'
+    margin: "0 0 0.5rem 0",
   });
 
   const voiceLineStyle = toStyleString({
     ...textStyles.voice,
     color: colorCss.text.ink.muted,
-    margin: 0
+    margin: 0,
   });
 
   const groupTitleStyle = toStyleString({
     ...textStyles.headingTertiary,
     color: colorCss.text.ink.primary,
-    margin: 0
+    margin: 0,
   });
 
   const groupMetaStyle = toStyleString({
     ...textStyles.helper,
     color: colorCss.text.ink.muted,
-    margin: 0
+    margin: 0,
   });
 
   const stackShellStyle = toStyleString({
-    '--record-list-bg': recordListShell.background,
-    '--record-list-border': recordListShell.borderColor,
-    '--record-list-border-width': recordListShell.borderWidth,
-    '--record-list-border-style': recordListShell.borderStyle,
-    '--record-list-radius': recordListShell.borderRadius,
-    '--record-list-padding': recordListShell.padding
+    "--record-list-bg": recordListShell.background,
+    "--record-list-border": recordListShell.borderColor,
+    "--record-list-border-width": recordListShell.borderWidth,
+    "--record-list-border-style": recordListShell.borderStyle,
+    "--record-list-radius": recordListShell.borderRadius,
+    "--record-list-padding": recordListShell.padding,
+  });
+
+  const actionLinkStyle = toStyleString({
+    ...textStyles.voice,
+    color: colorCss.accent.primary,
   });
 
   // Types for the component
@@ -104,14 +115,16 @@
     stackDepth: number;
   }
 
-  const getGroupKey = (group: LayeredBrewGroup) => `${group.barista.id}-${group.bean.id}`;
+  const getGroupKey = (group: LayeredBrewGroup) =>
+    `${group.barista.id}-${group.bean.id}`;
 
-  const getBrewCountText = (count: number) => (count === 1 ? '1 brew' : `${count} brews`);
+  const getBrewCountText = (count: number) =>
+    count === 1 ? "1 brew" : `${count} brews`;
 
   const getGroupAverageRating = (group: LayeredBrewGroup) => {
     const ratings = group.brews
       .map((brew) => brew.rating)
-      .filter((rating): rating is number => typeof rating === 'number');
+      .filter((rating): rating is number => typeof rating === "number");
 
     if (ratings.length === 0) return null;
 
@@ -123,23 +136,30 @@
     return Math.min(group.brews.length, maxStackDepth);
   };
 
-  const getActiveIndex = (groupIndex: number, orders: number[][]) => orders[groupIndex]?.[0] ?? 0;
+  const getActiveIndex = (groupIndex: number, orders: number[][]) =>
+    orders[groupIndex]?.[0] ?? 0;
 
-  const getStackedBrews = (group: LayeredBrewGroup, groupIndex: number, orders: number[][]) => {
+  const getStackedBrews = (
+    group: LayeredBrewGroup,
+    groupIndex: number,
+    orders: number[][],
+  ) => {
     const totalBrews = group.brews.length;
-    if (totalBrews === 0) return [] as Array<{ brew: Brew; index: number; offset: number }>;
+    if (totalBrews === 0)
+      return [] as Array<{ brew: Brew; index: number; offset: number }>;
 
     const depth = getStackDepth(group);
-    const order = orders[groupIndex]?.length === totalBrews
-      ? orders[groupIndex]
-      : group.brews.map((_, index) => index);
+    const order =
+      orders[groupIndex]?.length === totalBrews
+        ? orders[groupIndex]
+        : group.brews.map((_, index) => index);
 
     return Array.from({ length: depth }, (_, offset) => {
       const index = order[offset % order.length] ?? 0;
       return {
         brew: group.brews[index],
         index,
-        offset
+        offset,
       };
     });
   };
@@ -153,15 +173,17 @@
   const updateStackOrder = async (
     groupIndex: number,
     order: number[],
-    options: { animateActive?: boolean } = {}
+    options: { animateActive?: boolean } = {},
   ) => {
-    stackOrders = stackOrders.map((current, index) => (index === groupIndex ? order : current));
+    stackOrders = stackOrders.map((current, index) =>
+      index === groupIndex ? order : current,
+    );
     await tick();
 
     const groupElement = groupElements[groupIndex];
     if (!groupElement) return;
 
-    const stackCards = Array.from(groupElement.querySelectorAll('.stack-card'));
+    const stackCards = Array.from(groupElement.querySelectorAll(".stack-card"));
     if (stackCards.length > 0 && !prefersReducedMotion) {
       const group = brewGroups[groupIndex];
       if (group) {
@@ -192,19 +214,29 @@
         scale: (index) => 1 - index * 0.02,
         opacity: (index) => 1 - index * 0.12,
         duration: 0.2,
-        ease: 'power2.out',
-        overwrite: 'auto'
+        ease: "power2.out",
+        overwrite: "auto",
       });
     }
 
     if (options.animateActive === false) return;
 
-    const activeCard = groupElement.querySelector('.stack-card.is-active') as HTMLElement | null;
+    const activeCard = groupElement.querySelector(
+      ".stack-card.is-active",
+    ) as HTMLElement | null;
     if (activeCard) {
       gsap.fromTo(
         activeCard,
-        { scale: 0.96, opacity: 0.88, y: 12, transformOrigin: 'top center' },
-        { scale: 1, opacity: 1, y: 0, duration: 0.18, ease: 'power2.out', transformOrigin: 'top center', clearProps: 'transform' }
+        { scale: 0.96, opacity: 0.88, y: 12, transformOrigin: "top center" },
+        {
+          scale: 1,
+          opacity: 1,
+          y: 0,
+          duration: 0.18,
+          ease: "power2.out",
+          transformOrigin: "top center",
+          clearProps: "transform",
+        },
       );
     }
   };
@@ -212,7 +244,7 @@
   const animateStackShuffle = async (
     groupIndex: number,
     order: number[],
-    direction: -1 | 1
+    direction: -1 | 1,
   ) => {
     if (stackAnimating.has(groupIndex)) return;
     stackAnimating.add(groupIndex);
@@ -224,7 +256,9 @@
         return;
       }
 
-      const activeCard = groupElement.querySelector('.stack-card.is-active') as HTMLElement | null;
+      const activeCard = groupElement.querySelector(
+        ".stack-card.is-active",
+      ) as HTMLElement | null;
       if (!activeCard) {
         await updateStackOrder(groupIndex, order);
         return;
@@ -244,8 +278,8 @@
           opacity: 0.35,
           scale: 0.98,
           duration: 0.2,
-          ease: 'power2.in',
-          onComplete: resolve
+          ease: "power2.in",
+          onComplete: resolve,
         });
       });
 
@@ -268,7 +302,9 @@
 
       const response = await apiClient.getWeekBrews(params);
       brewGroups = response.data || [];
-      stackOrders = brewGroups.map((group) => group.brews.map((_, index) => index));
+      stackOrders = brewGroups.map((group) =>
+        group.brews.map((_, index) => index),
+      );
       stackRenderedIds = brewGroups.map((group, groupIndex) => {
         const stackedBrews = getStackedBrews(group, groupIndex, stackOrders);
         return new Set(stackedBrews.map((item) => item.brew.id));
@@ -279,15 +315,15 @@
       if (groupTargets.length > 0) {
         animations.fadeInUp(groupTargets, {
           duration: 0.16,
-          ease: 'power1.out',
-          stagger: 0.04
+          ease: "power1.out",
+          stagger: 0.04,
         });
       }
 
       updateScrollButtons();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load week brews';
-      console.error('Error loading week brews:', err);
+      error = err instanceof Error ? err.message : "Failed to load week brews";
+      console.error("Error loading week brews:", err);
     } finally {
       loading = false;
     }
@@ -297,13 +333,16 @@
     if (!scrollContainer) return;
     canScrollLeft = scrollContainer.scrollLeft > 4;
     canScrollRight =
-      scrollContainer.scrollLeft + scrollContainer.clientWidth < scrollContainer.scrollWidth - 4;
+      scrollContainer.scrollLeft + scrollContainer.clientWidth <
+      scrollContainer.scrollWidth - 4;
   }
 
   function setupScrollTracking() {
     if (!scrollContainer) return;
     if (scrollTrackingInitialized) return;
-    scrollContainer.addEventListener('scroll', updateScrollButtons, { passive: true });
+    scrollContainer.addEventListener("scroll", updateScrollButtons, {
+      passive: true,
+    });
     updateScrollButtons();
     scrollTrackingInitialized = true;
   }
@@ -317,16 +356,19 @@
     const target = scrollContainer.scrollLeft + direction * scrollAmount;
     const previousSnap = scrollContainer.style.scrollSnapType;
 
-    scrollContainer.style.scrollSnapType = 'none';
+    scrollContainer.style.scrollSnapType = "none";
 
     gsap.to(scrollContainer, {
       scrollLeft: target,
       duration: 0.24,
-      ease: 'power2.out',
-      overwrite: 'auto',
+      ease: "power2.out",
+      overwrite: "auto",
       onComplete: () => {
-        scrollContainer?.style.setProperty('scroll-snap-type', previousSnap || 'x mandatory');
-      }
+        scrollContainer?.style.setProperty(
+          "scroll-snap-type",
+          previousSnap || "x mandatory",
+        );
+      },
     });
   }
 
@@ -340,9 +382,10 @@
     const nextIndex = ((brewIndex % total) + total) % total;
     const currentOrder = getNormalizedOrder(groupIndex, group);
     const position = currentOrder.indexOf(nextIndex);
-    const rotated = position === -1
-      ? currentOrder
-      : currentOrder.slice(position).concat(currentOrder.slice(0, position));
+    const rotated =
+      position === -1
+        ? currentOrder
+        : currentOrder.slice(position).concat(currentOrder.slice(0, position));
 
     await updateStackOrder(groupIndex, rotated);
   }
@@ -351,27 +394,28 @@
     const group = brewGroups[groupIndex];
     if (!group || group.brews.length < 2) return;
     const currentOrder = getNormalizedOrder(groupIndex, group);
-    const rotated = direction === 1
-      ? [...currentOrder.slice(1), currentOrder[0]]
-      : [currentOrder[currentOrder.length - 1], ...currentOrder.slice(0, -1)];
+    const rotated =
+      direction === 1
+        ? [...currentOrder.slice(1), currentOrder[0]]
+        : [currentOrder[currentOrder.length - 1], ...currentOrder.slice(0, -1)];
 
     animateStackShuffle(groupIndex, rotated, direction);
   }
 
   function openGroupOverlay(groupIndex: number) {
-    if (typeof window !== 'undefined' && window.innerWidth > 720) {
+    if (typeof window !== "undefined" && window.innerWidth > 720) {
       return;
     }
     const group = brewGroups[groupIndex];
     if (!group) return;
-    dispatch('openGroup', { group });
+    dispatch("openGroup", { group });
   }
 
   function handleStackPointerDown(groupIndex: number, event: PointerEvent) {
     swipeStates.set(groupIndex, {
       x: event.clientX,
       y: event.clientY,
-      scrollLeft: scrollContainer?.scrollLeft ?? 0
+      scrollLeft: scrollContainer?.scrollLeft ?? 0,
     });
   }
 
@@ -383,7 +427,9 @@
 
     const dx = event.clientX - state.x;
     const dy = event.clientY - state.y;
-    const scrollDelta = Math.abs((scrollContainer?.scrollLeft ?? 0) - state.scrollLeft);
+    const scrollDelta = Math.abs(
+      (scrollContainer?.scrollLeft ?? 0) - state.scrollLeft,
+    );
 
     if (scrollDelta > 8) return;
     if (Math.abs(dx) < 42 || Math.abs(dx) < Math.abs(dy)) return;
@@ -392,27 +438,27 @@
   }
 
   function handleGroupKeydown(event: KeyboardEvent, groupIndex: number) {
-    if (event.key === 'ArrowLeft') {
+    if (event.key === "ArrowLeft") {
       event.preventDefault();
       navigateBrew(groupIndex, -1);
     }
 
-    if (event.key === 'ArrowRight') {
+    if (event.key === "ArrowRight") {
       event.preventDefault();
       navigateBrew(groupIndex, 1);
     }
   }
 
   onMount(() => {
-    if (typeof window !== 'undefined') {
-      reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (typeof window !== "undefined") {
+      reduceMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
       const updateMotionPreference = () => {
         prefersReducedMotion = reduceMotionQuery?.matches ?? false;
       };
       updateMotionPreference();
       reduceMotionListener = updateMotionPreference;
       if (reduceMotionQuery.addEventListener) {
-        reduceMotionQuery.addEventListener('change', updateMotionPreference);
+        reduceMotionQuery.addEventListener("change", updateMotionPreference);
       } else {
         reduceMotionQuery.addListener(updateMotionPreference);
       }
@@ -426,11 +472,11 @@
 
   onDestroy(() => {
     if (scrollContainer) {
-      scrollContainer.removeEventListener('scroll', updateScrollButtons);
+      scrollContainer.removeEventListener("scroll", updateScrollButtons);
     }
     if (reduceMotionQuery && reduceMotionListener) {
       if (reduceMotionQuery.removeEventListener) {
-        reduceMotionQuery.removeEventListener('change', reduceMotionListener);
+        reduceMotionQuery.removeEventListener("change", reduceMotionListener);
       } else {
         reduceMotionQuery.removeListener(reduceMotionListener);
       }
@@ -444,32 +490,42 @@
   <div class="section-header">
     <div class="section-header-text">
       <h2 class="section-title" style={sectionTitleStyle}>Week in Brewing</h2>
-      <p class="voice-text" style={voiceLineStyle}>Shared rhythms, small details.</p>
+      <p class="voice-text" style={voiceLineStyle}>
+        Shared rhythms, small details.
+      </p>
     </div>
-    {#if !loading && !error && brewGroups.length > 0}
-      <div class="scroll-header">
-        <div class="scroll-controls">
-          <IconButton
-            on:click={() => scrollByGroup(-1)}
-            ariaLabel="Scroll left"
-            title="Scroll left"
-            variant="neutral"
-            disabled={!canScrollLeft}
-          >
-            <ChevronLeft />
-          </IconButton>
-          <IconButton
-            on:click={() => scrollByGroup(1)}
-            ariaLabel="Scroll right"
-            title="Scroll right"
-            variant="neutral"
-            disabled={!canScrollRight}
-          >
-            <ChevronRight />
-          </IconButton>
+    <div class="section-header-actions">
+      {#if !loading && !error && brewGroups.length > 0}
+        <div class="scroll-header">
+          <div class="scroll-controls">
+            <IconButton
+              on:click={() => scrollByGroup(-1)}
+              ariaLabel="Scroll left"
+              title="Scroll left"
+              variant="neutral"
+              disabled={!canScrollLeft}
+            >
+              <ChevronLeft />
+            </IconButton>
+            <IconButton
+              on:click={() => scrollByGroup(1)}
+              ariaLabel="Scroll right"
+              title="Scroll right"
+              variant="neutral"
+              disabled={!canScrollRight}
+            >
+              <ChevronRight />
+            </IconButton>
+          </div>
         </div>
-      </div>
-    {/if}
+      {/if}
+    </div>
+  </div>
+
+  <div class="section-cta">
+    <a class="section-link" href="/brews/new" style={actionLinkStyle}>
+      Pull a new shot
+    </a>
   </div>
 
   {#if loading}
@@ -480,7 +536,10 @@
     <ErrorDisplay message={error} onRetry={loadWeekBrews} />
   {:else if brewGroups.length === 0}
     <div class="empty-state">
-      <p class="voice-text" style={voiceLineStyle}>The week is just beginning. Check back soon to see what everyone's brewing!</p>
+      <p class="voice-text" style={voiceLineStyle}>
+        The week is just beginning. Check back soon to see what everyone's
+        brewing!
+      </p>
     </div>
   {:else}
     <div class="brewing-shell edge-rail" style={stackShellStyle}>
@@ -497,23 +556,32 @@
             >
               <div class="group-header">
                 <div class="group-heading">
-                  <h3 class="group-title" style={groupTitleStyle}>{group.bean.name}</h3>
+                  <h3 class="group-title" style={groupTitleStyle}>
+                    {group.bean.name}
+                  </h3>
                   <p class="group-meta" style={groupMetaStyle}>
                     {group.barista.display_name}
                   </p>
                 </div>
                 <div class="group-metrics" style={groupMetaStyle}>
-                  <span class="group-count">{getBrewCountText(group.brews.length)}</span>
+                  <span class="group-count"
+                    >{getBrewCountText(group.brews.length)}</span
+                  >
                   {#if averageRating !== null}
-                    <span class="avg-rating">{averageRating.toFixed(1)} <StarMini size={16} /> avg</span>
+                    <span class="avg-rating"
+                      >{averageRating.toFixed(1)}
+                      <StarMini size={16} /> avg</span
+                    >
                   {/if}
                 </div>
               </div>
 
               <div
                 class="stack-area"
-                on:pointerdown={(event) => handleStackPointerDown(groupIndex, event)}
-                on:pointerup={(event) => handleStackPointerUp(groupIndex, event)}
+                on:pointerdown={(event) =>
+                  handleStackPointerDown(groupIndex, event)}
+                on:pointerup={(event) =>
+                  handleStackPointerUp(groupIndex, event)}
                 on:pointercancel={() => swipeStates.delete(groupIndex)}
                 on:click={() => openGroupOverlay(groupIndex)}
               >
@@ -530,8 +598,10 @@
                       baristaName={group.barista.display_name}
                       beanName={group.bean?.name ?? null}
                       beanImagePath={group.bean?.image_path ?? null}
-                      grinderImagePath={stackItem.brew.grinder?.image_path ?? null}
-                      machineImagePath={stackItem.brew.machine?.image_path ?? null}
+                      grinderImagePath={stackItem.brew.grinder?.image_path ??
+                        null}
+                      machineImagePath={stackItem.brew.machine?.image_path ??
+                        null}
                       variant="summary"
                     />
                   </div>
@@ -550,7 +620,8 @@
                     <ChevronLeft />
                   </IconButton>
                   <span class="stack-count" style={groupMetaStyle}>
-                    {getActiveIndex(groupIndex, stackOrders) + 1} / {group.brews.length}
+                    {getActiveIndex(groupIndex, stackOrders) + 1} / {group.brews
+                      .length}
                   </span>
                   <IconButton
                     on:click={() => navigateBrew(groupIndex, 1)}
@@ -562,7 +633,6 @@
                     <ChevronRight />
                   </IconButton>
                 </div>
-
               </div>
             </article>
           {/each}
@@ -570,7 +640,6 @@
       </div>
     </div>
   {/if}
-
 </section>
 
 <style>
@@ -595,6 +664,39 @@
     gap: 0.35rem;
   }
 
+  .section-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .section-link {
+    text-decoration: none;
+    font-style: normal;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    font-weight: 400;
+    color: inherit;
+  }
+
+  .section-link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+
+  .section-cta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin-bottom: 0.5rem;
+  }
+
   .loading-container {
     display: flex;
     justify-content: center;
@@ -608,7 +710,8 @@
 
   .brewing-shell {
     background: var(--record-list-bg, var(--bg-surface-paper-secondary));
-    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid)
+    border: var(--record-list-border-width, 1px)
+      var(--record-list-border-style, solid)
       var(--record-list-border, rgba(123, 94, 58, 0.2));
     border-radius: var(--record-list-radius, var(--radius-md));
     padding: var(--record-list-padding, 1.5rem);
@@ -623,7 +726,6 @@
     justify-content: flex-end;
     gap: 1rem;
     align-self: flex-end;
-    padding-top: 0.5rem;
   }
 
   .scroll-controls {
@@ -717,7 +819,9 @@
     transform: translateY(calc(var(--stack-offset) * 10px))
       scale(calc(1 - var(--stack-offset) * 0.02));
     transform-origin: top center;
-    transition: transform 160ms ease, opacity 160ms ease;
+    transition:
+      transform 160ms ease,
+      opacity 160ms ease;
     pointer-events: none;
   }
 
@@ -773,7 +877,8 @@
 
     .brewing-shell {
       background: var(--record-list-bg, var(--bg-surface-paper-secondary));
-      border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid)
+      border: var(--record-list-border-width, 1px)
+        var(--record-list-border-style, solid)
         var(--record-list-border, rgba(123, 94, 58, 0.2));
       border-radius: 0;
       padding: 0.75rem 0;
@@ -789,7 +894,6 @@
     .group-row {
       padding-right: 1rem;
     }
-
   }
 
   @media (max-width: 480px) {

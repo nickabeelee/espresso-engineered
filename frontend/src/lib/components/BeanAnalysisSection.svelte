@@ -1,24 +1,28 @@
 <script lang="ts">
-  import { onDestroy, createEventDispatcher } from 'svelte';
-  import { apiClient } from '$lib/api-client';
-  import { barista } from '$lib/auth';
-  import ScatterPlot from './ScatterPlot.svelte';
-  import ErrorDisplay from './ErrorDisplay.svelte';
-  import BeanAnalysisFilters from '$lib/components/BeanAnalysisFilters.svelte';
-  import { ArrowTopRightOnSquareMini } from '$lib/icons';
-  import type { Bean, Bag } from '@shared/types';
-  import { recordListShell } from '$lib/ui/components/card';
-  import { colorCss } from '$lib/ui/foundations/color';
-  import { textStyles } from '$lib/ui/foundations/typography';
-  import { toStyleString } from '$lib/ui/style';
-  import { vizTheme } from '$lib/ui/viz/theme';
-  import type { BrewDataPoint, ScatterPlotConfig, RecencyPeriod } from '$lib/ui/viz/d3-integration';
+  import { onDestroy, createEventDispatcher } from "svelte";
+  import { apiClient } from "$lib/api-client";
+  import { barista } from "$lib/auth";
+  import ScatterPlot from "./ScatterPlot.svelte";
+  import ErrorDisplay from "./ErrorDisplay.svelte";
+  import BeanAnalysisFilters from "$lib/components/BeanAnalysisFilters.svelte";
+  import { ArrowTopRightOnSquareMini } from "$lib/icons";
+  import type { Bean, Bag } from "@shared/types";
+  import { recordListShell } from "$lib/ui/components/card";
+  import { colorCss } from "$lib/ui/foundations/color";
+  import { textStyles } from "$lib/ui/foundations/typography";
+  import { toStyleString } from "$lib/ui/style";
+  import { vizTheme } from "$lib/ui/viz/theme";
+  import type {
+    BrewDataPoint,
+    ScatterPlotConfig,
+    RecencyPeriod,
+  } from "$lib/ui/viz/d3-integration";
 
   // Props
   export let selectedBean: Bean | null = null;
   export let selectedBag: Bag | null = null;
   export let includeCommunity = false;
-  export let recencyFilter: RecencyPeriod = 'M';
+  export let recencyFilter: RecencyPeriod = "M";
   export let showInlineFilters = true;
 
   // Events
@@ -48,32 +52,40 @@
   let cardResizeObserver: ResizeObserver | null = null;
   let ratioValues: number[] = [];
   let timeValues: number[] = [];
-  let ratioRange = '—';
-  let timeRange = '—';
-  let activeChart: 'ratio' | 'time' = 'ratio';
+  let ratioRange = "—";
+  let timeRange = "—";
+  let activeChart: "ratio" | "time" = "ratio";
+  const recencyLabels: Record<RecencyPeriod, string> = {
+    "2D": "the last 2 days",
+    W: "the last week",
+    M: "the last month",
+    "3M": "the last 3 months",
+    Y: "the last year",
+  };
+  let analysisFilterSummary = "";
 
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
     color: colorCss.text.ink.primary,
-    margin: '0 0 0.5rem 0'
+    margin: "0 0 0.5rem 0",
   });
 
   const voiceLineStyle = toStyleString({
     ...textStyles.voice,
     color: colorCss.text.ink.muted,
-    margin: 0
+    margin: 0,
   });
 
   const analysisShellStyle = toStyleString({
-    '--record-list-bg': recordListShell.background,
-    '--record-list-border': recordListShell.borderColor,
-    '--record-list-border-width': recordListShell.borderWidth,
-    '--record-list-border-style': recordListShell.borderStyle,
-    '--record-list-radius': recordListShell.borderRadius,
-    '--record-list-padding': recordListShell.padding
+    "--record-list-bg": recordListShell.background,
+    "--record-list-border": recordListShell.borderColor,
+    "--record-list-border-width": recordListShell.borderWidth,
+    "--record-list-border-style": recordListShell.borderStyle,
+    "--record-list-radius": recordListShell.borderRadius,
+    "--record-list-padding": recordListShell.padding,
   });
 
-  let lastFiltersKey = '';
+  let lastFiltersKey = "";
 
   // Chart configurations
   const chartConfig: ScatterPlotConfig = {
@@ -81,15 +93,23 @@
     height: 220,
     margin: { top: 12, right: 16, bottom: 32, left: 36 },
     showYAxisLabels: true,
-    responsive: false
+    responsive: false,
   };
 
   // Transform analysis data to scatter plot format
-  function transformToScatterData(data: AnalysisPoint[], xField: 'x_ratio' | 'x_brew_time'): BrewDataPoint[] {
+  function transformToScatterData(
+    data: AnalysisPoint[],
+    xField: "x_ratio" | "x_brew_time",
+  ): BrewDataPoint[] {
     return data.flatMap((item) => {
       const rawX = item[xField];
       const rawY = item.y_rating;
-      if (rawX === null || rawX === undefined || rawY === null || rawY === undefined) {
+      if (
+        rawX === null ||
+        rawX === undefined ||
+        rawY === null ||
+        rawY === undefined
+      ) {
         return [];
       }
       const x = Number(rawX);
@@ -97,29 +117,31 @@
       if (!Number.isFinite(x) || !Number.isFinite(y)) {
         return [];
       }
-      return [{
-        id: item.id,
-        x,
-        y,
-        bagId: item.bag_id,
-        date: new Date(item.date),
-        brew: {
+      return [
+        {
           id: item.id,
-          created_at: item.date,
-          barista_id: item.barista_id,
-          rating: item.y_rating,
-          ratio: item.x_ratio,
-          brew_time_s: item.x_brew_time,
-          grind_setting: item.grind_setting,
-          name: item.name || item.bag_name || 'Brew'
-        } as Brew
-      }];
+          x,
+          y,
+          bagId: item.bag_id,
+          date: new Date(item.date),
+          brew: {
+            id: item.id,
+            created_at: item.date,
+            barista_id: item.barista_id,
+            rating: item.y_rating,
+            ratio: item.x_ratio,
+            brew_time_s: item.x_brew_time,
+            grind_setting: item.grind_setting,
+            name: item.name || item.bag_name || "Brew",
+          } as Brew,
+        },
+      ];
     });
   }
 
   // Reactive data transformations
-  $: ratioData = transformToScatterData(analysisData, 'x_ratio');
-  $: brewTimeData = transformToScatterData(analysisData, 'x_brew_time');
+  $: ratioData = transformToScatterData(analysisData, "x_ratio");
+  $: brewTimeData = transformToScatterData(analysisData, "x_brew_time");
 
   onDestroy(() => {
     cardResizeObserver?.disconnect();
@@ -127,7 +149,8 @@
   });
 
   function initCardObserver() {
-    if (!ratioChartCard || cardResizeObserver || !('ResizeObserver' in window)) return;
+    if (!ratioChartCard || cardResizeObserver || !("ResizeObserver" in window))
+      return;
     cardResizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.contentRect.width > 0) {
@@ -164,19 +187,20 @@
 
       const response = await apiClient.getBrewAnalysis({
         ...params,
-        include_community: includeCommunity
+        include_community: includeCommunity,
       });
       analysisData = response.data;
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Failed to load analysis data';
-      console.error('Failed to load analysis data:', err);
+      error =
+        err instanceof Error ? err.message : "Failed to load analysis data";
+      console.error("Failed to load analysis data:", err);
     } finally {
       loading = false;
     }
   }
 
   $: {
-    const nextKey = `${selectedBag?.id ?? 'none'}|${selectedBean?.id ?? 'none'}|${includeCommunity}|${recencyFilter}`;
+    const nextKey = `${selectedBag?.id ?? "none"}|${selectedBean?.id ?? "none"}|${includeCommunity}|${recencyFilter}`;
     if (nextKey !== lastFiltersKey) {
       lastFiltersKey = nextKey;
       loadAnalysisData();
@@ -184,15 +208,61 @@
   }
 
   function requestFilters() {
-    dispatch('openFilters');
+    dispatch("openFilters");
   }
 
+  function formatFilterSummary({
+    selectedBag,
+    selectedBean,
+    includeCommunity,
+    recencyFilter,
+    baristaId,
+  }: {
+    selectedBag: Bag | null;
+    selectedBean: Bean | null;
+    includeCommunity: boolean;
+    recencyFilter: RecencyPeriod;
+    baristaId: string | null;
+  }) {
+    const recencyLabel = recencyLabels[recencyFilter] ?? "the last month";
+    const communityText = includeCommunity
+      ? "the brews from you and the community"
+      : "your brews";
+    const beanName = selectedBean?.name ?? null;
+    const bagDate = selectedBag?.roast_date
+      ? new Date(selectedBag.roast_date).toLocaleDateString("en-US", {
+          month: "numeric",
+          day: "numeric",
+          year: "2-digit",
+        })
+      : null;
+    const bagOwner = selectedBag
+      ? selectedBag.owner_id === baristaId
+        ? "your"
+        : "a community"
+      : null;
+    const bagPart = selectedBag
+      ? bagDate
+        ? `${bagOwner} ${bagDate} bag`
+        : `${bagOwner} bag`
+      : beanName
+        ? "all bags"
+        : null;
 
-  function formatRange(values: number[], suffix = '') {
-    if (values.length === 0) return 'No points';
+    if (beanName && bagPart) {
+      return `I pulled up ${communityText} for ${bagPart} of ${beanName} from ${recencyLabel}.`;
+    }
+    if (beanName) {
+      return `I pulled up ${communityText} for ${beanName} from ${recencyLabel}.`;
+    }
+    return `I pulled up ${communityText} from ${recencyLabel}.`;
+  }
+
+  function formatRange(values: number[], suffix = "") {
+    if (values.length === 0) return "No points";
     const min = Math.min(...values);
     const max = Math.max(...values);
-    if (!Number.isFinite(min) || !Number.isFinite(max)) return 'No points';
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return "No points";
     if (min === max) return `${min}${suffix}`;
     return `${min}${suffix}–${max}${suffix}`;
   }
@@ -206,15 +276,15 @@
   }
 
   function formatRating(value: number | null) {
-    return value === null ? '—' : value.toString();
+    return value === null ? "—" : value.toString();
   }
 
   function formatRatio(value: number | null) {
-    return value === null ? '—' : `1:${value.toFixed(2)}`;
+    return value === null ? "—" : `1:${value.toFixed(2)}`;
   }
 
   function formatBrewTime(value: number | null) {
-    return value === null ? '—' : `${Math.round(value)}s`;
+    return value === null ? "—" : `${Math.round(value)}s`;
   }
 
   function median(values: number[]): number | null {
@@ -237,18 +307,23 @@
     return sorted[lower] * (1 - weight) + sorted[upper] * weight;
   }
 
-  function calculateTarget(points: BrewDataPoint[], fallback: number, fallbackBand: number) {
+  function calculateTarget(
+    points: BrewDataPoint[],
+    fallback: number,
+    fallbackBand: number,
+  ) {
     if (points.length === 0) {
       return { target: fallback, bandWidth: fallbackBand };
     }
 
-    const ratings = points.map(point => point.y);
+    const ratings = points.map((point) => point.y);
     const threshold = percentile(ratings, 0.75);
-    const topPoints = threshold === null
-      ? points
-      : points.filter(point => point.y >= threshold);
+    const topPoints =
+      threshold === null
+        ? points
+        : points.filter((point) => point.y >= threshold);
     const pool = topPoints.length >= 3 ? topPoints : points;
-    const poolValues = pool.map(point => point.x);
+    const poolValues = pool.map((point) => point.x);
     const target = median(poolValues) ?? fallback;
 
     const p10 = percentile(poolValues, 0.1) ?? target;
@@ -274,12 +349,13 @@
     }
   }
 
-  $: ratioValues = ratioData.map(point => point.x);
+  $: ratioValues = ratioData.map((point) => point.x);
   $: ratioRange = formatRange(ratioValues);
   $: ratioTargetData = calculateTarget(ratioData, 2.0, 0.12);
   $: ratioTarget = ratioTargetData.target;
   $: ratioBandWidth = ratioTargetData.bandWidth;
-  $: ratioDomain = ratioValues.length > 0 ? undefined : [1.5, 2.5] as [number, number];
+  $: ratioDomain =
+    ratioValues.length > 0 ? undefined : ([1.5, 2.5] as [number, number]);
   $: ratioChartConfig = {
     ...chartConfig,
     width: chartWidth,
@@ -292,36 +368,39 @@
     pointRadius: 5,
     hoverRadius: 7,
     pointFill: (point: BrewDataPoint) =>
-      point.brew.barista_id === $barista?.id ? colorCss.accent.primary : colorCss.text.ink.muted,
-    pointStroke: 'none',
+      point.brew.barista_id === $barista?.id
+        ? colorCss.accent.primary
+        : colorCss.text.ink.muted,
+    pointStroke: "none",
     targetBand: {
       value: ratioTarget,
       width: ratioBandWidth,
       color: colorCss.semantic.success,
-      opacity: 0.22
+      opacity: 0.22,
     },
     targetLine: {
       value: ratioTarget,
       color: colorCss.semantic.success,
       width: 1.6,
       opacity: 0.85,
-      dashArray: '5 4'
+      dashArray: "5 4",
     },
     trendLine: {
       enabled: true,
-      type: 'quadratic',
+      type: "quadratic",
       color: vizTheme.trendLine.color,
       width: 2,
-      opacity: 0.6
-    }
+      opacity: 0.6,
+    },
   };
 
-  $: timeValues = brewTimeData.map(point => point.x);
-  $: timeRange = formatRange(timeValues, 's');
+  $: timeValues = brewTimeData.map((point) => point.x);
+  $: timeRange = formatRange(timeValues, "s");
   $: timeTargetData = calculateTarget(brewTimeData, 30, 2.5);
   $: timeTarget = timeTargetData.target;
   $: timeBandWidth = timeTargetData.bandWidth;
-  $: timeDomain = timeValues.length > 0 ? undefined : [25, 35] as [number, number];
+  $: timeDomain =
+    timeValues.length > 0 ? undefined : ([25, 35] as [number, number]);
   $: brewTimeChartConfig = {
     ...chartConfig,
     width: chartWidth,
@@ -334,36 +413,48 @@
     pointRadius: 5,
     hoverRadius: 7,
     pointFill: (point: BrewDataPoint) =>
-      point.brew.barista_id === $barista?.id ? colorCss.accent.primary : colorCss.text.ink.muted,
-    pointStroke: 'none',
+      point.brew.barista_id === $barista?.id
+        ? colorCss.accent.primary
+        : colorCss.text.ink.muted,
+    pointStroke: "none",
     targetBand: {
       value: timeTarget,
       width: timeBandWidth,
       color: colorCss.semantic.success,
-      opacity: 0.22
+      opacity: 0.22,
     },
     targetLine: {
       value: timeTarget,
       color: colorCss.semantic.success,
       width: 1.6,
       opacity: 0.85,
-      dashArray: '5 4'
+      dashArray: "5 4",
     },
     trendLine: {
       enabled: true,
-      type: 'quadratic',
+      type: "quadratic",
       color: vizTheme.trendLine.color,
       width: 2,
-      opacity: 0.6
-    }
+      opacity: 0.6,
+    },
   };
+
+  $: analysisFilterSummary = formatFilterSummary({
+    selectedBag,
+    selectedBean,
+    includeCommunity,
+    recencyFilter,
+    baristaId: $barista?.id ?? null,
+  });
 </script>
 
 <section class="bean-analysis-section">
   <div class="section-header">
     <div class="section-header-text">
       <h2 style={sectionTitleStyle}>Bean Analysis</h2>
-      <p class="voice-text" style={voiceLineStyle}>Small shifts leave a trace.</p>
+      <p class="voice-text" style={voiceLineStyle}>
+        Small shifts leave a trace.
+      </p>
     </div>
   </div>
 
@@ -371,36 +462,43 @@
     {#if loading}
       <div class="analysis-loading">
         <div class="loading-circle" aria-hidden="true"></div>
-        <p class="voice-text loading-message" style={voiceLineStyle}>Loading analysis data...</p>
+        <p class="voice-text loading-message" style={voiceLineStyle}>
+          Loading analysis data...
+        </p>
       </div>
     {:else if error}
       <ErrorDisplay {error} />
     {:else}
       <div class="analysis-mobile-tools">
-        <button type="button" class="filter-trigger" on:click={requestFilters}>Filters</button>
+        <button type="button" class="filter-trigger" on:click={requestFilters}
+          >Filters</button
+        >
         <div class="chart-toggle" role="tablist" aria-label="Select chart">
           <button
             type="button"
             class="chart-toggle-button"
-            class:active={activeChart === 'ratio'}
+            class:active={activeChart === "ratio"}
             role="tab"
-            aria-selected={activeChart === 'ratio'}
-            on:click={() => (activeChart = 'ratio')}
+            aria-selected={activeChart === "ratio"}
+            on:click={() => (activeChart = "ratio")}
           >
             Ratio
           </button>
           <button
             type="button"
             class="chart-toggle-button"
-            class:active={activeChart === 'time'}
+            class:active={activeChart === "time"}
             role="tab"
-            aria-selected={activeChart === 'time'}
-            on:click={() => (activeChart = 'time')}
+            aria-selected={activeChart === "time"}
+            on:click={() => (activeChart = "time")}
           >
             Brew time
           </button>
         </div>
       </div>
+      <p class="analysis-mobile-summary voice-text" style={voiceLineStyle}>
+        {analysisFilterSummary}
+      </p>
 
       {#if showInlineFilters}
         <BeanAnalysisFilters
@@ -418,26 +516,35 @@
         </div>
       {:else}
         <div class="charts-container">
-          <div class="chart-wrapper" class:is-hidden={activeChart !== 'ratio'} bind:this={ratioChartCard} aria-hidden={activeChart !== 'ratio'}>
+          <div
+            class="chart-wrapper"
+            class:is-hidden={activeChart !== "ratio"}
+            bind:this={ratioChartCard}
+            aria-hidden={activeChart !== "ratio"}
+          >
             <div class="chart-header">
               <span class="chart-label">Rating vs. Ratio</span>
               <span class="chart-value">{formatRatioValue(ratioTarget)}</span>
               <span class="chart-debug">Range: {ratioRange}</span>
             </div>
-            <ScatterPlot 
+            <ScatterPlot
               data={ratioData}
               config={ratioChartConfig}
               highlightedBagId={selectedBag?.id || null}
             />
           </div>
-          
-          <div class="chart-wrapper" class:is-hidden={activeChart !== 'time'} aria-hidden={activeChart !== 'time'}>
+
+          <div
+            class="chart-wrapper"
+            class:is-hidden={activeChart !== "time"}
+            aria-hidden={activeChart !== "time"}
+          >
             <div class="chart-header">
               <span class="chart-label">Rating vs. Brew Time</span>
               <span class="chart-value">{formatTimeValue(timeTarget)}</span>
               <span class="chart-debug">Range: {timeRange}</span>
             </div>
-            <ScatterPlot 
+            <ScatterPlot
               data={brewTimeData}
               config={brewTimeChartConfig}
               highlightedBagId={selectedBag?.id || null}
@@ -463,17 +570,17 @@
                     <a
                       class="analysis-brew-link"
                       href={`/brews/${brew.id}`}
-                      aria-label={`View ${brew.name || brew.bag_name || 'brew'}`}
+                      aria-label={`View ${brew.name || brew.bag_name || "brew"}`}
                       title="View brew details"
                     >
                       <ArrowTopRightOnSquareMini />
                     </a>
-                    <span>{brew.name || brew.bag_name || 'Brew'}</span>
+                    <span>{brew.name || brew.bag_name || "Brew"}</span>
                   </td>
                   <td>{formatRating(brew.y_rating)}</td>
                   <td>{formatRatio(brew.x_ratio)}</td>
                   <td>{formatBrewTime(brew.x_brew_time)}</td>
-                  <td>{brew.grind_setting || '—'}</td>
+                  <td>{brew.grind_setting || "—"}</td>
                 </tr>
               {/each}
             </tbody>
@@ -483,9 +590,13 @@
         <div class="analysis-list">
           {#each analysisData as brew}
             <a class="analysis-list-item" href={`/brews/${brew.id}`}>
-              <div class="analysis-list-title">{brew.name || brew.bag_name || 'Brew'}</div>
+              <div class="analysis-list-title">
+                {brew.name || brew.bag_name || "Brew"}
+              </div>
               <div class="analysis-list-meta">
-                Rating {formatRating(brew.y_rating)} · Ratio {formatRatio(brew.x_ratio)} · Time {formatBrewTime(brew.x_brew_time)}
+                Rating {formatRating(brew.y_rating)} · Ratio {formatRatio(
+                  brew.x_ratio,
+                )} · Time {formatBrewTime(brew.x_brew_time)}
                 {#if brew.grind_setting}
                   · Grind {brew.grind_setting}
                 {/if}
@@ -514,7 +625,9 @@
     padding: var(--record-list-padding, 1.5rem);
     background: var(--record-list-bg, var(--bg-surface-paper-secondary));
     border-radius: var(--record-list-radius, var(--radius-md));
-    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
+    border: var(--record-list-border-width, 1px)
+      var(--record-list-border-style, solid)
+      var(--record-list-border, rgba(123, 94, 58, 0.2));
   }
 
   .analysis-loading {
@@ -563,13 +676,18 @@
     gap: 0.35rem;
   }
 
-
   .analysis-mobile-tools {
     display: none;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1.5rem;
+  }
+
+  .analysis-mobile-summary {
+    display: none;
+    margin: 0;
+    padding-bottom: 1.5rem;
   }
 
   .filter-trigger {
@@ -579,7 +697,11 @@
     border-radius: var(--radius-md);
     padding: 0.5rem 0.95rem;
     font-size: 0.9rem;
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
     cursor: pointer;
   }
 
@@ -600,7 +722,11 @@
     border-radius: 999px;
     font-size: 0.85rem;
     cursor: pointer;
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 
   .chart-toggle-button.active {
@@ -644,7 +770,11 @@
   }
 
   .chart-label {
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
     font-size: 0.85rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -658,7 +788,11 @@
   }
 
   .chart-debug {
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
     font-size: 0.75rem;
     color: var(--text-ink-muted);
   }
@@ -675,7 +809,11 @@
     width: 100%;
     border-collapse: collapse;
     min-width: 520px;
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 
   .analysis-table th,
@@ -741,7 +879,11 @@
   }
 
   .analysis-list-meta {
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
     font-size: 0.85rem;
     color: var(--text-ink-muted);
   }
@@ -753,7 +895,11 @@
   }
 
   .back-to-top {
-    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
     font-size: 0.85rem;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -769,6 +915,10 @@
 
     .analysis-mobile-tools {
       display: flex;
+    }
+
+    .analysis-mobile-summary {
+      display: block;
     }
 
     .charts-container {
