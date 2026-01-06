@@ -454,7 +454,7 @@
       panelBackground={colorCss.bg.surface.paper.primary}
       panelMinHeight="70vh"
       stickyHeader={true}
-      edgeFade={true}
+      edgeFade={false}
       on:close={closeAnalysisFilters}
     >
       <BeanAnalysisFilters

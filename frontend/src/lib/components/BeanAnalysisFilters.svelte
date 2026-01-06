@@ -31,7 +31,9 @@
   let recencyAnimating = false;
   let initialized = false;
 
-  const selectorStyle = toStyleString({
+  let selectorStyle = '';
+
+  $: selectorStyle = toStyleString({
     '--font-ui': fontFamilies.ui,
     '--selector-trigger-padding': selector.trigger.padding,
     '--selector-trigger-border': selector.trigger.borderColor,
@@ -44,7 +46,7 @@
     '--selector-panel-bg': selector.panel.background,
     '--selector-panel-border': selector.panel.borderColor,
     '--selector-panel-radius': selector.panel.radius,
-    '--selector-panel-shadow': selector.panel.shadow,
+    '--selector-panel-shadow': variant === 'sheet' ? 'none' : selector.panel.shadow,
     '--selector-panel-padding': selector.panel.padding,
     '--selector-option-padding': selector.option.padding,
     '--selector-option-radius': selector.option.radius,
