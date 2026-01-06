@@ -400,9 +400,17 @@
     selectedRoasterName = event.detail.roasterName;
   }
 
+  function getAutoOwnerName(): string {
+    if ($barista?.display_name?.trim()) return $barista.display_name.trim();
+    if ($barista?.first_name?.trim()) return $barista.first_name.trim();
+    return "Your";
+  }
+
   function buildBagName(bean: string, roastDate: string): string {
     const formattedDate = formatRoastDate(roastDate);
-    return [bean, formattedDate].filter(Boolean).join(" · ");
+    const ownerName = getAutoOwnerName();
+    const ownerPrefix = ownerName === "Your" ? "Your" : `${ownerName}'s`;
+    return [ownerPrefix, bean, formattedDate].filter(Boolean).join(" ");
   }
 
   function markNameTouched() {
@@ -985,6 +993,7 @@
     border: none;
     padding: 0;
     box-shadow: none;
+    margin-bottom: 0;
   }
 
   .bag-card.sheet-surface:hover {
@@ -1009,10 +1018,11 @@
   }
 
   .bag-card.new-bag {
-    border-color: var(--editable-card-new-border, var(--accent-primary));
-    border-style: var(--editable-card-new-border-style, dashed);
-    background: var(--editable-card-new-bg, rgba(176, 138, 90, 0.05));
     margin-bottom: var(--editable-card-new-margin, 1.5rem);
+  }
+
+  .bag-card.sheet-surface.new-bag {
+    margin-bottom: 0;
   }
 
   .bag-preview {
@@ -1423,7 +1433,7 @@
   .bag-name-header {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: baseline;
     gap: 0.5rem;
   }
 
