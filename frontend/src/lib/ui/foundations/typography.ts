@@ -10,7 +10,7 @@ const fontSizes = {
   md: "1rem",
   lg: "1.125rem",
   xl: "1.5rem",
-  h1: "1.95rem",
+  h1: "1.85rem",
   h2: "1.5rem",
   h3: "1.25rem",
   h4: "1.1rem",
