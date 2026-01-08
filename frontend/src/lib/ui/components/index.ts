@@ -6,6 +6,7 @@ export * from "./empty-state";
 export * from "./alert";
 export * from "./feedback";
 export * from "./form";
+export * from "./date-input";
 export * from "./icon-button";
 export * from "./input";
 export * from "./inline-creator";

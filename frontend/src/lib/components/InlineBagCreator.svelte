@@ -3,6 +3,7 @@
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
   import BeanSelector from '$lib/components/BeanSelector.svelte';
+  import DateInput from '$lib/components/DateInput.svelte';
   import WeightInput from '$lib/components/WeightInput.svelte';
   import { CheckCircle, XMark } from '$lib/icons';
   import { inlineCreator } from '$lib/ui/components/inline-creator';
@@ -157,23 +158,14 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="roast-date">Roast Date</label>
-          <div class="date-input-group">
-            <input
-              id="roast-date"
-              type="date"
-              bind:value={roast_date}
-              disabled={loading}
-            />
-            <button 
-              type="button" 
-              on:click={setTodayAsRoastDate}
-              class="today-btn"
-              disabled={loading}
-            >
-              Today
-            </button>
-          </div>
+          <DateInput
+            id="roast-date"
+            label="Roast Date"
+            bind:value={roast_date}
+            disabled={loading}
+            actionLabel="Today"
+            on:action={setTodayAsRoastDate}
+          />
         </div>
 
         <div class="form-group">
@@ -333,41 +325,14 @@
     cursor: not-allowed;
   }
 
-  .bean-input-group,
-  .date-input-group {
+  .bean-input-group {
     display: flex;
     gap: 0.5rem;
-  }
-
-  .bean-input-group select,
-  .date-input-group input {
-    flex: 1;
   }
 
   .bean-input-group :global(.bean-selector) {
     flex: 1;
     min-width: 0;
-  }
-
-  .today-btn {
-    background: var(--accent-primary);
-    color: var(--text-ink-inverted);
-    border: none;
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 0.8rem;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .today-btn:hover:not(:disabled) {
-    background: var(--accent-primary-dark);
-  }
-
-  .today-btn:disabled {
-    background: rgba(123, 94, 58, 0.6);
-    cursor: not-allowed;
   }
 
   .error-text {
@@ -387,8 +352,7 @@
       grid-template-columns: 1fr;
     }
 
-    .bean-input-group,
-    .date-input-group {
+    .bean-input-group {
       flex-direction: column;
     }
 
