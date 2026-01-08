@@ -54,6 +54,7 @@ class AuthService {
   private readonly signedInTimeoutMs = 15000;
   private readonly defaultTimeoutMs = 8000;
   private initialSessionResolved = false;
+  private signOutInProgress = false;
 
   async initialize() {
     if (this.initialized || !browser) return;
@@ -285,14 +286,7 @@ class AuthService {
     return data;
   }
 
-  async signOut() {
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    // Clear stores
+  private clearSessionState() {
     user.set(null);
     session.set(null);
     barista.set(null);
@@ -300,6 +294,31 @@ class AuthService {
     this.profileLoadPromise = null;
     authStatus.set('unauthenticated');
     authError.set(null);
+  }
+
+  async signOut(options?: { localOnly?: boolean; suppressErrors?: boolean }) {
+    if (this.signOutInProgress) {
+      this.clearSessionState();
+      return;
+    }
+
+    this.signOutInProgress = true;
+    try {
+      const { error } = await supabase.auth.signOut(
+        options?.localOnly ? { scope: 'local' } : undefined
+      );
+
+      if (error && !options?.suppressErrors) {
+        throw new Error(error.message);
+      }
+    } finally {
+      this.clearSessionState();
+      this.signOutInProgress = false;
+    }
+  }
+
+  async handleUnauthorizedSession() {
+    await this.signOut({ localOnly: true, suppressErrors: true });
   }
 
   async resetPassword(email: string) {
