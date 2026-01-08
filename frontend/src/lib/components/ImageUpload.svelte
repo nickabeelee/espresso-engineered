@@ -184,8 +184,10 @@
   />
   
   {#if resolvedImageUrl}
-    <div class="current-image">
-      <img src={resolvedImageUrl} alt="{entityType} image" loading="lazy" />
+    <div class="current-image-wrapper">
+      <div class="current-image">
+        <img src={resolvedImageUrl} alt="{entityType} image" loading="lazy" />
+      </div>
       <div class="image-actions">
         <button
           type="button"
@@ -252,15 +254,21 @@
     --color-error-dark: rgba(122, 62, 47, 0.35);
   }
   
+  .current-image-wrapper {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   .current-image {
-    position: relative;
     display: inline-block;
     border-radius: var(--radius-md);
     overflow: hidden;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
   }
-  
+
   .current-image img {
     display: block;
     max-width: var(--upload-image-max-width, 200px);
@@ -271,21 +279,10 @@
   }
   
   .image-actions {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(43, 33, 24, 0.72));
-    padding: 0.5rem;
     display: flex;
     gap: 0.5rem;
+    align-items: center;
     justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-  
-  .current-image:hover .image-actions {
-    opacity: 1;
   }
   
   .upload-area {
@@ -377,8 +374,8 @@
       min-height: 100px;
     }
     
-    .image-actions {
-      opacity: 1; /* Always show on mobile */
+    .current-image-wrapper {
+      width: 100%;
     }
   }
 </style>
