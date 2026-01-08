@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-  import { Calendar } from "$lib/icons";
+  import { createEventDispatcher, onDestroy } from "svelte";
+  import { Calendar as CalendarIcon } from "$lib/icons";
+  import Calendar from "$lib/components/Calendar.svelte";
   import { dateInput } from "$lib/ui/components/date-input";
   import { toStyleString } from "$lib/ui/style";
 
@@ -22,7 +23,27 @@
     action: void;
   }>();
 
+  const dateFormatter = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
   let inputElement: HTMLInputElement | null = null;
+  let fieldElement: HTMLDivElement | null = null;
+  let isCalendarOpen = false;
+  let selectedDate: Date | null = null;
+  let activeMonth = new Date();
+  let displayValue = "";
+  let lastCommittedValue = value;
+  let listenersActive = false;
+  let calendarId: string | undefined = undefined;
+  let minDate: Date | null = null;
+  let maxDate: Date | null = null;
+
+  $: calendarId = id ? `${id}-calendar` : undefined;
+  $: minDate = min ? parseIsoDate(min) : null;
+  $: maxDate = max ? parseIsoDate(max) : null;
 
   const style = toStyleString({
     "--date-input-gap": dateInput.container.gap,
@@ -63,6 +84,33 @@
     "--date-icon-size": dateInput.icon.size,
     "--date-icon-radius": dateInput.icon.radius,
     "--date-icon-transition": dateInput.icon.transition,
+    "--date-calendar-bg": dateInput.calendar.background,
+    "--date-calendar-border": dateInput.calendar.borderColor,
+    "--date-calendar-shadow": dateInput.calendar.shadow,
+    "--date-calendar-radius": dateInput.calendar.radius,
+    "--date-calendar-padding": dateInput.calendar.padding,
+    "--date-calendar-header-gap": dateInput.calendar.headerGap,
+    "--date-calendar-header-margin": dateInput.calendar.headerMargin,
+    "--date-calendar-title-size": dateInput.calendar.titleSize,
+    "--date-calendar-title-weight": dateInput.calendar.titleWeight,
+    "--date-calendar-title-color": dateInput.calendar.titleColor,
+    "--date-calendar-weekday-size": dateInput.calendar.weekdaySize,
+    "--date-calendar-weekday-color": dateInput.calendar.weekdayColor,
+    "--date-calendar-weekday-margin": dateInput.calendar.weekdayMargin,
+    "--date-calendar-grid-gap": dateInput.calendar.gridGap,
+    "--date-calendar-nav-size": dateInput.calendar.navSize,
+    "--date-calendar-nav-padding": dateInput.calendar.navPadding,
+    "--date-calendar-nav-radius": dateInput.calendar.navRadius,
+    "--date-calendar-day-size": dateInput.calendar.daySize,
+    "--date-calendar-day-radius": dateInput.calendar.dayRadius,
+    "--date-calendar-day-size-font": dateInput.calendar.dayFontSize,
+    "--date-calendar-day-color": dateInput.calendar.dayColor,
+    "--date-calendar-day-outside": dateInput.calendar.dayOutsideColor,
+    "--date-calendar-day-disabled": dateInput.calendar.dayDisabledColor,
+    "--date-calendar-day-hover": dateInput.calendar.dayHoverBackground,
+    "--date-calendar-day-selected-bg": dateInput.calendar.daySelectedBackground,
+    "--date-calendar-day-selected-color": dateInput.calendar.daySelectedColor,
+    "--date-calendar-day-today-border": dateInput.calendar.dayTodayBorder,
     "--date-action-font": dateInput.action.fontFamily,
     "--date-action-size": dateInput.action.fontSize,
     "--date-action-weight": dateInput.action.fontWeight,
@@ -78,23 +126,163 @@
     "--date-action-hover-bg": dateInput.action.hoverBackground,
   });
 
-  function handleOpenCalendar() {
-    if (disabled) return;
-    const picker = inputElement as (HTMLInputElement & { showPicker?: () => void }) | null;
-    if (picker?.showPicker) {
-      picker.showPicker();
+  function formatDisplayDate(date: Date) {
+    return dateFormatter.format(date);
+  }
+
+  function formatIsoDate(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function parseIsoDate(value: string) {
+    if (!value) return null;
+    const [year, month, day] = value.split("-");
+    if (!year || !month || !day) return null;
+    const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  function parseInputDate(value: string) {
+    if (!value) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return parseIsoDate(value);
     }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  function syncFromValue(nextValue: string) {
+    lastCommittedValue = nextValue;
+    if (!nextValue) {
+      selectedDate = null;
+      displayValue = "";
+      return;
+    }
+    const parsed = parseIsoDate(nextValue) ?? parseInputDate(nextValue);
+    if (!parsed) {
+      selectedDate = null;
+      displayValue = nextValue;
+      return;
+    }
+    selectedDate = parsed;
+    activeMonth = new Date(parsed.getFullYear(), parsed.getMonth(), 1);
+    displayValue = formatDisplayDate(parsed);
+  }
+
+  function setSelectedDate(date: Date, formatInput = true) {
+    selectedDate = date;
+    activeMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    const iso = formatIsoDate(date);
+    lastCommittedValue = iso;
+    value = iso;
+    dispatch("change", { value: iso });
+    if (formatInput) {
+      displayValue = formatDisplayDate(date);
+    }
+  }
+
+  function openCalendar() {
+    if (disabled) return;
+    isCalendarOpen = true;
+  }
+
+  function closeCalendar() {
+    isCalendarOpen = false;
+  }
+
+  function toggleCalendar() {
+    if (disabled) return;
+    isCalendarOpen = !isCalendarOpen;
+  }
+
+  function handleInput(event: Event) {
+    const target = event.target as HTMLInputElement;
+    displayValue = target.value;
+    if (!displayValue) {
+      lastCommittedValue = "";
+      value = "";
+      selectedDate = null;
+      dispatch("change", { value: "" });
+      return;
+    }
+    const parsed = parseInputDate(displayValue);
+    if (parsed) {
+      setSelectedDate(parsed, false);
+    }
+  }
+
+  function handleInputKeyDown(event: KeyboardEvent) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      openCalendar();
+    }
+    if (event.key === "Escape" && isCalendarOpen) {
+      event.preventDefault();
+      closeCalendar();
+      inputElement?.focus();
+    }
+  }
+
+  function handleCalendarSelect(event: CustomEvent<{ date: Date }>) {
+    setSelectedDate(event.detail.date, true);
+    closeCalendar();
     inputElement?.focus();
   }
 
-  function handleChange(event: Event) {
-    const target = event.target as HTMLInputElement;
-    dispatch("change", { value: target.value });
+  function handleCalendarMonthChange(event: CustomEvent<{ month: Date }>) {
+    activeMonth = event.detail.month;
   }
 
   function handleActionClick() {
     dispatch("action");
   }
+
+  function handleDocumentPointerDown(event: MouseEvent) {
+    if (!fieldElement) return;
+    if (!fieldElement.contains(event.target as Node)) {
+      closeCalendar();
+    }
+  }
+
+  function handleDocumentKeyDown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      closeCalendar();
+      inputElement?.focus();
+    }
+  }
+
+  function addListeners() {
+    if (listenersActive) return;
+    document.addEventListener("mousedown", handleDocumentPointerDown);
+    document.addEventListener("keydown", handleDocumentKeyDown);
+    listenersActive = true;
+  }
+
+  function removeListeners() {
+    if (!listenersActive) return;
+    document.removeEventListener("mousedown", handleDocumentPointerDown);
+    document.removeEventListener("keydown", handleDocumentKeyDown);
+    listenersActive = false;
+  }
+
+  $: if (value !== lastCommittedValue) {
+    syncFromValue(value);
+  }
+
+  $: if (isCalendarOpen) {
+    addListeners();
+  } else {
+    removeListeners();
+  }
+
+  onDestroy(() => {
+    removeListeners();
+  });
 </script>
 
 <div class="date-input" style={style}>
@@ -109,29 +297,44 @@
     </div>
   {/if}
   <div class="date-controls">
-    <div class="date-field">
+    <div class="date-field" bind:this={fieldElement}>
       <input
         bind:this={inputElement}
         id={id}
         name={name}
-        type="date"
-        bind:value
+        type="text"
+        value={displayValue}
         {placeholder}
-        {min}
-        {max}
         {required}
         {disabled}
-        on:change={handleChange}
+        on:input={handleInput}
+        on:focus={openCalendar}
+        on:click={openCalendar}
+        on:keydown={handleInputKeyDown}
       />
       <button
         type="button"
         class="date-icon-button"
-        on:click={handleOpenCalendar}
+        on:click={toggleCalendar}
         aria-label={calendarButtonLabel}
+        aria-expanded={isCalendarOpen}
+        aria-controls={calendarId}
         disabled={disabled}
       >
-        <Calendar size={16} />
+        <CalendarIcon size={18} />
       </button>
+      {#if isCalendarOpen}
+        <div class="date-popover" role="dialog" id={calendarId}>
+          <Calendar
+            selected={selectedDate}
+            month={activeMonth}
+            min={minDate}
+            max={maxDate}
+            on:select={handleCalendarSelect}
+            on:monthChange={handleCalendarMonthChange}
+          />
+        </div>
+      {/if}
     </div>
     {#if actionLabel}
       <button
@@ -217,27 +420,29 @@
     color: var(--date-input-disabled-color, var(--text-ink-muted));
   }
 
-  .date-field input::-webkit-calendar-picker-indicator {
-    opacity: 0;
-  }
-
   .date-icon-button {
     position: absolute;
     top: 50%;
     right: 0.4rem;
     transform: translateY(-50%);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--date-icon-size, 1.1rem);
-    height: var(--date-icon-size, 1.1rem);
-    padding: 0.45rem;
+    display: grid;
+    place-items: center;
+    width: calc(var(--date-icon-size, 1.1rem) + 0.9rem);
+    height: calc(var(--date-icon-size, 1.1rem) + 0.9rem);
+    padding: 0;
     border-radius: var(--date-icon-radius, 6px);
     border: 1px solid var(--date-icon-border, transparent);
     background: var(--date-icon-bg, transparent);
-    color: var(--date-icon-color, var(--text-ink-muted));
+    color: var(--date-icon-color, var(--text-ink-muted)) !important;
     cursor: pointer;
     transition: var(--date-icon-transition, none);
+    z-index: 2;
+  }
+
+  .date-icon-button svg {
+    stroke: currentColor;
+    width: var(--date-icon-size, 1.1rem);
+    height: var(--date-icon-size, 1.1rem);
   }
 
   .date-icon-button:hover:not(:disabled) {
@@ -248,6 +453,13 @@
   .date-icon-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  .date-popover {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    z-index: 20;
   }
 
   .date-action {
