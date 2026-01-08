@@ -300,6 +300,7 @@
 
   input {
     width: 100%;
+    font-size: 16px;
   }
 
   .form-row {
