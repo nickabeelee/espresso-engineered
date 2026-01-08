@@ -1,3 +1,5 @@
+import { browser } from '$app/environment';
+import { authService } from './auth';
 import { getAuthToken } from './supabase';
 import type { 
   ApiResponse, 
@@ -63,6 +65,10 @@ class ApiClient {
     };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+    if (response.status === 401 && browser) {
+      await authService.handleUnauthorizedSession();
+    }
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

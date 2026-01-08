@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { authService, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
+  import logo from '../../assets/brand/espresso-engineered-logo.svg';
 
   
   let mode = 'login';
@@ -13,8 +14,10 @@
   let lastName = '';
   let displayName = '';
   let loading = false;
+  let showWakeNotice = false;
   let error = null;
   let success = null;
+  let wakeTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Get return URL from query params
   $: returnTo = $page.url.searchParams.get('returnTo') || '/';
@@ -36,6 +39,16 @@
     loading = true;
     error = null;
     success = null;
+    showWakeNotice = false;
+    if (wakeTimer) {
+      clearTimeout(wakeTimer);
+      wakeTimer = null;
+    }
+    if (mode === 'login') {
+      wakeTimer = setTimeout(() => {
+        showWakeNotice = true;
+      }, 1500);
+    }
 
     try {
       if (mode === 'login') {
@@ -70,6 +83,10 @@
       error = err instanceof Error ? err.message : 'Authentication failed';
     } finally {
       loading = false;
+      if (wakeTimer) {
+        clearTimeout(wakeTimer);
+        wakeTimer = null;
+      }
     }
   }
 
@@ -95,9 +112,11 @@
 <div class="auth-page">
   <div class="auth-container">
     <div class="auth-header">
-      <p class="voice-line">There is time for this.</p>
-      <h1>Espresso Engineered</h1>
-      <p>Sign in to continue your record.</p>
+      <img src={logo} alt="Espresso Engineered" class="auth-logo" />
+      <div class="auth-header-text">
+        <p class="voice-line">There is time for this.</p>
+        <h1>Espresso Engineered</h1>
+      </div>
     </div>
 
       {#if $authStatus === 'profile_missing'}
@@ -111,15 +130,15 @@
       {/if}
 
       <form on:submit={handleSubmit} class="auth-form">
-        <h2>
+        <p class="auth-intro voice-line">
           {#if mode === 'login'}
-            Sign In
+            Sign in to continue your record.
           {:else if mode === 'signup'}
-            Create Account
+            Create an account to start your record.
           {:else}
-            Reset Password
+            Reset your password to keep going.
           {/if}
-        </h2>
+        </p>
         
         <div class="form-group">
           <label for="email">Email</label>
@@ -210,13 +229,21 @@
 
         <button type="submit" disabled={loading} class="btn-primary auth-submit">
           {#if loading}
-            {#if mode === 'login'}
-              Signing In...
-            {:else if mode === 'signup'}
-              Creating Account...
-            {:else}
-              Sending Reset Email...
-            {/if}
+            <span class="button-spinner" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="spinner" aria-hidden="true">
+                <circle class="spinner-track" cx="12" cy="12" r="10" />
+                <path class="spinner-head" d="M12 2a10 10 0 0 1 10 10" />
+              </svg>
+            </span>
+            <span class="button-text">
+              {#if mode === 'login'}
+                Signing In
+              {:else if mode === 'signup'}
+                Creating Account
+              {:else}
+                Sending Reset Email
+              {/if}
+            </span>
           {:else}
             {#if mode === 'login'}
               Sign In
@@ -268,12 +295,27 @@
   }
 
   .auth-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
     text-align: left;
+  }
+
+  .auth-logo {
+    width: min(48px, 16vw);
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  .auth-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
   }
 
   .auth-header h1 {
     font-size: 1.9rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
   .auth-header p {
@@ -281,10 +323,8 @@
     font-size: 0.95rem;
   }
 
-  .auth-form h2 {
-    font-size: 1.2rem;
+  .auth-intro {
     margin: 0 0 1.25rem 0;
-    color: var(--text-ink-secondary);
   }
 
   .form-group {
@@ -300,6 +340,7 @@
 
   input {
     width: 100%;
+    font-size: 16px;
   }
 
   .form-row {
@@ -318,6 +359,33 @@
   .auth-submit {
     width: 100%;
     margin: 0.5rem 0 1rem;
+  }
+
+  .button-spinner {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .spinner {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+    animation: spin 1s linear infinite;
+  }
+
+  .spinner-track {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    opacity: 0.3;
+  }
+
+  .spinner-head {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    opacity: 0.9;
   }
 
   .auth-toggle {
@@ -346,6 +414,16 @@
   @media (max-width: 600px) {
     .form-row {
       grid-template-columns: 1fr;
+    }
+
+    .auth-header {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .auth-logo {
+      width: min(56px, 32vw);
     }
   }
 </style>

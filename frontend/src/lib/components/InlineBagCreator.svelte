@@ -3,6 +3,7 @@
   import { apiClient } from '$lib/api-client';
   import IconButton from '$lib/components/IconButton.svelte';
   import BeanSelector from '$lib/components/BeanSelector.svelte';
+  import WeightInput from '$lib/components/WeightInput.svelte';
   import { CheckCircle, XMark } from '$lib/icons';
   import { inlineCreator } from '$lib/ui/components/inline-creator';
   import { toStyleString } from '$lib/ui/style';
@@ -89,7 +90,7 @@
       const bagData: CreateBagRequest = {
         bean_id,
         roast_date: roast_date || undefined,
-        weight_g: weight_g || undefined,
+        weight_g: weight_g ?? undefined,
         price,
         purchase_location: purchase_location.trim() || undefined,
         inventory_status
@@ -118,11 +119,6 @@
   function setTodayAsRoastDate() {
     const today = new Date();
     roast_date = today.toISOString().split('T')[0];
-  }
-
-  // Set default weight to common bag sizes
-  function setCommonWeight(grams: number) {
-    weight_g = grams;
   }
 
   // Auto naming handled in the brew form; bag creation does not preview a name.
@@ -181,24 +177,13 @@
         </div>
 
         <div class="form-group">
-          <label for="weight">Weight (g)</label>
-          <div class="weight-input-group">
-            <input
-              id="weight"
-              type="number"
-              inputmode="numeric"
-            bind:value={weight_g}
-            step="1"
-            min="0"
-            placeholder="e.g., 250"
+          <WeightInput
+            id="weight"
+            label="Weight"
+            valueGrams={weight_g ?? null}
             disabled={loading}
+            on:change={(event) => (weight_g = event.detail.grams ?? undefined)}
           />
-            <div class="weight-presets">
-              <button type="button" on:click={() => setCommonWeight(250)} class="preset-btn" disabled={loading}>250g</button>
-              <button type="button" on:click={() => setCommonWeight(340)} class="preset-btn" disabled={loading}>340g</button>
-              <button type="button" on:click={() => setCommonWeight(500)} class="preset-btn" disabled={loading}>500g</button>
-            </div>
-          </div>
           {#if validationErrors.weight_g}
             <span class="error-text">{validationErrors.weight_g}</span>
           {/if}
@@ -385,38 +370,6 @@
     cursor: not-allowed;
   }
 
-  .weight-input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .weight-presets {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  .preset-btn {
-    background: rgba(123, 94, 58, 0.12);
-    color: var(--text-ink-secondary);
-    border: 1px solid var(--border-subtle);
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-
-  .preset-btn:hover:not(:disabled) {
-    background: rgba(123, 94, 58, 0.2);
-    border-color: var(--border-strong);
-  }
-
-  .preset-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-
   .error-text {
     color: var(--semantic-error);
     font-size: 0.8rem;
@@ -437,10 +390,6 @@
     .bean-input-group,
     .date-input-group {
       flex-direction: column;
-    }
-
-    .weight-presets {
-      justify-content: center;
     }
 
     .form-actions {

@@ -8,6 +8,7 @@
   import BeanSelector from "$lib/components/BeanSelector.svelte";
   import Chip from "$lib/components/Chip.svelte";
   import BagStatusUpdater from "$lib/components/BagStatusUpdater.svelte";
+  import WeightInput from "$lib/components/WeightInput.svelte";
   import RoastLevel from "$lib/components/RoastLevel.svelte";
   import {
     ArrowTopRightOnSquareMini,
@@ -243,7 +244,7 @@
         bean_id: bag.bean_id || "",
         name: bag.name || "",
         roast_date: bag.roast_date || "",
-        weight_g: bag.weight_g || undefined,
+        weight_g: bag.weight_g ?? undefined,
         price: bag.price || undefined,
         purchase_location: bag.purchase_location || "",
         inventory_status: bag.inventory_status,
@@ -306,7 +307,7 @@
           bean_id: formData.bean_id!,
           name: formData.name?.trim() || undefined,
           roast_date: formData.roast_date || undefined,
-          weight_g: formData.weight_g || undefined,
+          weight_g: formData.weight_g ?? undefined,
           price: formData.price,
           purchase_location: formData.purchase_location?.trim() || undefined,
           inventory_status: formData.inventory_status,
@@ -871,17 +872,12 @@
                 />
               </div>
               <div class="bag-edit-field">
-                <label for="bag-weight">Weight (g)</label>
-                <input
+                <WeightInput
                   id="bag-weight"
-                  type="number"
-                  inputmode="decimal"
-                  bind:value={formData.weight_g}
-                  class="detail-input"
-                  placeholder="e.g., 250"
-                  min="0"
-                  step="0.1"
+                  label="Weight"
+                  valueGrams={formData.weight_g ?? null}
                   disabled={isSaving}
+                  on:change={(event) => (formData.weight_g = event.detail.grams ?? undefined)}
                 />
               </div>
               <div class="bag-edit-field">

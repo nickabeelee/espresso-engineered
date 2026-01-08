@@ -178,7 +178,7 @@
 
   function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
     const updatedBag = event.detail;
-    inventorySectionRef?.applyBagUpdate(updatedBag);
+    inventorySectionRef?.applyBagUpdate(updatedBag, false);
 
     if (inspectedBag?.id === updatedBag.id) {
       const existingBean = (inspectedBag as any).bean;
