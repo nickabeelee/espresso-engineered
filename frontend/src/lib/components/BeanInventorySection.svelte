@@ -233,7 +233,10 @@
     });
   }
 
-  export function applyBagUpdate(updatedBag: BagWithBarista) {
+  export function applyBagUpdate(
+    updatedBag: BagWithBarista,
+    notifyParent = true,
+  ) {
     const index = bags.findIndex((bag) => bag.id === updatedBag.id);
     if (index !== -1) {
       const existingBag = bags[index];
@@ -251,7 +254,9 @@
       bags = [...bags]; // Trigger reactivity
     }
 
-    dispatch("bagUpdated", updatedBag);
+    if (notifyParent) {
+      dispatch("bagUpdated", updatedBag);
+    }
   }
 
   export function addBag(newBag: BagWithBarista) {
@@ -269,7 +274,7 @@
   }
 
   function handleBagUpdated(event: CustomEvent<BagWithBarista>) {
-    applyBagUpdate(event.detail);
+    applyBagUpdate(event.detail, true);
   }
 
   function requestInspect(bag: BagWithBarista) {
