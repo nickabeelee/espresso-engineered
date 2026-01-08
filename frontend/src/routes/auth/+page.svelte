@@ -13,8 +13,10 @@
   let lastName = '';
   let displayName = '';
   let loading = false;
+  let showWakeNotice = false;
   let error = null;
   let success = null;
+  let wakeTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Get return URL from query params
   $: returnTo = $page.url.searchParams.get('returnTo') || '/';
@@ -36,6 +38,16 @@
     loading = true;
     error = null;
     success = null;
+    showWakeNotice = false;
+    if (wakeTimer) {
+      clearTimeout(wakeTimer);
+      wakeTimer = null;
+    }
+    if (mode === 'login') {
+      wakeTimer = setTimeout(() => {
+        showWakeNotice = true;
+      }, 1500);
+    }
 
     try {
       if (mode === 'login') {
@@ -70,6 +82,10 @@
       error = err instanceof Error ? err.message : 'Authentication failed';
     } finally {
       loading = false;
+      if (wakeTimer) {
+        clearTimeout(wakeTimer);
+        wakeTimer = null;
+      }
     }
   }
 
@@ -228,6 +244,14 @@
           {/if}
         </button>
 
+        {#if loading && mode === 'login'}
+          <p class="loading-note" aria-live="polite">
+            {showWakeNotice
+              ? 'Waking up the server. This can take a few seconds the first time.'
+              : 'Signing you in…'}
+          </p>
+        {/if}
+
         <div class="auth-toggle">
           {#if mode === 'login'}
             <p>
@@ -318,6 +342,13 @@
   .auth-submit {
     width: 100%;
     margin: 0.5rem 0 1rem;
+  }
+
+  .loading-note {
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+    color: var(--text-ink-muted);
+    text-align: center;
   }
 
   .auth-toggle {
