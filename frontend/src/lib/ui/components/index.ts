@@ -14,3 +14,4 @@ export * from "./selector";
 export * from "./upload";
 export * from "./status";
 export * from "./sheet";
+export * from "./weight-input";
