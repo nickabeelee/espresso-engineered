@@ -8,6 +8,7 @@
   import BeanSelector from "$lib/components/BeanSelector.svelte";
   import Chip from "$lib/components/Chip.svelte";
   import BagStatusUpdater from "$lib/components/BagStatusUpdater.svelte";
+  import DateInput from "$lib/components/DateInput.svelte";
   import WeightInput from "$lib/components/WeightInput.svelte";
   import RoastLevel from "$lib/components/RoastLevel.svelte";
   import {
@@ -16,7 +17,6 @@
     CheckCircle,
     XMark,
     StarMicro,
-    Calendar,
   } from "$lib/icons";
   import {
     editableCard,
@@ -836,20 +836,13 @@
                 {/if}
               </div>
               <div class="bag-edit-field">
-                <label for="bag-roast-date">Roast date</label>
-                <div class="date-input-wrapper">
-                  <span class="date-input-icon" aria-hidden="true">
-                    <Calendar size={16} />
-                  </span>
-                  <input
-                    id="bag-roast-date"
-                    type="date"
-                    bind:value={formData.roast_date}
-                    class="detail-input detail-input--date"
-                    placeholder={todayDatePlaceholder}
-                    disabled={isSaving}
-                  />
-                </div>
+                <DateInput
+                  id="bag-roast-date"
+                  label="Roast date"
+                  bind:value={formData.roast_date}
+                  placeholder={todayDatePlaceholder}
+                  disabled={isSaving}
+                />
               </div>
             </div>
           </section>
@@ -1320,18 +1313,6 @@
     display: block;
   }
 
-  .detail-input[type="date"] {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    padding: var(--editable-card-input-padding, 0.4rem 0.6rem);
-    line-height: 1.2;
-    inline-size: 100%;
-    max-inline-size: 100%;
-    appearance: none;
-    -webkit-appearance: none;
-  }
-
   .detail-input:focus,
   .detail-select:focus {
     outline: none;
@@ -1464,29 +1445,6 @@
     font-size: 0.75rem;
   }
 
-  .date-input-wrapper {
-    position: relative;
-  }
-
-  .detail-input--date {
-    text-align: left;
-    text-align-last: left;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    min-width: 0;
-  }
-
-  .date-input-icon {
-    position: absolute;
-    top: 50%;
-    right: 0.75rem;
-    transform: translateY(-50%);
-    color: var(--text-ink-muted);
-    display: inline-flex;
-    align-items: center;
-    pointer-events: none;
-  }
 
   .bag-edit-field label {
     font-weight: var(--editable-card-label-weight, 500);
