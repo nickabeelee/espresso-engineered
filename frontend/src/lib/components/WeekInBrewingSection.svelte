@@ -787,6 +787,14 @@
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .group-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .avg-rating {
