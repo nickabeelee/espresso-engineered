@@ -229,13 +229,21 @@
 
         <button type="submit" disabled={loading} class="btn-primary auth-submit">
           {#if loading}
-            {#if mode === 'login'}
-              Signing In...
-            {:else if mode === 'signup'}
-              Creating Account...
-            {:else}
-              Sending Reset Email...
-            {/if}
+            <span class="button-spinner" aria-hidden="true">
+              <svg viewBox="0 0 24 24" class="spinner" aria-hidden="true">
+                <circle class="spinner-track" cx="12" cy="12" r="10" />
+                <path class="spinner-head" d="M12 2a10 10 0 0 1 10 10" />
+              </svg>
+            </span>
+            <span class="button-text">
+              {#if mode === 'login'}
+                Signing In
+              {:else if mode === 'signup'}
+                Creating Account
+              {:else}
+                Sending Reset Email
+              {/if}
+            </span>
           {:else}
             {#if mode === 'login'}
               Sign In
@@ -246,14 +254,6 @@
             {/if}
           {/if}
         </button>
-
-        {#if loading && mode === 'login'}
-          <p class="loading-note" aria-live="polite">
-            {showWakeNotice
-              ? 'Waking up the server. This can take a few seconds the first time.'
-              : 'Signing you in…'}
-          </p>
-        {/if}
 
         <div class="auth-toggle">
           {#if mode === 'login'}
@@ -360,11 +360,31 @@
     margin: 0.5rem 0 1rem;
   }
 
-  .loading-note {
-    margin: 0 0 1rem;
-    font-size: 0.9rem;
-    color: var(--text-ink-muted);
-    text-align: center;
+  .button-spinner {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .spinner {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+    animation: spin 1s linear infinite;
+  }
+
+  .spinner-track {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    opacity: 0.3;
+  }
+
+  .spinner-head {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    opacity: 0.9;
   }
 
   .auth-toggle {
