@@ -20,6 +20,7 @@
     oz: "oz",
     lb: "lb",
   };
+  const unitOptions = Object.entries(unitLabels) as [WeightUnit, string][];
 
   const unitToGrams: Record<WeightUnit, number> = {
     g: 1,
@@ -42,6 +43,7 @@
   let unit: WeightUnit = "g";
   let displayValue: string = "";
   let isEditing = false;
+  let unitLocked = false;
 
   const style = toStyleString({
     "--weight-input-gap": weightInput.container.gap,
@@ -113,6 +115,7 @@
     const target = event.target as HTMLSelectElement;
     const nextUnit = target.value as WeightUnit;
     unit = nextUnit;
+    unitLocked = true;
     displayValue = toDisplay(valueGrams, nextUnit);
     dispatch("change", { grams: toGrams(displayValue, nextUnit) });
   }
@@ -147,7 +150,7 @@
 
   $: if (!isEditing) {
     const resolvedUnit = resolveUnit(valueGrams);
-    if (resolvedUnit !== unit) {
+    if (!unitLocked && resolvedUnit !== unit) {
       unit = resolvedUnit;
     }
   }
@@ -180,12 +183,12 @@
     />
     <select
       class="weight-field weight-select"
-      value={unit}
+      bind:value={unit}
       on:change={handleUnitChange}
       disabled={disabled}
     >
-      {#each Object.keys(unitLabels) as key}
-        <option value={key}>{unitLabels[key as WeightUnit]}</option>
+      {#each unitOptions as [key, labelText]}
+        <option value={key}>{labelText}</option>
       {/each}
     </select>
   </div>
@@ -193,10 +196,10 @@
     <button
       type="button"
       class="preset-btn"
-      on:click={() => setPreset(250)}
+      on:click={() => setPreset(226.796)}
       disabled={disabled}
     >
-      250 g
+      8 oz
     </button>
     <button
       type="button"
@@ -209,10 +212,18 @@
     <button
       type="button"
       class="preset-btn"
-      on:click={() => setPreset(500)}
+      on:click={() => setPreset(998)}
       disabled={disabled}
     >
-      500 g
+      2.2 lb
+    </button>
+    <button
+      type="button"
+      class="preset-btn"
+      on:click={() => setPreset(2267.96)}
+      disabled={disabled}
+    >
+      5 lb
     </button>
   </div>
 </div>
@@ -248,7 +259,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--weight-control-gap, 0.5rem);
-    align-items: center;
+    align-items: stretch;
   }
 
   .weight-field {
@@ -279,7 +290,7 @@
 
   .weight-select {
     min-width: var(--weight-select-min, 5rem);
-    text-transform: uppercase;
+    height: 100%;
   }
 
   .weight-presets {
