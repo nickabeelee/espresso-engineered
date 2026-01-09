@@ -1,18 +1,27 @@
 <script lang="ts">
-  import '../app.css';
-  import { onMount } from 'svelte';
-  import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
-  import { authService, barista, isAuthenticated, isLoading, authStatus, authError } from '$lib/auth';
-  import BaristaProfile from '$lib/components/BaristaProfile.svelte';
-  import { UserCircle } from '$lib/icons';
-  import logoInverted from '../assets/brand/espresso-engineered-logo-inverted.svg';
-  
+  import "../app.css";
+  import { onMount } from "svelte";
+  import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
+  import {
+    authService,
+    barista,
+    isAuthenticated,
+    isLoading,
+    authStatus,
+    authError,
+  } from "$lib/auth";
+  import { apiClient } from "$lib/api-client";
+  import BaristaProfile from "$lib/components/BaristaProfile.svelte";
+  import { UserCircle } from "$lib/icons";
+  import logoInverted from "../assets/brand/espresso-engineered-logo-inverted.svg";
+
   // Pages that don't require authentication
-  const publicPages = ['/auth', '/'];
-  
-  $: isPublicPage = publicPages.includes($page.url.pathname)
-    && !($page.url.pathname === '/' && $isAuthenticated);
+  const publicPages = ["/auth", "/"];
+
+  $: isPublicPage =
+    publicPages.includes($page.url.pathname) &&
+    !($page.url.pathname === "/" && $isAuthenticated);
 
   let isNavHidden = false;
   let lastScrollY = 0;
@@ -20,11 +29,14 @@
   const hideThreshold = 24;
   const revealDistance = 96;
   let scrollUpDistance = 0;
+  let reflectionDraftCount = 0;
+  let reflectionDraftDisplay = "";
+  let isDraftCountLoading = false;
 
   onMount(() => {
-    console.log('Layout: Initializing auth service...');
+    console.log("Layout: Initializing auth service...");
     authService.initialize().then(() => {
-      console.log('Layout: Auth service initialized');
+      console.log("Layout: Auth service initialized");
     });
 
     lastScrollY = window.scrollY;
@@ -70,11 +82,11 @@
       });
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
-    document.addEventListener('click', onDocumentClick);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("click", onDocumentClick);
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      document.removeEventListener('click', onDocumentClick);
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("click", onDocumentClick);
     };
   });
 
@@ -84,9 +96,9 @@
         profileMenu.open = false;
       }
       await authService.signOut();
-      goto('/auth');
+      goto("/auth");
     } catch (err) {
-      console.error('Sign out failed:', err);
+      console.error("Sign out failed:", err);
     }
   }
 
@@ -101,6 +113,25 @@
       profileMenu.open = false;
     }
   }
+
+  async function refreshDraftCount() {
+    if (isDraftCountLoading) return;
+    isDraftCountLoading = true;
+    try {
+      const response = await apiClient.getDraftBrews();
+      reflectionDraftCount = response.count ?? response.data?.length ?? 0;
+    } catch (error) {
+      console.error("Failed to load reflection draft count:", error);
+    } finally {
+      isDraftCountLoading = false;
+    }
+  }
+
+  $: reflectionDraftDisplay =
+    reflectionDraftCount > 99 ? "99+" : `${reflectionDraftCount}`;
+  $: if ($isAuthenticated && $barista && !isPublicPage) {
+    void refreshDraftCount();
+  }
 </script>
 
 <div class="app-shell">
@@ -109,41 +140,57 @@
       <header class="top-nav" class:hidden={isNavHidden}>
         <div class="top-nav-inner">
           <a href="/" class="logo">
-            <img src={logoInverted} alt="Espresso Engineered" class="logo-mark" />
+            <img
+              src={logoInverted}
+              alt="Espresso Engineered"
+              class="logo-mark"
+            />
             <span class="logo-text">Espresso Engineered</span>
           </a>
           <nav class="top-nav-links">
             <a
               href="/brews"
-              class:active={
-                $page.url.pathname === '/brews'
-                || ($page.url.pathname.startsWith('/brews/') && !$page.url.pathname.startsWith('/brews/drafts'))
-              }
+              class:active={$page.url.pathname === "/brews" ||
+                ($page.url.pathname.startsWith("/brews/") &&
+                  !$page.url.pathname.startsWith("/brews/drafts"))}
             >
               Brews
             </a>
             <a
               href="/brews/drafts"
-              class:active={$page.url.pathname === '/brews/drafts' || $page.url.pathname.startsWith('/brews/drafts/')}
+              class="reflection-link"
+              class:active={$page.url.pathname === "/brews/drafts" ||
+                $page.url.pathname.startsWith("/brews/drafts/")}
+              aria-label={reflectionDraftCount > 0
+                ? `Reflection (${reflectionDraftCount} drafts waiting)`
+                : "Reflection"}
             >
               Reflection
+              {#if reflectionDraftCount > 0}
+                <span class="reflection-badge">{reflectionDraftDisplay}</span>
+              {/if}
             </a>
             <a
               href="/beans"
-              class:active={$page.url.pathname === '/beans' || $page.url.pathname.startsWith('/beans/')}
+              class:active={$page.url.pathname === "/beans" ||
+                $page.url.pathname.startsWith("/beans/")}
             >
               Beans
             </a>
             <a
               href="/equipment"
-              class:active={$page.url.pathname === '/equipment' || $page.url.pathname.startsWith('/equipment/')}
+              class:active={$page.url.pathname === "/equipment" ||
+                $page.url.pathname.startsWith("/equipment/")}
             >
               Equipment
             </a>
           </nav>
           <div class="top-nav-actions">
             <details class="profile-menu" bind:this={profileMenu}>
-              <summary class="profile-menu-trigger" aria-label="Open profile menu">
+              <summary
+                class="profile-menu-trigger"
+                aria-label="Open profile menu"
+              >
                 <span class="profile-menu-label">
                   <span class="profile-menu-name">
                     <BaristaProfile compact={true} minimal={true} />
@@ -163,23 +210,31 @@
       </header>
 
       <main class="page-main">
-        {#if $authStatus === 'profile_missing'}
+        {#if $authStatus === "profile_missing"}
           <div class="page-frame">
             <div class="page-surface loading-screen">
               <p>We couldn't find your barista profile.</p>
               <div class="auth-actions">
-                <button on:click={handleRetryProfile} class="btn-primary">Retry</button>
-                <button on:click={handleSignOut} class="btn-secondary">Sign Out</button>
+                <button on:click={handleRetryProfile} class="btn-primary"
+                  >Retry</button
+                >
+                <button on:click={handleSignOut} class="btn-secondary"
+                  >Sign Out</button
+                >
               </div>
             </div>
           </div>
-        {:else if $authStatus === 'error'}
+        {:else if $authStatus === "error"}
           <div class="page-frame">
             <div class="page-surface loading-screen">
-              <p>{ $authError || 'Authentication failed. Please try again.' }</p>
+              <p>{$authError || "Authentication failed. Please try again."}</p>
               <div class="auth-actions">
-                <button on:click={handleRetryProfile} class="btn-primary">Retry</button>
-                <button on:click={handleSignOut} class="btn-secondary">Sign Out</button>
+                <button on:click={handleRetryProfile} class="btn-primary"
+                  >Retry</button
+                >
+                <button on:click={handleSignOut} class="btn-secondary"
+                  >Sign Out</button
+                >
               </div>
             </div>
           </div>
@@ -268,8 +323,12 @@
   }
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .loading-screen p {
@@ -286,5 +345,31 @@
     .logo {
       letter-spacing: 0.06em;
     }
+  }
+
+  .reflection-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .reflection-badge {
+    position: absolute;
+    top: -0.45rem;
+    right: -0.9rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: var(--accent-primary);
+    color: var(--text-ink-inverted);
+    border: 1px solid var(--accent-primary-dark);
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(43, 33, 24, 0.2);
   }
 </style>
