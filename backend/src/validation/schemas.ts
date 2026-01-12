@@ -38,6 +38,14 @@ export const completeDraftSchema = z.object({
   reflections: z.string().max(2000).optional()
 });
 
+export const guestReflectionUpdateSchema = z.object({
+  rating: z.number().int().min(1).max(10).optional(),
+  tasting_notes: z.string().max(1000).optional(),
+  reflections: z.string().max(2000).optional(),
+  guest_display_name: z.string().max(80).optional(),
+  submit: z.boolean().optional()
+});
+
 // Entity creation schemas
 export const createBeanSchema = z.object({
   roaster_id: uuidSchema,

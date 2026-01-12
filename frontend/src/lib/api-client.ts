@@ -26,7 +26,8 @@ import type {
   UpdateBeanRatingRequest,
   BrewFilters,
   BeanFilters,
-  PaginationParams
+  PaginationParams,
+  GuestTokenResponse
 } from '@shared/types';
 
 // API base URL from environment variables
@@ -154,6 +155,12 @@ class ApiClient {
     return this.makeRequest<ApiResponse<Brew>>(`/brews/${id}`, {
       method: 'PUT',
       body: JSON.stringify(sanitizedBrew),
+    });
+  }
+
+  async requestGuestReflectionToken(id: string): Promise<ApiResponse<GuestTokenResponse>> {
+    return this.makeRequest<ApiResponse<GuestTokenResponse>>(`/brews/${id}/guest-token`, {
+      method: 'POST'
     });
   }
 

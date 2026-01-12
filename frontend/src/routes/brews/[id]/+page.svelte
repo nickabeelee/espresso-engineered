@@ -5,6 +5,7 @@
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BrewForm from '$lib/components/BrewForm.svelte';
   import BrewReflectionForm from '$lib/components/BrewReflectionForm.svelte';
+  import Chip from '$lib/components/Chip.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { apiClient } from '$lib/api-client';
@@ -36,6 +37,17 @@
   let bean: Bean | null = null;
   let roaster: Roaster | null = null;
   let bagOwnerName = 'Unknown';
+  let guestShareUrl: string | null = null;
+  let guestShareError: string | null = null;
+  let guestRequestLoading = false;
+  let nowTimestamp = Date.now();
+  let guestLockActive = false;
+  let guestState: 'none' | 'draft' | 'editing' | 'locked' = 'none';
+  let guestStatusLabel: string | null = null;
+  let guestStatusVariant: 'neutral' | 'warning' | 'success' = 'neutral';
+  let guestCountdown: string | null = null;
+  let guestShareQrUrl: string | null = null;
+  let guestLockMessage = 'Locked while guest completes reflection';
   const detailStyle = toStyleString({
     '--page-gap': spacing["2xl"],
     '--header-gap': spacing.xl,
@@ -208,9 +220,13 @@
   }
 
   onMount(async () => {
+    const timer = window.setInterval(() => {
+      nowTimestamp = Date.now();
+    }, 1000);
     if (brewId) {
       await loadBrew(brewId);
     }
+    return () => window.clearInterval(timer);
   });
 
   async function loadBrew(id: string) {
@@ -221,6 +237,8 @@
       const response = await apiClient.getBrew(id);
       if (response.data) {
         brew = response.data;
+        guestShareUrl = null;
+        guestShareError = null;
         
         // Check if current user can edit this brew
         const currentBarista = $barista;
@@ -414,6 +432,75 @@
       goto(`/beans/${bean.id}`);
     }
   }
+
+  function getGuestState(currentBrew: Brew | null): 'none' | 'draft' | 'editing' | 'locked' {
+    if (!currentBrew?.guest_token_hash) {
+      return 'none';
+    }
+    if (!currentBrew.guest_submitted_at) {
+      return 'draft';
+    }
+    if (currentBrew.guest_edit_expires_at) {
+      const expiresAt = new Date(currentBrew.guest_edit_expires_at).getTime();
+      if (nowTimestamp < expiresAt) {
+        return 'editing';
+      }
+    }
+    return 'locked';
+  }
+
+  function formatCountdown(expiresAt: string): string {
+    const diffMs = Math.max(0, new Date(expiresAt).getTime() - nowTimestamp);
+    const totalSeconds = Math.ceil(diffMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes <= 0) {
+      return `${seconds}s`;
+    }
+    return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
+  }
+
+  async function handleRequestGuestReflection() {
+    if (!brew || guestRequestLoading) return;
+    guestRequestLoading = true;
+    guestShareError = null;
+
+    try {
+      const response = await apiClient.requestGuestReflectionToken(brew.id);
+      const token = response.data?.token;
+      if (!token) {
+        throw new Error('Guest reflection link could not be created');
+      }
+
+      guestShareUrl = `${window.location.origin}/guest/${token}`;
+      await loadBrew(brew.id);
+    } catch (err) {
+      guestShareError = err instanceof Error ? err.message : 'Failed to create guest reflection link';
+    } finally {
+      guestRequestLoading = false;
+    }
+  }
+
+  $: guestState = getGuestState(brew);
+  $: guestLockActive = guestState === 'editing';
+  $: guestStatusLabel = guestState === 'draft'
+    ? 'Guest draft'
+    : guestState === 'editing'
+      ? 'Guest editing'
+      : guestState === 'locked'
+        ? 'Guest finalized'
+        : null;
+  $: guestStatusVariant = guestState === 'editing'
+    ? 'warning'
+    : guestState === 'locked'
+      ? 'success'
+      : 'neutral';
+  $: guestCountdown = guestState === 'editing' && brew?.guest_edit_expires_at
+    ? formatCountdown(brew.guest_edit_expires_at)
+    : null;
+  $: guestShareQrUrl = guestShareUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(guestShareUrl)}`
+    : null;
 </script>
 
 <svelte:head>
@@ -473,9 +560,51 @@
       {#if reflectionMode}
         <div class="brew-details reflection-details">
           <div class="detail-section">
+            <div class="guest-reflection-toolbar">
+              {#if guestStatusLabel}
+                <div class="guest-reflection-status">
+                  <Chip variant={guestStatusVariant} size="sm">{guestStatusLabel}</Chip>
+                  {#if guestCountdown}
+                    <span class="guest-reflection-meta">Guest edit window ends in {guestCountdown}</span>
+                  {:else if guestState === 'locked' && brew?.guest_edit_expires_at}
+                    <span class="guest-reflection-meta">
+                      Guest reflection finalized at {new Date(brew.guest_edit_expires_at).toLocaleTimeString()}
+                    </span>
+                  {/if}
+                </div>
+              {/if}
+              {#if canEdit && guestState !== 'locked'}
+                <button
+                  class="btn-primary"
+                  type="button"
+                  on:click={handleRequestGuestReflection}
+                  disabled={guestRequestLoading}
+                >
+                  {guestRequestLoading ? 'Preparing guest link...' : 'Request Guest Reflection'}
+                </button>
+              {/if}
+            </div>
+            {#if guestShareError}
+              <div class="guest-reflection-error">{guestShareError}</div>
+            {/if}
+            {#if guestShareUrl}
+              <div class="guest-share-card">
+                <div class="guest-share-details">
+                  <span class="guest-share-label">Share link</span>
+                  <div class="guest-share-link">{guestShareUrl}</div>
+                </div>
+                {#if guestShareQrUrl}
+                  <div class="guest-share-qr">
+                    <img src={guestShareQrUrl} alt="Guest reflection QR code" />
+                  </div>
+                {/if}
+              </div>
+            {/if}
             <BrewReflectionForm
               {brew}
               beanTastingNotes={bean?.tasting_notes ?? null}
+              reflectionLocked={guestLockActive}
+              lockMessage={guestLockMessage}
               on:save={handleReflectionSave}
               on:cancel={handleReflectionCancel}
             />
@@ -660,7 +789,13 @@
           </details>
         </div>
       {:else if editing}
-        <BrewForm {brew} on:save={handleSave} on:cancel={handleCancel} />
+        <BrewForm
+          {brew}
+          reflectionLocked={guestLockActive}
+          lockMessage={guestLockMessage}
+          on:save={handleSave}
+          on:cancel={handleCancel}
+        />
       {:else}
         <div class="brew-details">
           <div class="detail-section">
@@ -833,6 +968,18 @@
 
           <div class="detail-section">
             <h3>Reflections</h3>
+            {#if guestStatusLabel}
+              <div class="guest-reflection-status-line">
+                <Chip variant={guestStatusVariant} size="sm">{guestStatusLabel}</Chip>
+                {#if guestCountdown}
+                  <span class="guest-reflection-meta">Guest edit window ends in {guestCountdown}</span>
+                {:else if guestState === 'locked' && brew?.guest_edit_expires_at}
+                  <span class="guest-reflection-meta">
+                    Guest reflection finalized at {new Date(brew.guest_edit_expires_at).toLocaleTimeString()}
+                  </span>
+                {/if}
+              </div>
+            {/if}
             <div class="reflection-grid">
               <div class="reflection-field reflection-field--rating">
                 <span class="reflection-label">Rating</span>
@@ -904,6 +1051,80 @@
   .actions {
     display: flex;
     gap: var(--actions-gap);
+  }
+
+  .guest-reflection-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .guest-reflection-status,
+  .guest-reflection-status-line {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .guest-reflection-status-line {
+    margin-bottom: 0.75rem;
+  }
+
+  .guest-reflection-meta {
+    color: var(--state-color);
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+  }
+
+  .guest-reflection-error {
+    color: var(--error-color);
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+    margin-bottom: 0.75rem;
+  }
+
+  .guest-share-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border: var(--reflection-body-border-width) var(--reflection-body-border-style) var(--reflection-body-border);
+    border-radius: var(--reflection-body-radius);
+    background: var(--reflection-body-bg);
+    margin-bottom: 1.5rem;
+  }
+
+  .guest-share-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .guest-share-label {
+    color: var(--reflection-label-color);
+    font-family: var(--reflection-label-family);
+    font-size: var(--reflection-label-size);
+    font-weight: var(--reflection-label-weight);
+  }
+
+  .guest-share-link {
+    color: var(--reflection-body-color);
+    font-family: var(--reflection-body-family);
+    font-size: var(--reflection-body-size);
+    word-break: break-all;
+  }
+
+  .guest-share-qr img {
+    width: 120px;
+    height: 120px;
+    border-radius: var(--reflection-body-radius);
+    border: var(--reflection-body-border-width) var(--reflection-body-border-style) var(--reflection-body-border);
   }
 
   .link-button {

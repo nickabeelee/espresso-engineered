@@ -127,6 +127,10 @@ export interface Brew {
   rating?: number;
   tasting_notes?: string;
   reflections?: string;
+  guest_token_hash?: string | null;
+  guest_submitted_at?: string | null;
+  guest_edit_expires_at?: string | null;
+  guest_display_name?: string | null;
   bag?: {
     id: string;
     bean?: {
@@ -143,6 +147,49 @@ export interface Brew {
     id: string;
     image_path?: string | null;
   } | null;
+}
+
+export type GuestReflectionState = 'draft' | 'editing' | 'locked';
+
+export interface GuestBrewSummary {
+  id: string;
+  name?: string;
+  rating?: number | null;
+  tasting_notes?: string | null;
+  reflections?: string | null;
+  guest_display_name?: string | null;
+  bag?: {
+    id: string;
+    name?: string | null;
+    bean?: {
+      id: string;
+      name?: string | null;
+      roast_level?: RoastLevel | null;
+      roaster?: {
+        id: string;
+        name?: string | null;
+      } | null;
+    } | null;
+  } | null;
+}
+
+export interface GuestReflectionContext {
+  brew: GuestBrewSummary;
+  state: GuestReflectionState;
+  edit_expires_at?: string | null;
+  submitted_at?: string | null;
+}
+
+export interface GuestReflectionUpdateRequest {
+  rating?: number;
+  tasting_notes?: string;
+  reflections?: string;
+  guest_display_name?: string;
+  submit?: boolean;
+}
+
+export interface GuestTokenResponse {
+  token: string;
 }
 
 // Draft brew interface for offline storage

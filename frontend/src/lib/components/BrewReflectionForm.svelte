@@ -10,6 +10,8 @@
 
   export let brew: Brew;
   export let beanTastingNotes: string | null = null;
+  export let reflectionLocked = false;
+  export let lockMessage = 'Locked while guest completes reflection';
 
   const dispatch = createEventDispatcher<{
     save: Partial<UpdateBrewRequest>;
@@ -176,6 +178,9 @@
   <form on:submit|preventDefault={handleSave}>
     <div class="form-section">
       <h3>Reflection</h3>
+      {#if reflectionLocked}
+        <p class="voice-text lock-message">{lockMessage}</p>
+      {/if}
 
       <div class="form-group" class:missing={missingRating}>
         <label for="reflection-rating">Rating (1-10)</label>
@@ -188,6 +193,8 @@
           max="10"
           step="1"
           placeholder="e.g., 8"
+          disabled={reflectionLocked}
+          title={reflectionLocked ? lockMessage : undefined}
         />
         {#if validationErrors.rating}
           <span class="error-text">{validationErrors.rating}</span>
@@ -203,6 +210,8 @@
           bind:value={tasting_notes}
           rows="3"
           placeholder="e.g., notes of cacao and orange"
+          disabled={reflectionLocked}
+          title={reflectionLocked ? lockMessage : undefined}
         />
         {#if missingTastingNotes}
           <span class="voice-text">
@@ -222,6 +231,8 @@
                     type="button"
                     on:click={() => addTastingNote(note)}
                     aria-pressed={isNoteIncluded(note)}
+                    disabled={reflectionLocked}
+                    title={reflectionLocked ? lockMessage : undefined}
                   >
                     <Chip variant={isNoteIncluded(note) ? 'accent' : 'neutral'} size="sm">
                       {note}
@@ -234,13 +245,15 @@
           <div class="tasting-group">
             <span class="group-label">Coffee compass helpers</span>
             <div class="chip-list">
-              {#each genericNotes as note}
-                <button
-                  class="chip-button"
-                  type="button"
-                  on:click={() => addTastingNote(note)}
-                  aria-pressed={isNoteIncluded(note)}
-                >
+                {#each genericNotes as note}
+                  <button
+                    class="chip-button"
+                    type="button"
+                    on:click={() => addTastingNote(note)}
+                    aria-pressed={isNoteIncluded(note)}
+                    disabled={reflectionLocked}
+                    title={reflectionLocked ? lockMessage : undefined}
+                  >
                   <Chip variant={isNoteIncluded(note) ? 'accent' : 'neutral'} size="sm">
                     {note}
                   </Chip>
@@ -258,6 +271,8 @@
           bind:value={reflections}
           rows="3"
           placeholder="e.g., What worked? What would you change?"
+          disabled={reflectionLocked}
+          title={reflectionLocked ? lockMessage : undefined}
         />
         {#if missingReflections}
           <span class="voice-text">Give yourself a reminder for next time.</span>
@@ -280,6 +295,7 @@
         ariaLabel="Save reflection"
         title="Save reflection"
         variant="success"
+        disabled={reflectionLocked}
       >
         <CheckCircle />
       </IconButton>
@@ -360,6 +376,10 @@
     letter-spacing: var(--voice-letter-spacing, 0.02em);
     font-style: var(--voice-font-style, normal);
     color: var(--voice-color, var(--text-ink-muted));
+  }
+
+  .lock-message {
+    margin: 0;
   }
 
   .error-text {

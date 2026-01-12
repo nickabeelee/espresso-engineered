@@ -11,8 +11,9 @@
   // Pages that don't require authentication
   const publicPages = ['/auth', '/'];
   
-  $: isPublicPage = publicPages.includes($page.url.pathname)
-    && !($page.url.pathname === '/' && $isAuthenticated);
+  $: isGuestPage = $page.url.pathname.startsWith('/guest');
+  $: isPublicPage = (publicPages.includes($page.url.pathname)
+    && !($page.url.pathname === '/' && $isAuthenticated)) || isGuestPage;
 
   let isNavHidden = false;
   let lastScrollY = 0;
