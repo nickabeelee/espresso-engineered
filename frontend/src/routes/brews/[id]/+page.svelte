@@ -38,6 +38,7 @@
   let roaster: Roaster | null = null;
   let bagOwnerName = 'Unknown';
   let guestShareUrl: string | null = null;
+  let guestShareToken: string | null = null;
   let guestShareError: string | null = null;
   let guestRequestLoading = false;
   let nowTimestamp = Date.now();
@@ -47,6 +48,9 @@
   let guestStatusVariant: 'neutral' | 'warning' | 'success' = 'neutral';
   let guestCountdown: string | null = null;
   let guestShareQrUrl: string | null = null;
+  let guestShareOpen = false;
+  let guestShareCopied = false;
+  let guestShareCopyError: string | null = null;
   let guestLockMessage = 'Locked while guest completes reflection';
   const detailStyle = toStyleString({
     '--page-gap': spacing["2xl"],
@@ -229,6 +233,27 @@
     return () => window.clearInterval(timer);
   });
 
+  function getGuestStorageKey(id: string) {
+    return `guestReflectionToken:${id}`;
+  }
+
+  function syncGuestTokenFromStorage(id: string) {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(getGuestStorageKey(id));
+    if (stored) {
+      guestShareToken = stored;
+      guestShareUrl = `${window.location.origin}/guest/${stored}`;
+    } else {
+      guestShareToken = null;
+      guestShareUrl = null;
+    }
+  }
+
+  function clearGuestTokenStorage(id: string) {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(getGuestStorageKey(id));
+  }
+
   async function loadBrew(id: string) {
     loading = true;
     error = null;
@@ -237,8 +262,8 @@
       const response = await apiClient.getBrew(id);
       if (response.data) {
         brew = response.data;
-        guestShareUrl = null;
         guestShareError = null;
+        syncGuestTokenFromStorage(id);
         
         // Check if current user can edit this brew
         const currentBarista = $barista;
@@ -464,6 +489,7 @@
     if (!brew || guestRequestLoading) return;
     guestRequestLoading = true;
     guestShareError = null;
+    guestShareCopyError = null;
 
     try {
       const response = await apiClient.requestGuestReflectionToken(brew.id);
@@ -472,12 +498,44 @@
         throw new Error('Guest reflection link could not be created');
       }
 
+      guestShareToken = token;
       guestShareUrl = `${window.location.origin}/guest/${token}`;
+      window.localStorage.setItem(getGuestStorageKey(brew.id), token);
+      guestShareOpen = true;
       await loadBrew(brew.id);
     } catch (err) {
       guestShareError = err instanceof Error ? err.message : 'Failed to create guest reflection link';
     } finally {
       guestRequestLoading = false;
+    }
+  }
+
+  function handleOpenGuestShare() {
+    if (guestState === 'locked' || !brew) return;
+    syncGuestTokenFromStorage(brew.id);
+    if (guestShareUrl) {
+      guestShareCopied = false;
+      guestShareCopyError = null;
+      guestShareOpen = true;
+    }
+  }
+
+  function handleCloseGuestShare() {
+    guestShareOpen = false;
+  }
+
+  async function copyGuestShareLink() {
+    if (!guestShareUrl) return;
+    guestShareCopied = false;
+    guestShareCopyError = null;
+    try {
+      await navigator.clipboard.writeText(guestShareUrl);
+      guestShareCopied = true;
+      window.setTimeout(() => {
+        guestShareCopied = false;
+      }, 2000);
+    } catch (err) {
+      guestShareCopyError = 'Copy failed. Select and copy the link.';
     }
   }
 
@@ -499,8 +557,19 @@
     ? formatCountdown(brew.guest_edit_expires_at)
     : null;
   $: guestShareQrUrl = guestShareUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(guestShareUrl)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(guestShareUrl)}`
     : null;
+  $: if (guestState === 'none' && brewId) {
+    guestShareToken = null;
+    guestShareUrl = null;
+    clearGuestTokenStorage(brewId);
+  }
+  $: if (guestState === 'locked' && brewId) {
+    guestShareOpen = false;
+    guestShareToken = null;
+    guestShareUrl = null;
+    clearGuestTokenStorage(brewId);
+  }
 </script>
 
 <svelte:head>
@@ -574,31 +643,29 @@
                 </div>
               {/if}
               {#if canEdit && guestState !== 'locked'}
-                <button
-                  class="btn-primary"
-                  type="button"
-                  on:click={handleRequestGuestReflection}
-                  disabled={guestRequestLoading}
-                >
-                  {guestRequestLoading ? 'Preparing guest link...' : 'Request Guest Reflection'}
-                </button>
+                {#if guestShareToken}
+                  <button
+                    class="btn-primary"
+                    type="button"
+                    on:click={handleOpenGuestShare}
+                    disabled={guestRequestLoading}
+                  >
+                    View Guest Link
+                  </button>
+                {:else}
+                  <button
+                    class="btn-primary"
+                    type="button"
+                    on:click={handleRequestGuestReflection}
+                    disabled={guestRequestLoading}
+                  >
+                    {guestRequestLoading ? 'Preparing guest link...' : 'Request Guest Reflection'}
+                  </button>
+                {/if}
               {/if}
             </div>
             {#if guestShareError}
               <div class="guest-reflection-error">{guestShareError}</div>
-            {/if}
-            {#if guestShareUrl}
-              <div class="guest-share-card">
-                <div class="guest-share-details">
-                  <span class="guest-share-label">Share link</span>
-                  <div class="guest-share-link">{guestShareUrl}</div>
-                </div>
-                {#if guestShareQrUrl}
-                  <div class="guest-share-qr">
-                    <img src={guestShareQrUrl} alt="Guest reflection QR code" />
-                  </div>
-                {/if}
-              </div>
             {/if}
             <BrewReflectionForm
               {brew}
@@ -1022,6 +1089,41 @@
   {:else}
     <div class="not-found">Brew not found</div>
   {/if}
+  {#if guestShareOpen && guestShareUrl}
+    <div class="guest-share-modal" role="dialog" aria-modal="true" aria-label="Guest reflection link">
+      <button class="guest-share-backdrop" type="button" on:click={handleCloseGuestShare} aria-label="Close"></button>
+      <div class="guest-share-panel">
+        <div class="guest-share-header">
+          <div>
+            <h2>Guest Reflection Link</h2>
+            <p class="guest-share-subtitle">Have your guest scan the QR code or copy the link below.</p>
+          </div>
+          <IconButton on:click={handleCloseGuestShare} ariaLabel="Close" title="Close" variant="neutral">
+            <XMark />
+          </IconButton>
+        </div>
+        <div class="guest-share-body">
+          {#if guestShareQrUrl}
+            <div class="guest-share-qr">
+              <img src={guestShareQrUrl} alt="Guest reflection QR code" />
+            </div>
+          {/if}
+          <div class="guest-share-details">
+            <span class="guest-share-label">Share link</span>
+            <div class="guest-share-link">{guestShareUrl}</div>
+            <div class="guest-share-actions">
+              <button class="btn-primary" type="button" on:click={copyGuestShareLink}>
+                {guestShareCopied ? 'Link copied' : 'Copy link'}
+              </button>
+              {#if guestShareCopyError}
+                <span class="guest-reflection-error">{guestShareCopyError}</span>
+              {/if}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
   </div>
 </AuthGuard>
 
@@ -1087,18 +1189,6 @@
     margin-bottom: 0.75rem;
   }
 
-  .guest-share-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem;
-    border: var(--reflection-body-border-width) var(--reflection-body-border-style) var(--reflection-body-border);
-    border-radius: var(--reflection-body-radius);
-    background: var(--reflection-body-bg);
-    margin-bottom: 1.5rem;
-  }
-
   .guest-share-details {
     display: flex;
     flex-direction: column;
@@ -1121,10 +1211,91 @@
   }
 
   .guest-share-qr img {
-    width: 120px;
-    height: 120px;
+    width: min(320px, 70vw);
+    height: min(320px, 70vw);
     border-radius: var(--reflection-body-radius);
     border: var(--reflection-body-border-width) var(--reflection-body-border-style) var(--reflection-body-border);
+  }
+
+  .guest-share-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+  }
+
+  .guest-share-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(43, 33, 24, 0.55);
+    border: none;
+  }
+
+  .guest-share-panel {
+    position: relative;
+    z-index: 1;
+    width: min(820px, 100%);
+    background: var(--detail-section-bg);
+    border: var(--detail-section-border-width) var(--detail-section-border-style) var(--detail-section-border);
+    border-radius: var(--detail-section-radius);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: var(--card-shadow, 0 24px 48px rgba(35, 24, 16, 0.25));
+  }
+
+  .guest-share-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .guest-share-header h2 {
+    margin: 0;
+    font-family: var(--detail-title-family);
+    font-size: var(--detail-title-size);
+    font-weight: var(--detail-title-weight);
+    color: var(--detail-title-color);
+  }
+
+  .guest-share-subtitle {
+    margin: 0.35rem 0 0 0;
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+    color: var(--state-color);
+  }
+
+  .guest-share-body {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.2fr);
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .guest-share-actions {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 720px) {
+    .guest-share-panel {
+      padding: 1.5rem;
+    }
+
+    .guest-share-body {
+      grid-template-columns: 1fr;
+    }
+
+    .guest-share-qr {
+      justify-self: center;
+    }
   }
 
   .link-button {

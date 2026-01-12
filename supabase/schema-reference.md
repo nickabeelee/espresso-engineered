@@ -157,6 +157,10 @@ All tables have RLS (Row Level Security) enabled.
 | rating | integer | nullable, updatable | - |
 | tasting_notes | text | nullable, updatable | - |
 | reflections | text | nullable, updatable | - |
+| guest_token_hash | text | nullable, updatable | - |
+| guest_submitted_at | timestamptz | nullable, updatable | - |
+| guest_edit_expires_at | timestamptz | nullable, updatable | - |
+| guest_display_name | text | nullable, updatable | - |
 
 **Field Precision Notes:**
 - `dose_g`: Coffee dose in grams with 0.1g precision
