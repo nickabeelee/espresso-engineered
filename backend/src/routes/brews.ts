@@ -14,8 +14,10 @@ import {
   Brew 
 } from '../types/index.js';
 import { handleRouteError, isNotFoundError } from '../utils/error-helpers.js';
+import { generateGuestToken, isGuestReflectionLocked } from '../utils/guest-reflection.js';
 
 const brewRepository = new BrewRepository();
+const reflectionFields = ['rating', 'tasting_notes', 'reflections'] as const;
 
 export async function brewRoutes(fastify: FastifyInstance) {
   // GET /api/brews/week - Get brews from current week grouped by barista and bean
@@ -237,6 +239,45 @@ export async function brewRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // POST /api/brews/:id/guest-token - Create or refresh guest reflection token
+  fastify.post('/api/brews/:id/guest-token', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const authRequest = request as AuthenticatedRequest;
+      const { id } = request.params as { id: string };
+      const ownerId = authRequest.barista?.is_admin ? undefined : authRequest.barista!.id;
+
+      const brew = await brewRepository.findById(id, ownerId);
+      if (brew.guest_submitted_at) {
+        return reply.status(409).send({
+          error: 'Conflict',
+          message: 'Guest reflection has already been submitted'
+        });
+      }
+
+      const { token, hash } = generateGuestToken();
+      await brewRepository.update(id, {
+        guest_token_hash: hash,
+        guest_submitted_at: null,
+        guest_edit_expires_at: null,
+        guest_display_name: null
+      }, ownerId);
+
+      return { data: { token } };
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Brew not found or access denied'
+        });
+      }
+
+      request.log.error(error);
+      return handleRouteError(error, reply, 'create guest token');
+    }
+  });
+
   // PUT /api/brews/:id - Update brew
   fastify.put('/api/brews/:id', {
     preHandler: authenticateRequest
@@ -246,6 +287,17 @@ export async function brewRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       const brewData = validateSchema(updateBrewSchema, request.body);
       const ownerId = authRequest.barista?.is_admin ? undefined : authRequest.barista!.id;
+
+      const isReflectionUpdate = reflectionFields.some((field) => field in brewData);
+      if (isReflectionUpdate) {
+        const existing = await brewRepository.findById(id, ownerId);
+        if (isGuestReflectionLocked(existing)) {
+          return reply.status(423).send({
+            error: 'Locked',
+            message: 'Reflection fields are locked while guest completes their reflection'
+          });
+        }
+      }
 
       // Update brew with calculated fields
       const brew = await brewRepository.update(id, brewData, ownerId);
@@ -273,6 +325,17 @@ export async function brewRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       const outputData = validateSchema(completeDraftSchema, request.body);
       const ownerId = authRequest.barista?.is_admin ? undefined : authRequest.barista!.id;
+
+      const isReflectionUpdate = reflectionFields.some((field) => field in outputData);
+      if (isReflectionUpdate) {
+        const existing = await brewRepository.findById(id, ownerId);
+        if (isGuestReflectionLocked(existing)) {
+          return reply.status(423).send({
+            error: 'Locked',
+            message: 'Reflection fields are locked while guest completes their reflection'
+          });
+        }
+      }
 
       // Complete the draft with output measurements
       const brew = await brewRepository.completeDraft(id, outputData, ownerId);

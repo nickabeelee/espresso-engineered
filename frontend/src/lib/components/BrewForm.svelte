@@ -15,6 +15,8 @@
   import MachineSelector from './MachineSelector.svelte';
 
   export let brew: Brew | null = null;
+  export let reflectionLocked = false;
+  export let lockMessage = 'Locked while guest completes reflection';
   let name = '';
   let isNameAuto = true;
   let nameTouched = false;
@@ -575,6 +577,9 @@
     <!-- Evaluation -->
     <div class="form-section card">
       <h3>Evaluation</h3>
+      {#if reflectionLocked}
+        <p class="voice-text lock-message">{lockMessage}</p>
+      {/if}
       
       <div class="form-group">
         <label for="rating">Rating (1-10)</label>
@@ -587,7 +592,8 @@
           max="10"
           step="1"
           placeholder="e.g., 8"
-          disabled={loading}
+          disabled={loading || reflectionLocked}
+          title={reflectionLocked ? lockMessage : undefined}
           on:keydown={(event) => handleEnterAdvance(event, () => tastingNotesInput?.focus())}
           enterkeyhint="next"
           bind:this={ratingInput}
@@ -604,7 +610,8 @@
           bind:value={tasting_notes}
           rows="3"
           placeholder="e.g., notes of cacao and orange"
-          disabled={loading}
+          disabled={loading || reflectionLocked}
+          title={reflectionLocked ? lockMessage : undefined}
           bind:this={tastingNotesInput}
         />
       </div>
@@ -616,7 +623,8 @@
           bind:value={reflections}
           rows="3"
           placeholder="e.g., What worked? What would you change?"
-          disabled={loading}
+          disabled={loading || reflectionLocked}
+          title={reflectionLocked ? lockMessage : undefined}
           bind:this={reflectionsInput}
         />
       </div>
@@ -726,6 +734,10 @@
     font-size: 0.9rem;
     line-height: 1.7;
     margin: 0;
+  }
+
+  .lock-message {
+    margin-bottom: 0.5rem;
   }
 
   .prefill-banner {
