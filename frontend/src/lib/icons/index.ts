@@ -14,6 +14,7 @@ export { default as ChevronLeft } from './outline/ChevronLeft.svelte';
 export { default as ChevronRight } from './outline/ChevronRight.svelte';
 export { default as MagnifyingGlass } from './outline/MagnifyingGlass.svelte';
 export { default as DocumentDuplicate } from './outline/DocumentDuplicate.svelte';
+export { default as ClipboardDocument } from './outline/ClipboardDocument.svelte';
 export { default as StarOutline } from './outline/Star.svelte';
 export { default as Calendar } from './outline/Calendar.svelte';
 

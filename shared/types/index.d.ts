@@ -114,6 +114,7 @@ export interface GuestReflectionContext {
     state: GuestReflectionState;
     edit_expires_at?: string | null;
     submitted_at?: string | null;
+    edit_window_minutes?: number;
 }
 export interface GuestReflectionUpdateRequest {
     rating?: number;
@@ -124,6 +125,7 @@ export interface GuestReflectionUpdateRequest {
 }
 export interface GuestTokenResponse {
     token: string;
+    edit_window_minutes?: number;
 }
 export interface BrewDraft extends Partial<Brew> {
     barista_id: string;

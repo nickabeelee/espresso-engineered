@@ -14,7 +14,7 @@ import {
   Brew 
 } from '../types/index.js';
 import { handleRouteError, isNotFoundError } from '../utils/error-helpers.js';
-import { generateGuestToken, isGuestReflectionLocked } from '../utils/guest-reflection.js';
+import { generateGuestToken, getGuestEditWindowMinutes, isGuestReflectionLocked } from '../utils/guest-reflection.js';
 
 const brewRepository = new BrewRepository();
 const reflectionFields = ['rating', 'tasting_notes', 'reflections'] as const;
@@ -257,14 +257,16 @@ export async function brewRoutes(fastify: FastifyInstance) {
       }
 
       const { token, hash } = generateGuestToken();
+      const now = new Date();
+      const editExpiresAt = new Date(now.getTime() + getGuestEditWindowMinutes() * 60 * 1000);
       await brewRepository.update(id, {
         guest_token_hash: hash,
         guest_submitted_at: null,
-        guest_edit_expires_at: null,
+        guest_edit_expires_at: editExpiresAt.toISOString(),
         guest_display_name: null
       }, ownerId);
 
-      return { data: { token } };
+      return { data: { token, edit_window_minutes: getGuestEditWindowMinutes() } };
     } catch (error) {
       if (isNotFoundError(error)) {
         return reply.status(404).send({

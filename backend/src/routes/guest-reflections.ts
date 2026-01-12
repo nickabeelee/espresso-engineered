@@ -1,10 +1,11 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { supabase } from '../config/supabase.js';
 import { validateSchema, guestReflectionUpdateSchema } from '../validation/schemas.js';
-import { deriveGuestReflectionState, getGuestEditWindowMs, hashGuestToken } from '../utils/guest-reflection.js';
+import { deriveGuestReflectionState, getGuestEditWindowMinutes, getGuestEditWindowMs, hashGuestToken } from '../utils/guest-reflection.js';
 import type { GuestReflectionContext, GuestReflectionUpdateRequest } from '../types/index.js';
 
 const guestEditWindowMs = getGuestEditWindowMs();
+const guestEditWindowMinutes = getGuestEditWindowMinutes();
 
 type GuestBrewRow = {
   id: string;
@@ -90,7 +91,8 @@ function buildGuestContext(brew: GuestBrewRow): GuestReflectionContext {
     },
     state: state === 'none' ? 'draft' : state,
     edit_expires_at: brew.guest_edit_expires_at ?? null,
-    submitted_at: brew.guest_submitted_at ?? null
+    submitted_at: brew.guest_submitted_at ?? null,
+    edit_window_minutes: guestEditWindowMinutes
   };
 }
 
@@ -160,7 +162,9 @@ export async function guestReflectionRoutes(fastify: FastifyInstance) {
 
       if (updateRequest.submit && !hasSubmitted) {
         updates.guest_submitted_at = now.toISOString();
-        updates.guest_edit_expires_at = new Date(now.getTime() + guestEditWindowMs).toISOString();
+        if (!brew.guest_edit_expires_at) {
+          updates.guest_edit_expires_at = new Date(now.getTime() + guestEditWindowMs).toISOString();
+        }
       }
 
       if (!Object.keys(updates).length) {

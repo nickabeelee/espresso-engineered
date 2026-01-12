@@ -29,14 +29,12 @@ export function deriveGuestReflectionState(brew: Pick<Brew, 'guest_token_hash' |
   if (!brew.guest_token_hash) {
     return 'none';
   }
-  if (!brew.guest_submitted_at) {
-    return 'draft';
-  }
   if (brew.guest_edit_expires_at) {
     const expiresAt = new Date(brew.guest_edit_expires_at).getTime();
-    if (Date.now() < expiresAt) {
-      return 'editing';
-    }
+    return Date.now() < expiresAt ? 'editing' : 'locked';
+  }
+  if (!brew.guest_submitted_at) {
+    return 'draft';
   }
   return 'locked';
 }

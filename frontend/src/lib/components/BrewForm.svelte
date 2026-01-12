@@ -3,8 +3,9 @@
   import { createEventDispatcher } from 'svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
+  import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { CheckCircle, DocumentDuplicate, XMark } from '$lib/icons';
+  import { CheckCircle, ClipboardDocument, DocumentDuplicate, XMark } from '$lib/icons';
   import { buildBrewName } from '$lib/utils/brew-naming';
   import { editableField, formHelperText, formLabel, formSection, readOnlyField } from '$lib/ui/components/form';
   import { toStyleString } from '$lib/ui/style';
@@ -17,6 +18,10 @@
   export let brew: Brew | null = null;
   export let reflectionLocked = false;
   export let lockMessage = 'Locked while guest completes reflection';
+  export let showGuestLinkActions = false;
+  export let onViewGuestLink: (() => void) | null = null;
+  export let onCopyGuestLink: (() => void) | null = null;
+  export let guestLinkError: string | null = null;
   let name = '';
   let isNameAuto = true;
   let nameTouched = false;
@@ -579,6 +584,26 @@
       <h3>Evaluation</h3>
       {#if reflectionLocked}
         <p class="voice-text lock-message">{lockMessage}</p>
+        {#if showGuestLinkActions}
+          <div class="guest-link-actions">
+            <GhostButton type="button" size="sm" variant="neutral" on:click={() => onViewGuestLink?.()}>
+              View guest link
+            </GhostButton>
+            <GhostButton
+              type="button"
+              size="sm"
+              variant="neutral"
+              ariaLabel="Copy guest link"
+              title="Copy guest link"
+              on:click={() => onCopyGuestLink?.()}
+            >
+              <ClipboardDocument size={18} />
+            </GhostButton>
+          </div>
+          {#if guestLinkError}
+            <span class="error-text">{guestLinkError}</span>
+          {/if}
+        {/if}
       {/if}
       
       <div class="form-group">
@@ -739,6 +764,14 @@
   .lock-message {
     margin-bottom: 0.5rem;
   }
+
+  .guest-link-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
 
   .prefill-banner {
     display: flex;

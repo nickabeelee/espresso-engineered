@@ -1,8 +1,9 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import Chip from '$lib/components/Chip.svelte';
+  import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { CheckCircle, XMark } from '$lib/icons';
+  import { CheckCircle, ClipboardDocument, XMark } from '$lib/icons';
   import { editableField, formHelperText, formLabel, formSection } from '$lib/ui/components/form';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
@@ -12,6 +13,10 @@
   export let beanTastingNotes: string | null = null;
   export let reflectionLocked = false;
   export let lockMessage = 'Locked while guest completes reflection';
+  export let showGuestLinkActions = false;
+  export let onViewGuestLink: (() => void) | null = null;
+  export let onCopyGuestLink: (() => void) | null = null;
+  export let guestLinkError: string | null = null;
 
   const dispatch = createEventDispatcher<{
     save: Partial<UpdateBrewRequest>;
@@ -180,6 +185,26 @@
       <h3>Reflection</h3>
       {#if reflectionLocked}
         <p class="voice-text lock-message">{lockMessage}</p>
+        {#if showGuestLinkActions}
+          <div class="guest-link-actions">
+            <GhostButton type="button" size="sm" variant="neutral" on:click={() => onViewGuestLink?.()}>
+              View guest link
+            </GhostButton>
+            <GhostButton
+              type="button"
+              size="sm"
+              variant="neutral"
+              ariaLabel="Copy guest link"
+              title="Copy guest link"
+              on:click={() => onCopyGuestLink?.()}
+            >
+              <ClipboardDocument size={18} />
+            </GhostButton>
+          </div>
+          {#if guestLinkError}
+            <span class="error-text">{guestLinkError}</span>
+          {/if}
+        {/if}
       {/if}
 
       <div class="form-group" class:missing={missingRating}>
@@ -381,6 +406,14 @@
   .lock-message {
     margin: 0;
   }
+
+  .guest-link-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
 
   .error-text {
     color: var(--form-error-color, var(--semantic-error));

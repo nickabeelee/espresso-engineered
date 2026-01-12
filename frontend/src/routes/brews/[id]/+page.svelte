@@ -6,11 +6,12 @@
   import BrewForm from '$lib/components/BrewForm.svelte';
   import BrewReflectionForm from '$lib/components/BrewReflectionForm.svelte';
   import Chip from '$lib/components/Chip.svelte';
+  import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { ChevronDown, PencilSquare, Trash, XMark } from '$lib/icons';
+  import { ChevronDown, ClipboardDocument, PencilSquare, Trash, XMark } from '$lib/icons';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import { imageFrame, imageSizes } from '$lib/ui/components/image';
   import { alertBase, alertSizes, alertVariants } from '$lib/ui/components/alert';
@@ -51,7 +52,10 @@
   let guestShareOpen = false;
   let guestShareCopied = false;
   let guestShareCopyError: string | null = null;
+  let guestShareHelper: string | null = null;
+  let guestEditWindowMinutes: number | null = null;
   let guestLockMessage = 'Locked while guest completes reflection';
+  let canShowGuestLinkActions = false;
   const detailStyle = toStyleString({
     '--page-gap': spacing["2xl"],
     '--header-gap': spacing.xl,
@@ -237,6 +241,10 @@
     return `guestReflectionToken:${id}`;
   }
 
+  function getGuestWindowStorageKey(id: string) {
+    return `guestReflectionWindowMinutes:${id}`;
+  }
+
   function syncGuestTokenFromStorage(id: string) {
     if (typeof window === 'undefined') return;
     const stored = window.localStorage.getItem(getGuestStorageKey(id));
@@ -247,11 +255,19 @@
       guestShareToken = null;
       guestShareUrl = null;
     }
+    const storedWindow = window.localStorage.getItem(getGuestWindowStorageKey(id));
+    if (storedWindow) {
+      const parsed = Number.parseInt(storedWindow, 10);
+      guestEditWindowMinutes = Number.isFinite(parsed) ? parsed : null;
+    } else {
+      guestEditWindowMinutes = null;
+    }
   }
 
   function clearGuestTokenStorage(id: string) {
     if (typeof window === 'undefined') return;
     window.localStorage.removeItem(getGuestStorageKey(id));
+    window.localStorage.removeItem(getGuestWindowStorageKey(id));
   }
 
   async function loadBrew(id: string) {
@@ -462,16 +478,11 @@
     if (!currentBrew?.guest_token_hash) {
       return 'none';
     }
-    if (!currentBrew.guest_submitted_at) {
-      return 'draft';
-    }
     if (currentBrew.guest_edit_expires_at) {
       const expiresAt = new Date(currentBrew.guest_edit_expires_at).getTime();
-      if (nowTimestamp < expiresAt) {
-        return 'editing';
-      }
+      return nowTimestamp < expiresAt ? 'editing' : 'locked';
     }
-    return 'locked';
+    return currentBrew.guest_submitted_at ? 'locked' : 'draft';
   }
 
   function formatCountdown(expiresAt: string): string {
@@ -494,13 +505,18 @@
     try {
       const response = await apiClient.requestGuestReflectionToken(brew.id);
       const token = response.data?.token;
+      const windowMinutes = response.data?.edit_window_minutes;
       if (!token) {
         throw new Error('Guest reflection link could not be created');
       }
 
       guestShareToken = token;
       guestShareUrl = `${window.location.origin}/guest/${token}`;
+      guestEditWindowMinutes = windowMinutes ?? null;
       window.localStorage.setItem(getGuestStorageKey(brew.id), token);
+      if (windowMinutes) {
+        window.localStorage.setItem(getGuestWindowStorageKey(brew.id), windowMinutes.toString());
+      }
       guestShareOpen = true;
       await loadBrew(brew.id);
     } catch (err) {
@@ -513,11 +529,13 @@
   function handleOpenGuestShare() {
     if (guestState === 'locked' || !brew) return;
     syncGuestTokenFromStorage(brew.id);
-    if (guestShareUrl) {
-      guestShareCopied = false;
-      guestShareCopyError = null;
-      guestShareOpen = true;
+    if (!guestShareUrl) {
+      guestShareError = 'Guest link is only available on the device where it was created.';
+      return;
     }
+    guestShareCopied = false;
+    guestShareCopyError = null;
+    guestShareOpen = true;
   }
 
   function handleCloseGuestShare() {
@@ -525,7 +543,13 @@
   }
 
   async function copyGuestShareLink() {
-    if (!guestShareUrl) return;
+    if (brew) {
+      syncGuestTokenFromStorage(brew.id);
+    }
+    if (!guestShareUrl) {
+      guestShareError = 'Guest link is only available on the device where it was created.';
+      return;
+    }
     guestShareCopied = false;
     guestShareCopyError = null;
     try {
@@ -546,12 +570,16 @@
     : guestState === 'editing'
       ? 'Guest editing'
       : guestState === 'locked'
-        ? 'Guest finalized'
+        ? brew?.guest_submitted_at
+          ? 'Guest finalized'
+          : 'Link expired'
         : null;
   $: guestStatusVariant = guestState === 'editing'
     ? 'warning'
     : guestState === 'locked'
-      ? 'success'
+      ? brew?.guest_submitted_at
+        ? 'success'
+        : 'warning'
       : 'neutral';
   $: guestCountdown = guestState === 'editing' && brew?.guest_edit_expires_at
     ? formatCountdown(brew.guest_edit_expires_at)
@@ -559,6 +587,16 @@
   $: guestShareQrUrl = guestShareUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(guestShareUrl)}`
     : null;
+  $: canShowGuestLinkActions = guestState === 'editing';
+  $: guestShareHelper = guestState === 'editing' && brew?.guest_edit_expires_at
+    ? `Link expires at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}.`
+    : guestState === 'draft'
+      ? guestEditWindowMinutes
+        ? `This link expires about ${guestEditWindowMinutes} minutes after it’s created.`
+        : 'This link expires after a limited window.'
+      : guestState === 'locked'
+        ? 'Guest reflection is finalized or the link has expired.'
+        : null;
   $: if (guestState === 'none' && brewId) {
     guestShareToken = null;
     guestShareUrl = null;
@@ -634,24 +672,40 @@
                 <div class="guest-reflection-status">
                   <Chip variant={guestStatusVariant} size="sm">{guestStatusLabel}</Chip>
                   {#if guestCountdown}
-                    <span class="guest-reflection-meta">Guest edit window ends in {guestCountdown}</span>
+                    <span class="guest-reflection-meta">Link expires in {guestCountdown}</span>
                   {:else if guestState === 'locked' && brew?.guest_edit_expires_at}
                     <span class="guest-reflection-meta">
-                      Guest reflection finalized at {new Date(brew.guest_edit_expires_at).toLocaleTimeString()}
+                      {brew.guest_submitted_at
+                        ? `Guest reflection finalized at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}`
+                        : `Guest link expired at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}`}
                     </span>
                   {/if}
                 </div>
               {/if}
-              {#if canEdit && guestState !== 'locked'}
-                {#if guestShareToken}
-                  <button
-                    class="btn-primary"
-                    type="button"
-                    on:click={handleOpenGuestShare}
-                    disabled={guestRequestLoading}
-                  >
-                    View Guest Link
-                  </button>
+              {#if canEdit && !brew.guest_submitted_at}
+                {#if canShowGuestLinkActions}
+                  <div class="guest-link-actions">
+                    <GhostButton
+                      type="button"
+                      size="sm"
+                      variant="neutral"
+                      on:click={handleOpenGuestShare}
+                      disabled={guestRequestLoading}
+                    >
+                      View Guest Link
+                    </GhostButton>
+                    <GhostButton
+                      type="button"
+                      size="sm"
+                      variant="neutral"
+                      ariaLabel="Copy guest link"
+                      title="Copy guest link"
+                      on:click={copyGuestShareLink}
+                      disabled={!guestShareUrl}
+                    >
+                      <ClipboardDocument size={18} />
+                    </GhostButton>
+                  </div>
                 {:else}
                   <button
                     class="btn-primary"
@@ -672,6 +726,10 @@
               beanTastingNotes={bean?.tasting_notes ?? null}
               reflectionLocked={guestLockActive}
               lockMessage={guestLockMessage}
+              showGuestLinkActions={canShowGuestLinkActions}
+              onViewGuestLink={handleOpenGuestShare}
+              onCopyGuestLink={copyGuestShareLink}
+              guestLinkError={guestShareError}
               on:save={handleReflectionSave}
               on:cancel={handleReflectionCancel}
             />
@@ -860,6 +918,10 @@
           {brew}
           reflectionLocked={guestLockActive}
           lockMessage={guestLockMessage}
+          showGuestLinkActions={canShowGuestLinkActions}
+          onViewGuestLink={handleOpenGuestShare}
+          onCopyGuestLink={copyGuestShareLink}
+          guestLinkError={guestShareError}
           on:save={handleSave}
           on:cancel={handleCancel}
         />
@@ -1039,13 +1101,36 @@
               <div class="guest-reflection-status-line">
                 <Chip variant={guestStatusVariant} size="sm">{guestStatusLabel}</Chip>
                 {#if guestCountdown}
-                  <span class="guest-reflection-meta">Guest edit window ends in {guestCountdown}</span>
+                  <span class="guest-reflection-meta">Link expires in {guestCountdown}</span>
                 {:else if guestState === 'locked' && brew?.guest_edit_expires_at}
                   <span class="guest-reflection-meta">
-                    Guest reflection finalized at {new Date(brew.guest_edit_expires_at).toLocaleTimeString()}
+                    {brew.guest_submitted_at
+                      ? `Guest reflection finalized at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}`
+                      : `Guest link expired at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}`}
                   </span>
                 {/if}
               </div>
+            {/if}
+            {#if canShowGuestLinkActions}
+              <div class="guest-link-actions">
+                <GhostButton type="button" size="sm" variant="neutral" on:click={handleOpenGuestShare}>
+                  View Guest Link
+                </GhostButton>
+                <GhostButton
+                  type="button"
+                  size="sm"
+                  variant="neutral"
+                  ariaLabel="Copy guest link"
+                  title="Copy guest link"
+                  on:click={copyGuestShareLink}
+                  disabled={!guestShareUrl}
+                >
+                  <ClipboardDocument size={18} />
+                </GhostButton>
+              </div>
+            {/if}
+            {#if guestShareError}
+              <div class="guest-reflection-error">{guestShareError}</div>
             {/if}
             <div class="reflection-grid">
               <div class="reflection-field reflection-field--rating">
@@ -1097,6 +1182,9 @@
           <div>
             <h2>Guest Reflection Link</h2>
             <p class="guest-share-subtitle">Have your guest scan the QR code or copy the link below.</p>
+            {#if guestShareHelper}
+              <p class="guest-share-helper">{guestShareHelper}</p>
+            {/if}
           </div>
           <IconButton on:click={handleCloseGuestShare} ariaLabel="Close" title="Close" variant="neutral">
             <XMark />
@@ -1112,7 +1200,8 @@
             <span class="guest-share-label">Share link</span>
             <div class="guest-share-link">{guestShareUrl}</div>
             <div class="guest-share-actions">
-              <button class="btn-primary" type="button" on:click={copyGuestShareLink}>
+              <button class="btn-primary btn-with-icon" type="button" on:click={copyGuestShareLink}>
+                <ClipboardDocument size={18} />
                 {guestShareCopied ? 'Link copied' : 'Copy link'}
               </button>
               {#if guestShareCopyError}
@@ -1166,6 +1255,13 @@
 
   .guest-reflection-status,
   .guest-reflection-status-line {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .guest-link-actions {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -1269,6 +1365,13 @@
     color: var(--state-color);
   }
 
+  .guest-share-helper {
+    margin: 0.5rem 0 0 0;
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+    color: var(--state-color);
+  }
+
   .guest-share-body {
     display: grid;
     grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.2fr);
@@ -1282,6 +1385,12 @@
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
+  }
+
+  .btn-with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   @media (max-width: 720px) {
