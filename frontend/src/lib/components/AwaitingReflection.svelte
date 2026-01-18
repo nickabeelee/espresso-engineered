@@ -18,7 +18,7 @@
       error = null;
 
       const response = await apiClient.getDraftBrews();
-      draftBrews = response.data;
+      draftBrews = response.data.filter(brew => typeof brew.rating !== 'number');
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load draft brews';
       console.error('Failed to load draft brews:', err);
@@ -44,22 +44,11 @@
   }
 
   function getMissingFields(brew: Brew): string[] {
-    const missing: string[] = [];
-    if (!brew.rating) missing.push('Rating');
-    if (!brew.tasting_notes) missing.push('Tasting Notes');
-    if (!brew.reflections) missing.push('Reflections');
-    return missing;
+    return typeof brew.rating === 'number' ? [] : ['Rating'];
   }
 
   function getCompletionPercentage(brew: Brew): number {
-    const totalFields = 3; // rating, tasting_notes, reflections
-    const completedFields = [
-      brew.rating,
-      brew.tasting_notes,
-      brew.reflections
-    ].filter(field => field !== undefined && field !== null && field !== '').length;
-    
-    return Math.round((completedFields / totalFields) * 100);
+    return typeof brew.rating === 'number' ? 100 : 0;
   }
 
   async function quickComplete(brew: Brew, field: string, value: any) {
@@ -71,7 +60,7 @@
       const index = draftBrews.findIndex(b => b.id === brew.id);
       if (index !== -1) {
         draftBrews[index] = { ...draftBrews[index], ...updateData };
-        draftBrews = draftBrews; // Trigger reactivity
+        draftBrews = draftBrews.filter(entry => typeof entry.rating !== 'number');
       }
     } catch (err) {
       console.error(`Failed to update ${field}:`, err);
@@ -87,7 +76,7 @@
 <div class="awaiting-reflection">
   <div class="section-header">
     <h2>Awaiting Reflection</h2>
-    <p>Complete these brews by adding missing details</p>
+    <p>Complete these brews by adding a rating</p>
   </div>
 
   {#if loading}
@@ -197,10 +186,10 @@
     {#if draftBrews.length > 1}
       <div class="batch-actions">
         <p class="batch-text">
-          You have {draftBrews.length} incomplete brews
+          You have {draftBrews.length} brews awaiting a rating
         </p>
         <a href="/brews/drafts" class="btn-secondary">
-          View All Drafts
+          View All Awaiting Ratings
         </a>
       </div>
     {/if}

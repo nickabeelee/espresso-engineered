@@ -35,7 +35,7 @@
   }
 
   function isDraft(entry: Brew): boolean {
-    return !entry.rating || !entry.tasting_notes || !entry.reflections;
+    return typeof entry.rating !== 'number';
   }
 
   function getBrewTitle(entry: Brew): string {
