@@ -465,7 +465,7 @@
       <div class="analysis-mobile-tools">
         <Popover
           bind:open={filtersPopoverOpen}
-          align="end"
+          align="start"
           contentLabel="Analysis filters"
         >
           <svelte:fragment slot="trigger" let:toggle let:open>
