@@ -519,6 +519,14 @@ Voice text must follow these exact specifications to maintain the "typewriter on
 * "You haven’t started this one."
 * "When you’re ready, I’ll remember it."
 
+*Guest reflection status (detail pages)*
+
+* "No guest reflection yet. Begin when you are ready."
+* "Guest link is ready."
+* "Guest reflection is underway. Link expires in 12m 04s."
+* "Guest reflection is complete. Finalized at 3:14 PM."
+* "Guest link expired at 3:14 PM."
+
 *After saving a brew*
 
 * "That felt deliberate."

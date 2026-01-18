@@ -63,25 +63,69 @@ export interface Brew {
     grind_setting?: string;
     flow_rate_g_per_s?: number;
     ratio?: number;
-  rating?: number;
-  tasting_notes?: string;
-  reflections?: string;
-  bag?: {
-    id: string;
-    bean?: {
-      id: string;
-      name?: string;
-      image_path?: string | null;
+    rating?: number;
+    tasting_notes?: string;
+    reflections?: string;
+    guest_token_hash?: string | null;
+    guest_submitted_at?: string | null;
+    guest_edit_expires_at?: string | null;
+    guest_display_name?: string | null;
+    bag?: {
+        id: string;
+        bean?: {
+            id: string;
+            name?: string;
+            image_path?: string | null;
+        } | null;
     } | null;
-  } | null;
-  machine?: {
+    machine?: {
+        id: string;
+        image_path?: string | null;
+    } | null;
+    grinder?: {
+        id: string;
+        image_path?: string | null;
+    } | null;
+}
+export type GuestReflectionState = 'draft' | 'editing' | 'locked';
+export interface GuestBrewSummary {
     id: string;
-    image_path?: string | null;
-  } | null;
-  grinder?: {
-    id: string;
-    image_path?: string | null;
-  } | null;
+    name?: string;
+    rating?: number | null;
+    tasting_notes?: string | null;
+    reflections?: string | null;
+    guest_display_name?: string | null;
+    bag?: {
+        id: string;
+        name?: string | null;
+        bean?: {
+            id: string;
+            name?: string | null;
+            roast_level?: RoastLevel | null;
+            roaster?: {
+                id: string;
+                name?: string | null;
+            } | null;
+        } | null;
+    } | null;
+}
+export interface GuestReflectionContext {
+    brew: GuestBrewSummary;
+    state: GuestReflectionState;
+    edit_expires_at?: string | null;
+    submitted_at?: string | null;
+    edit_window_minutes?: number;
+}
+export interface GuestReflectionUpdateRequest {
+    rating?: number;
+    tasting_notes?: string;
+    reflections?: string;
+    guest_display_name?: string;
+    submit?: boolean;
+}
+export interface GuestTokenResponse {
+    token: string;
+    edit_window_minutes?: number;
 }
 export interface BrewDraft extends Partial<Brew> {
     barista_id: string;

@@ -228,6 +228,10 @@ export type Database = {
           flow_rate_g_per_s: number | null
           grind_setting: string | null
           grinder_id: string
+          guest_display_name: string | null
+          guest_edit_expires_at: string | null
+          guest_submitted_at: string | null
+          guest_token_hash: string | null
           id: string
           machine_id: string
           modified_at: string
@@ -247,6 +251,10 @@ export type Database = {
           flow_rate_g_per_s?: number | null
           grind_setting?: string | null
           grinder_id: string
+          guest_display_name?: string | null
+          guest_edit_expires_at?: string | null
+          guest_submitted_at?: string | null
+          guest_token_hash?: string | null
           id?: string
           machine_id: string
           modified_at?: string
@@ -266,6 +274,10 @@ export type Database = {
           flow_rate_g_per_s?: number | null
           grind_setting?: string | null
           grinder_id?: string
+          guest_display_name?: string | null
+          guest_edit_expires_at?: string | null
+          guest_submitted_at?: string | null
+          guest_token_hash?: string | null
           id?: string
           machine_id?: string
           modified_at?: string
