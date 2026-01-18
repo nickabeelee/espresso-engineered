@@ -702,6 +702,11 @@
     <!-- TypeScript workaround: create local variable with proper type -->
     {@const currentBrew = brew}
     <div class="brew-content">
+      {#if (!currentBrew.yield_g || !currentBrew.rating) && !reflectionMode && !guestLockActive}
+        <div class="incomplete-notice">
+          <p>This brew is incomplete. {#if canEdit}<button on:click={openReflection} class="link-button">Complete it now</button>.{/if}</p>
+        </div>
+      {/if}
       {#if reflectionMode}
         <div class="brew-details reflection-details">
           {#if guestLockActive && showGuestSection}
@@ -1070,6 +1075,71 @@
         />
       {:else}
         <div class="brew-details">
+          {#if showGuestSection}
+            <section class="detail-section guest-reflection-section">
+              <div class="guest-reflection-top">
+                <div class="guest-reflection-info">
+                  <h3>Guest Reflection</h3>
+                  {#if guestStatusMessage}
+                    <div class="guest-reflection-status">
+                      <p class="voice-text guest-reflection-status-text">{guestStatusMessage}</p>
+                    </div>
+                  {/if}
+                </div>
+                {#if canEdit && !brew.guest_submitted_at}
+                  <div class="guest-reflection-toolbar">
+                    {#if canShowGuestLinkActions}
+                      <div class="guest-link-actions">
+                        <GhostButton type="button" size="sm" variant="neutral" on:click={handleOpenGuestShare}>
+                          View Guest Link
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          ariaLabel="Copy guest link"
+                          title="Copy guest link"
+                          on:click={copyGuestShareLink}
+                          disabled={!guestShareUrl}
+                        >
+                          <ClipboardDocument size={18} />
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="danger"
+                          ariaLabel="Cancel guest reflection"
+                          title="Cancel guest reflection"
+                          on:click={handleCancelGuestReflection}
+                          disabled={guestCancelLoading}
+                        >
+                          <UserMinus size={18} />
+                        </GhostButton>
+                      </div>
+                    {:else}
+                      <div class="guest-request-action">
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          title={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          on:click={handleRequestGuestReflection}
+                          disabled={guestRequestLoading}
+                        >
+                          <QrCode size={18} />
+                          Begin guest reflection
+                        </GhostButton>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+              {#if guestShareError}
+                <div class="guest-reflection-error">{guestShareError}</div>
+              {/if}
+            </section>
+          {/if}
           <div class="detail-section">
             <h3>Equipment</h3>
             {#if equipmentLoading}
@@ -1240,43 +1310,6 @@
 
           <div class="detail-section">
             <h3>Reflections</h3>
-            {#if guestStatusMessage}
-              <div class="guest-reflection-status-line">
-                <p class="voice-text guest-reflection-status-text">{guestStatusMessage}</p>
-              </div>
-            {/if}
-            {#if canShowGuestLinkActions}
-              <div class="guest-link-actions">
-                <GhostButton type="button" size="sm" variant="neutral" on:click={handleOpenGuestShare}>
-                  View Guest Link
-                </GhostButton>
-                <GhostButton
-                  type="button"
-                  size="sm"
-                  variant="neutral"
-                  ariaLabel="Copy guest link"
-                  title="Copy guest link"
-                  on:click={copyGuestShareLink}
-                  disabled={!guestShareUrl}
-                >
-                  <ClipboardDocument size={18} />
-                </GhostButton>
-                <GhostButton
-                  type="button"
-                  size="sm"
-                  variant="danger"
-                  ariaLabel="Cancel guest reflection"
-                  title="Cancel guest reflection"
-                  on:click={handleCancelGuestReflection}
-                  disabled={guestCancelLoading}
-                >
-                  <UserMinus size={18} />
-                </GhostButton>
-              </div>
-            {/if}
-            {#if guestShareError}
-              <div class="guest-reflection-error">{guestShareError}</div>
-            {/if}
             <div class="reflection-grid">
               <div class="reflection-field reflection-field--rating">
                 <span class="reflection-label">Rating</span>
@@ -1308,11 +1341,6 @@
             </div>
           </div>
 
-          {#if !currentBrew.yield_g || !currentBrew.rating}
-            <div class="incomplete-notice">
-              <p>This brew is incomplete. {#if canEdit}<button on:click={openReflection} class="link-button">Complete it now</button>.{/if}</p>
-            </div>
-          {/if}
         </div>
       {/if}
     </div>
@@ -1986,6 +2014,7 @@
     border-radius: var(--incomplete-radius);
     padding: var(--incomplete-padding);
     margin-top: 0;
+    margin-bottom: var(--detail-section-gap);
     color: var(--incomplete-color);
     font-family: var(--incomplete-font-family);
     font-size: var(--incomplete-font-size);
