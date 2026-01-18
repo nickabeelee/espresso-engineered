@@ -280,6 +280,50 @@ export async function brewRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // POST /api/brews/:id/guest-cancel - Cancel an in-progress guest reflection
+  fastify.post('/api/brews/:id/guest-cancel', {
+    preHandler: authenticateRequest
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const authRequest = request as AuthenticatedRequest;
+      const { id } = request.params as { id: string };
+      const ownerId = authRequest.barista?.is_admin ? undefined : authRequest.barista!.id;
+
+      const brew = await brewRepository.findById(id, ownerId);
+      if (!brew.guest_token_hash) {
+        return reply.status(409).send({
+          error: 'Conflict',
+          message: 'Guest reflection is not active'
+        });
+      }
+      if (brew.guest_submitted_at) {
+        return reply.status(409).send({
+          error: 'Conflict',
+          message: 'Guest reflection has already been submitted'
+        });
+      }
+
+      const updated = await brewRepository.update(id, {
+        guest_token_hash: null,
+        guest_submitted_at: null,
+        guest_edit_expires_at: null,
+        guest_display_name: null
+      }, ownerId);
+
+      return { data: updated };
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Brew not found or access denied'
+        });
+      }
+
+      request.log.error(error);
+      return handleRouteError(error, reply, 'cancel guest reflection');
+    }
+  });
+
   // PUT /api/brews/:id - Update brew
   fastify.put('/api/brews/:id', {
     preHandler: authenticateRequest

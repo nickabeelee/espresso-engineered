@@ -59,6 +59,11 @@ export class AdminService {
     await apiClient.delete(`/admin/brews/${id}`);
   }
 
+  async cancelGuestReflection(id: string): Promise<Brew> {
+    const response = await apiClient.post(`/admin/brews/${id}/guest-cancel`);
+    return response.data;
+  }
+
   /**
    * Barista management
    */

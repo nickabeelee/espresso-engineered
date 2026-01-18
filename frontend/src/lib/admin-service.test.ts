@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('./api-client', () => ({
   apiClient: {
     get: vi.fn(),
+    post: vi.fn(),
     put: vi.fn(),
     delete: vi.fn()
   }
@@ -22,5 +23,13 @@ describe('AdminService', () => {
     await adminService.getAllBags();
 
     expect(apiClient.get).toHaveBeenCalledWith('/admin/bags');
+  });
+
+  it('requests guest reflection cancellation without a double /api prefix', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
+
+    await adminService.cancelGuestReflection('brew-123');
+
+    expect(apiClient.post).toHaveBeenCalledWith('/admin/brews/brew-123/guest-cancel');
   });
 });

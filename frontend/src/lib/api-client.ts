@@ -164,6 +164,12 @@ class ApiClient {
     });
   }
 
+  async cancelGuestReflection(id: string): Promise<ApiResponse<Brew>> {
+    return this.makeRequest<ApiResponse<Brew>>(`/brews/${id}/guest-cancel`, {
+      method: 'POST'
+    });
+  }
+
   async deleteBrew(id: string): Promise<ApiResponse<void>> {
     return this.makeRequest<ApiResponse<void>>(`/brews/${id}`, {
       method: 'DELETE',

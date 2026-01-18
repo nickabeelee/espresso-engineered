@@ -112,6 +112,45 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post('/api/admin/brews/:id/guest-cancel', {
+    preHandler: [authenticateRequest, requireAdminAccess]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const brew = await adminRepository.getBrewById(id);
+
+      if (!brew.guest_token_hash) {
+        return reply.status(409).send({
+          error: 'Conflict',
+          message: 'Guest reflection is not active'
+        });
+      }
+      if (brew.guest_submitted_at) {
+        return reply.status(409).send({
+          error: 'Conflict',
+          message: 'Guest reflection has already been submitted'
+        });
+      }
+
+      const updated = await adminRepository.updateBrew(id, {
+        guest_token_hash: null,
+        guest_submitted_at: null,
+        guest_edit_expires_at: null,
+        guest_display_name: null
+      });
+      return { data: updated };
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Brew not found'
+        });
+      }
+      request.log.error(error);
+      return handleRouteError(error, reply, 'cancel admin guest reflection');
+    }
+  });
+
   // Admin barista management
   fastify.get('/api/admin/baristas', {
     preHandler: [authenticateRequest, requireAdminAccess]
