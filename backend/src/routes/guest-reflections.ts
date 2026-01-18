@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { supabase } from '../config/supabase.js';
 import { validateSchema, guestReflectionUpdateSchema } from '../validation/schemas.js';
 import { deriveGuestReflectionState, getGuestEditWindowMinutes, hashGuestToken } from '../utils/guest-reflection.js';
-import type { GuestReflectionContext, GuestReflectionUpdateRequest } from '../types/index.js';
+import type { GuestBrewSummary, GuestReflectionContext, GuestReflectionUpdateRequest, RoastLevel } from '../types/index.js';
 
 const guestEditWindowMinutes = getGuestEditWindowMinutes();
 
@@ -17,19 +17,88 @@ type GuestBrewRow = {
   guest_edit_expires_at?: string | null;
   guest_token_hash?: string | null;
   bag?: {
-    id: string;
+    id?: string;
     name?: string | null;
     bean?: {
-      id: string;
+      id?: string;
       name?: string | null;
       roast_level?: string | null;
       roaster?: {
-        id: string;
+        id?: string;
         name?: string | null;
       } | null;
-    } | null;
-  } | null;
+    } | null | Array<{
+      id?: string;
+      name?: string | null;
+      roast_level?: string | null;
+      roaster?: {
+        id?: string;
+        name?: string | null;
+      } | null;
+    }>;
+  } | null | Array<{
+    id?: string;
+    name?: string | null;
+    bean?: {
+      id?: string;
+      name?: string | null;
+      roast_level?: string | null;
+      roaster?: {
+        id?: string;
+        name?: string | null;
+      } | null;
+    } | null | Array<{
+      id?: string;
+      name?: string | null;
+      roast_level?: string | null;
+      roaster?: {
+        id?: string;
+        name?: string | null;
+      } | null;
+    }>;
+  }>;
 };
+
+function takeFirst<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+  return value ?? null;
+}
+
+function normalizeGuestBrew(brew: GuestBrewRow): GuestBrewSummary {
+  const bag = takeFirst(brew.bag);
+  const bean = takeFirst(bag?.bean ?? null);
+  const roaster = takeFirst(bean?.roaster ?? null);
+
+  return {
+    id: brew.id,
+    name: brew.name ?? undefined,
+    rating: brew.rating ?? null,
+    tasting_notes: brew.tasting_notes ?? null,
+    reflections: brew.reflections ?? null,
+    guest_display_name: brew.guest_display_name ?? null,
+    bag: bag?.id
+      ? {
+          id: bag.id,
+          name: bag.name ?? null,
+          bean: bean?.id
+            ? {
+                id: bean.id,
+                name: bean.name ?? null,
+                roast_level: (bean.roast_level as RoastLevel | null) ?? null,
+                roaster: roaster?.id
+                  ? {
+                      id: roaster.id,
+                      name: roaster.name ?? null
+                    }
+                  : null
+              }
+            : null
+        }
+      : null
+  };
+}
 
 async function fetchGuestBrew(tokenHash: string): Promise<GuestBrewRow | null> {
   const { data, error } = await supabase
@@ -80,15 +149,7 @@ function buildGuestContext(brew: GuestBrewRow): GuestReflectionContext {
   const state = brew.guest_submitted_at ? 'locked' : derivedState;
 
   return {
-    brew: {
-      id: brew.id,
-      name: brew.name ?? undefined,
-      rating: brew.rating ?? null,
-      tasting_notes: brew.tasting_notes ?? null,
-      reflections: brew.reflections ?? null,
-      guest_display_name: brew.guest_display_name ?? null,
-      bag: brew.bag ?? null
-    },
+    brew: normalizeGuestBrew(brew),
     state: state === 'none' ? 'draft' : state,
     edit_expires_at: brew.guest_edit_expires_at ?? null,
     submitted_at: brew.guest_submitted_at ?? null,
