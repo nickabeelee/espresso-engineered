@@ -1,15 +1,19 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BrewForm from '$lib/components/BrewForm.svelte';
   import BrewReflectionForm from '$lib/components/BrewReflectionForm.svelte';
+  import CollapsibleSection from '$lib/components/CollapsibleSection.svelte';
+  import SectionCard from '$lib/components/SectionCard.svelte';
+  import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
+  import { adminService } from '$lib/admin-service';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { ChevronDown, PencilSquare, Trash, XMark } from '$lib/icons';
+  import { ChevronDown, ClipboardDocument, LockClosed, PencilSquare, QrCode, Trash, UserMinus, XMark } from '$lib/icons';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import { imageFrame, imageSizes } from '$lib/ui/components/image';
   import { alertBase, alertSizes, alertVariants } from '$lib/ui/components/alert';
@@ -36,6 +40,24 @@
   let bean: Bean | null = null;
   let roaster: Roaster | null = null;
   let bagOwnerName = 'Unknown';
+  let guestShareUrl: string | null = null;
+  let guestShareToken: string | null = null;
+  let guestShareError: string | null = null;
+  let guestRequestLoading = false;
+  let guestCancelLoading = false;
+  let nowTimestamp = Date.now();
+  let guestLockActive = false;
+  let guestState: 'none' | 'draft' | 'editing' | 'locked' = 'none';
+  let guestCountdown: string | null = null;
+  let guestShareQrUrl: string | null = null;
+  let guestShareOpen = false;
+  let guestShareCopied = false;
+  let guestShareCopyError: string | null = null;
+  let guestShareHelper: string | null = null;
+  let guestEditWindowMinutes: number | null = null;
+  let guestLockMessage = 'Locked while guest completes reflection';
+  let canShowGuestLinkActions = false;
+  let guestPollTimer: number | null = null;
   const detailStyle = toStyleString({
     '--page-gap': spacing["2xl"],
     '--header-gap': spacing.xl,
@@ -208,10 +230,54 @@
   }
 
   onMount(async () => {
+    const timer = window.setInterval(() => {
+      nowTimestamp = Date.now();
+    }, 1000);
     if (brewId) {
       await loadBrew(brewId);
     }
+    return () => window.clearInterval(timer);
   });
+
+  onDestroy(() => {
+    if (guestPollTimer) {
+      window.clearInterval(guestPollTimer);
+      guestPollTimer = null;
+    }
+  });
+
+  function getGuestStorageKey(id: string) {
+    return `guestReflectionToken:${id}`;
+  }
+
+  function getGuestWindowStorageKey(id: string) {
+    return `guestReflectionWindowMinutes:${id}`;
+  }
+
+  function syncGuestTokenFromStorage(id: string) {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(getGuestStorageKey(id));
+    if (stored) {
+      guestShareToken = stored;
+      guestShareUrl = `${window.location.origin}/guest/${stored}`;
+    } else {
+      guestShareToken = null;
+      guestShareUrl = null;
+    }
+    const storedWindow = window.localStorage.getItem(getGuestWindowStorageKey(id));
+    if (storedWindow) {
+      const parsed = Number.parseInt(storedWindow, 10);
+      guestEditWindowMinutes = Number.isFinite(parsed) ? parsed : null;
+    } else {
+      guestEditWindowMinutes = null;
+    }
+  }
+
+  function clearGuestTokenStorage(id: string) {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(getGuestStorageKey(id));
+    window.localStorage.removeItem(getGuestWindowStorageKey(id));
+  }
 
   async function loadBrew(id: string) {
     loading = true;
@@ -221,6 +287,8 @@
       const response = await apiClient.getBrew(id);
       if (response.data) {
         brew = response.data;
+        guestShareError = null;
+        syncGuestTokenFromStorage(id);
         
         // Check if current user can edit this brew
         const currentBarista = $barista;
@@ -233,6 +301,19 @@
       error = err instanceof Error ? err.message : 'Failed to load brew';
     } finally {
       loading = false;
+    }
+  }
+
+  async function refreshGuestStatus(id: string) {
+    try {
+      const response = await apiClient.getBrew(id);
+      if (response.data) {
+        brew = response.data;
+        const currentBarista = $barista;
+        canEdit = currentBarista?.id === brew.barista_id || Boolean(currentBarista?.is_admin);
+      }
+    } catch (err) {
+      // Silent refresh for live guest status.
     }
   }
 
@@ -414,6 +495,199 @@
       goto(`/beans/${bean.id}`);
     }
   }
+
+  function getGuestState(currentBrew: Brew | null): 'none' | 'draft' | 'editing' | 'locked' {
+    if (!currentBrew?.guest_token_hash) {
+      return currentBrew?.guest_submitted_at ? 'locked' : 'none';
+    }
+    if (currentBrew.guest_edit_expires_at) {
+      const expiresAt = new Date(currentBrew.guest_edit_expires_at).getTime();
+      return nowTimestamp < expiresAt ? 'editing' : 'locked';
+    }
+    return currentBrew.guest_submitted_at ? 'locked' : 'draft';
+  }
+
+  function formatCountdown(expiresAt: string, currentTime: number): string {
+    const diffMs = Math.max(0, new Date(expiresAt).getTime() - currentTime);
+    const totalSeconds = Math.ceil(diffMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes <= 0) {
+      return `${seconds}s`;
+    }
+    return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
+  }
+
+  async function handleRequestGuestReflection() {
+    if (!brew || guestRequestLoading) return;
+    guestRequestLoading = true;
+    guestShareError = null;
+    guestShareCopyError = null;
+
+    try {
+      const response = await apiClient.requestGuestReflectionToken(brew.id);
+      const token = response.data?.token;
+      const windowMinutes = response.data?.edit_window_minutes;
+      if (!token) {
+        throw new Error('Guest reflection link could not be created');
+      }
+
+      guestShareToken = token;
+      guestShareUrl = `${window.location.origin}/guest/${token}`;
+      guestEditWindowMinutes = windowMinutes ?? null;
+      window.localStorage.setItem(getGuestStorageKey(brew.id), token);
+      if (windowMinutes) {
+        window.localStorage.setItem(getGuestWindowStorageKey(brew.id), windowMinutes.toString());
+      }
+      guestShareOpen = true;
+      await loadBrew(brew.id);
+    } catch (err) {
+      guestShareError = err instanceof Error ? err.message : 'Failed to create guest reflection link';
+    } finally {
+      guestRequestLoading = false;
+    }
+  }
+
+  async function handleCancelGuestReflection() {
+    if (!brew || guestCancelLoading) return;
+    guestCancelLoading = true;
+    guestShareError = null;
+    guestShareCopyError = null;
+
+    try {
+      const currentBarista = $barista;
+      const isAdmin = currentBarista?.is_admin === true;
+      const isOwner = currentBarista?.id === brew.barista_id;
+      if (isAdmin && !isOwner) {
+        await adminService.cancelGuestReflection(brew.id);
+      } else {
+        await apiClient.cancelGuestReflection(brew.id);
+      }
+      clearGuestTokenStorage(brew.id);
+      guestShareOpen = false;
+      guestShareUrl = null;
+      guestShareToken = null;
+      await loadBrew(brew.id);
+    } catch (err) {
+      guestShareError = err instanceof Error ? err.message : 'Failed to cancel guest reflection';
+    } finally {
+      guestCancelLoading = false;
+    }
+  }
+
+  function handleOpenGuestShare() {
+    if (guestState === 'locked' || !brew) return;
+    syncGuestTokenFromStorage(brew.id);
+    if (!guestShareUrl) {
+      guestShareError = 'Guest link is only available on the device where it was created.';
+      return;
+    }
+    guestShareCopied = false;
+    guestShareCopyError = null;
+    guestShareOpen = true;
+  }
+
+  function handleCloseGuestShare() {
+    guestShareOpen = false;
+  }
+
+  async function copyGuestShareLink() {
+    if (brew) {
+      syncGuestTokenFromStorage(brew.id);
+    }
+    if (!guestShareUrl) {
+      guestShareError = 'Guest link is only available on the device where it was created.';
+      return;
+    }
+    guestShareCopied = false;
+    guestShareCopyError = null;
+    try {
+      await navigator.clipboard.writeText(guestShareUrl);
+      guestShareCopied = true;
+      window.setTimeout(() => {
+        guestShareCopied = false;
+      }, 2000);
+    } catch (err) {
+      guestShareCopyError = 'Copy failed. Select and copy the link.';
+    }
+  }
+
+  $: guestState = getGuestState(brew);
+  $: guestLockActive = guestState === 'editing';
+  $: guestCompleted = guestState === 'locked' && Boolean(brew?.guest_submitted_at);
+  $: guestCountdown = guestState === 'editing' && brew?.guest_edit_expires_at
+    ? formatCountdown(brew.guest_edit_expires_at, nowTimestamp)
+    : null;
+  $: guestStatusMessage = (() => {
+    if (!brew) return null;
+    if (guestState === 'none') {
+      return canEdit && !brew.guest_submitted_at ? 'No guest reflection yet. Begin when you are ready.' : null;
+    }
+    if (guestState === 'draft') {
+      return 'Guest link is ready.';
+    }
+    if (guestState === 'editing') {
+      return guestCountdown
+        ? `Guest reflection is underway. Link expires in ${guestCountdown}.`
+        : 'Guest reflection is underway.';
+    }
+    if (guestState === 'locked') {
+      if (brew.guest_submitted_at) {
+        const guestName = brew.guest_display_name?.trim();
+        return brew.guest_edit_expires_at
+          ? `Guest reflection is complete. ${guestName ? `${guestName} submitted it` : 'Guest submission'} at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}.`
+          : `Guest reflection is complete. ${guestName ? `${guestName} submitted it.` : 'Guest submission recorded.'}`;
+      }
+      return brew.guest_edit_expires_at
+        ? `Guest link expired at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}.`
+        : 'Guest link expired.';
+    }
+    return null;
+  })();
+  $: showGuestSection = Boolean(guestStatusMessage || (canEdit && !brew?.guest_submitted_at));
+  $: guestShareQrUrl = guestShareUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(guestShareUrl)}`
+    : null;
+  $: canShowGuestLinkActions = guestState === 'editing';
+  $: guestShareHelper = guestState === 'editing' && brew?.guest_edit_expires_at
+    ? `Link expires at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}.`
+    : guestState === 'draft'
+      ? guestEditWindowMinutes
+        ? `This link expires about ${guestEditWindowMinutes} minutes after it’s created.`
+        : 'This link expires after a limited window.'
+      : guestState === 'locked'
+        ? 'Guest reflection is finalized or the link has expired.'
+        : null;
+  $: if (brew && guestState === 'none' && brewId) {
+    guestShareToken = null;
+    guestShareUrl = null;
+    clearGuestTokenStorage(brewId);
+  }
+  $: if (brew && guestState === 'locked' && brewId) {
+    guestShareOpen = false;
+    guestShareToken = null;
+    guestShareUrl = null;
+    clearGuestTokenStorage(brewId);
+  }
+  $: if (typeof window !== 'undefined') {
+    if (reflectionMode && guestState === 'editing' && brewId) {
+      if (!guestPollTimer) {
+        guestPollTimer = window.setInterval(() => {
+          if (guestState !== 'editing') {
+            if (guestPollTimer) {
+              window.clearInterval(guestPollTimer);
+              guestPollTimer = null;
+            }
+            return;
+          }
+          refreshGuestStatus(brewId);
+        }, 5000);
+      }
+    } else if (guestPollTimer) {
+      window.clearInterval(guestPollTimer);
+      guestPollTimer = null;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -470,16 +744,186 @@
     <!-- TypeScript workaround: create local variable with proper type -->
     {@const currentBrew = brew}
     <div class="brew-content">
+      {#if (!currentBrew.yield_g || !currentBrew.rating) && !reflectionMode && !guestLockActive}
+        <div class="incomplete-notice">
+          <p>This brew is incomplete. {#if canEdit}<button on:click={openReflection} class="link-button">Complete it now</button>.{/if}</p>
+        </div>
+      {/if}
       {#if reflectionMode}
         <div class="brew-details reflection-details">
-          <div class="detail-section">
-            <BrewReflectionForm
-              {brew}
-              beanTastingNotes={bean?.tasting_notes ?? null}
-              on:save={handleReflectionSave}
-              on:cancel={handleReflectionCancel}
-            />
-          </div>
+          {#if (guestLockActive || guestCompleted) && showGuestSection}
+            <section class="detail-section guest-reflection-section">
+              <div class="guest-reflection-top">
+                <div class="guest-reflection-info">
+                  <h3>Guest Reflection</h3>
+                  {#if guestStatusMessage}
+                    <div class="guest-reflection-status">
+                      <p class="voice-text guest-reflection-status-text">{guestStatusMessage}</p>
+                    </div>
+                  {/if}
+                </div>
+                {#if canEdit && !brew.guest_submitted_at}
+                  <div class="guest-reflection-toolbar">
+                    {#if canShowGuestLinkActions}
+                      <div class="guest-link-actions">
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          on:click={handleOpenGuestShare}
+                          disabled={guestRequestLoading}
+                        >
+                          View Guest Link
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          ariaLabel="Copy guest link"
+                          title="Copy guest link"
+                          on:click={copyGuestShareLink}
+                          disabled={!guestShareUrl}
+                        >
+                          <ClipboardDocument size={18} />
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="danger"
+                          ariaLabel="Cancel guest reflection"
+                          title="Cancel guest reflection"
+                          on:click={handleCancelGuestReflection}
+                          disabled={guestCancelLoading}
+                        >
+                          <UserMinus size={18} />
+                        </GhostButton>
+                      </div>
+                    {:else}
+                      <div class="guest-request-action">
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          title={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          on:click={handleRequestGuestReflection}
+                          disabled={guestRequestLoading}
+                        >
+                          <QrCode size={18} />
+                          Begin guest reflection
+                        </GhostButton>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+              {#if guestShareError}
+                <div class="guest-reflection-error">{guestShareError}</div>
+              {/if}
+            </section>
+          {/if}
+          {#if guestState === 'none'}
+            <SectionCard title="Reflection">
+              <BrewReflectionForm
+                {brew}
+                beanTastingNotes={bean?.tasting_notes ?? null}
+                reflectionLocked={guestLockActive}
+                lockMessage={guestLockMessage}
+                on:save={handleReflectionSave}
+                on:cancel={handleReflectionCancel}
+              />
+            </SectionCard>
+          {:else}
+            <CollapsibleSection open={!guestLockActive} toggleLabel="Toggle reflection">
+              <span slot="title" class="collapsible-title">
+                <span>Reflection</span>
+                {#if guestLockActive}
+                  <span class="reference-lock" aria-hidden="true">
+                    <LockClosed size={16} />
+                  </span>
+                {/if}
+              </span>
+              <BrewReflectionForm
+                {brew}
+                beanTastingNotes={bean?.tasting_notes ?? null}
+                reflectionLocked={guestLockActive}
+                lockMessage={guestLockMessage}
+                on:save={handleReflectionSave}
+                on:cancel={handleReflectionCancel}
+              />
+            </CollapsibleSection>
+          {/if}
+          {#if !guestLockActive && !guestCompleted && showGuestSection}
+            <section class="detail-section guest-reflection-section">
+              <div class="guest-reflection-top">
+                <div class="guest-reflection-info">
+                  <h3>Guest Reflection</h3>
+                  {#if guestStatusMessage}
+                    <div class="guest-reflection-status">
+                      <p class="voice-text guest-reflection-status-text">{guestStatusMessage}</p>
+                    </div>
+                  {/if}
+                </div>
+                {#if canEdit && !brew.guest_submitted_at}
+                  <div class="guest-reflection-toolbar">
+                    {#if canShowGuestLinkActions}
+                      <div class="guest-link-actions">
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          on:click={handleOpenGuestShare}
+                          disabled={guestRequestLoading}
+                        >
+                          View Guest Link
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          ariaLabel="Copy guest link"
+                          title="Copy guest link"
+                          on:click={copyGuestShareLink}
+                          disabled={!guestShareUrl}
+                        >
+                          <ClipboardDocument size={18} />
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="danger"
+                          ariaLabel="Cancel guest reflection"
+                          title="Cancel guest reflection"
+                          on:click={handleCancelGuestReflection}
+                          disabled={guestCancelLoading}
+                        >
+                          <UserMinus size={18} />
+                        </GhostButton>
+                      </div>
+                    {:else}
+                      <div class="guest-request-action">
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          title={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          on:click={handleRequestGuestReflection}
+                          disabled={guestRequestLoading}
+                        >
+                          <QrCode size={18} />
+                          Begin guest reflection
+                        </GhostButton>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+              {#if guestShareError}
+                <div class="guest-reflection-error">{guestShareError}</div>
+              {/if}
+            </section>
+          {/if}
           <details class="reference-section">
             <summary>
               <span class="reference-toggle">
@@ -660,9 +1104,84 @@
           </details>
         </div>
       {:else if editing}
-        <BrewForm {brew} on:save={handleSave} on:cancel={handleCancel} />
+        <BrewForm
+          {brew}
+          reflectionLocked={guestLockActive}
+          lockMessage={guestLockMessage}
+          showGuestLinkActions={canShowGuestLinkActions}
+          onViewGuestLink={handleOpenGuestShare}
+          onCopyGuestLink={copyGuestShareLink}
+          guestLinkError={guestShareError}
+          on:save={handleSave}
+          on:cancel={handleCancel}
+        />
       {:else}
         <div class="brew-details">
+          {#if showGuestSection}
+            <section class="detail-section guest-reflection-section">
+              <div class="guest-reflection-top">
+                <div class="guest-reflection-info">
+                  <h3>Guest Reflection</h3>
+                  {#if guestStatusMessage}
+                    <div class="guest-reflection-status">
+                      <p class="voice-text guest-reflection-status-text">{guestStatusMessage}</p>
+                    </div>
+                  {/if}
+                </div>
+                {#if canEdit && !brew.guest_submitted_at}
+                  <div class="guest-reflection-toolbar">
+                    {#if canShowGuestLinkActions}
+                      <div class="guest-link-actions">
+                        <GhostButton type="button" size="sm" variant="neutral" on:click={handleOpenGuestShare}>
+                          View Guest Link
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          ariaLabel="Copy guest link"
+                          title="Copy guest link"
+                          on:click={copyGuestShareLink}
+                          disabled={!guestShareUrl}
+                        >
+                          <ClipboardDocument size={18} />
+                        </GhostButton>
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="danger"
+                          ariaLabel="Cancel guest reflection"
+                          title="Cancel guest reflection"
+                          on:click={handleCancelGuestReflection}
+                          disabled={guestCancelLoading}
+                        >
+                          <UserMinus size={18} />
+                        </GhostButton>
+                      </div>
+                    {:else}
+                      <div class="guest-request-action">
+                        <GhostButton
+                          type="button"
+                          size="sm"
+                          variant="neutral"
+                          ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          title={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          on:click={handleRequestGuestReflection}
+                          disabled={guestRequestLoading}
+                        >
+                          <QrCode size={18} />
+                          Begin guest reflection
+                        </GhostButton>
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+              {#if guestShareError}
+                <div class="guest-reflection-error">{guestShareError}</div>
+              {/if}
+            </section>
+          {/if}
           <div class="detail-section">
             <h3>Equipment</h3>
             {#if equipmentLoading}
@@ -864,16 +1383,48 @@
             </div>
           </div>
 
-          {#if !currentBrew.yield_g || !currentBrew.rating}
-            <div class="incomplete-notice">
-              <p>This brew is incomplete. {#if canEdit}<button on:click={openReflection} class="link-button">Complete it now</button>.{/if}</p>
-            </div>
-          {/if}
         </div>
       {/if}
     </div>
   {:else}
     <div class="not-found">Brew not found</div>
+  {/if}
+  {#if guestShareOpen && guestShareUrl}
+    <div class="guest-share-modal" role="dialog" aria-modal="true" aria-label="Guest reflection link">
+      <button class="guest-share-backdrop" type="button" on:click={handleCloseGuestShare} aria-label="Close"></button>
+      <div class="guest-share-panel">
+        <div class="guest-share-header">
+          <div>
+            <h2>Guest Reflection Link</h2>
+            <p class="guest-share-subtitle">Have your guest scan the QR code or copy the link to share it.</p>
+            {#if guestShareHelper}
+              <p class="guest-share-helper">{guestShareHelper}</p>
+            {/if}
+          </div>
+          <IconButton on:click={handleCloseGuestShare} ariaLabel="Close" title="Close" variant="neutral">
+            <XMark />
+          </IconButton>
+        </div>
+        <div class="guest-share-body">
+          {#if guestShareQrUrl}
+            <div class="guest-share-qr">
+              <img src={guestShareQrUrl} alt="Guest reflection QR code" />
+            </div>
+          {/if}
+          <div class="guest-share-details">
+            <div class="guest-share-actions">
+              <button class="btn-primary btn-with-icon" type="button" on:click={copyGuestShareLink}>
+                <ClipboardDocument size={18} />
+                {guestShareCopied ? 'Link copied' : 'Copy link'}
+              </button>
+              {#if guestShareCopyError}
+                <span class="guest-reflection-error">{guestShareCopyError}</span>
+              {/if}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   {/if}
   </div>
 </AuthGuard>
@@ -904,6 +1455,204 @@
   .actions {
     display: flex;
     gap: var(--actions-gap);
+  }
+
+  .guest-reflection-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .guest-reflection-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .guest-reflection-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .guest-reflection-info h3 {
+    margin: 0;
+  }
+
+  .collapsible-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .guest-reflection-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  .guest-reflection-status,
+  .guest-reflection-status-line {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .voice-text {
+    font-family: "Libre Baskerville", serif;
+    color: var(--text-ink-muted);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    letter-spacing: 0.02em;
+    font-style: normal;
+    margin: 0;
+  }
+
+  .guest-reflection-status-text {
+    margin: 0;
+  }
+
+  .guest-link-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .guest-request-action {
+    display: flex;
+    align-items: center;
+  }
+
+  .guest-reflection-status-line {
+    margin-bottom: 0.75rem;
+  }
+
+  .guest-reflection-meta {
+    color: var(--state-color);
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+  }
+
+  .guest-reflection-error {
+    color: var(--error-color);
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+    margin-bottom: 0.75rem;
+  }
+
+  .guest-share-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .guest-share-qr img {
+    width: min(320px, 70vw);
+    height: min(320px, 70vw);
+    border-radius: var(--reflection-body-radius);
+    border: var(--reflection-body-border-width) var(--reflection-body-border-style) var(--reflection-body-border);
+  }
+
+  .guest-share-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+  }
+
+  .guest-share-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(43, 33, 24, 0.55);
+    border: none;
+  }
+
+  .guest-share-panel {
+    position: relative;
+    z-index: 1;
+    width: min(820px, 100%);
+    background: var(--detail-section-bg);
+    border: var(--detail-section-border-width) var(--detail-section-border-style) var(--detail-section-border);
+    border-radius: var(--detail-section-radius);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: var(--card-shadow, 0 24px 48px rgba(35, 24, 16, 0.25));
+  }
+
+  .guest-share-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .guest-share-header h2 {
+    margin: 0;
+    font-family: var(--detail-title-family);
+    font-size: var(--detail-title-size);
+    font-weight: var(--detail-title-weight);
+    color: var(--detail-title-color);
+  }
+
+  .guest-share-subtitle {
+    margin: 0.35rem 0 0 0;
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+    color: var(--state-color);
+  }
+
+  .guest-share-helper {
+    margin: 0.5rem 0 0 0;
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+    color: var(--state-color);
+  }
+
+  .guest-share-body {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.2fr);
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .guest-share-actions {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 720px) {
+    .guest-share-panel {
+      padding: 1.5rem;
+    }
+
+    .guest-share-body {
+      grid-template-columns: 1fr;
+    }
+
+    .guest-share-qr {
+      justify-self: center;
+    }
   }
 
   .link-button {
@@ -971,6 +1720,12 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .reference-lock {
+    display: inline-flex;
+    align-items: center;
+    color: var(--state-color);
   }
 
   .reference-icon {
@@ -1301,6 +2056,7 @@
     border-radius: var(--incomplete-radius);
     padding: var(--incomplete-padding);
     margin-top: 0;
+    margin-bottom: var(--detail-section-gap);
     color: var(--incomplete-color);
     font-family: var(--incomplete-font-family);
     font-size: var(--incomplete-font-size);

@@ -14,6 +14,7 @@ export { default as ChevronLeft } from './outline/ChevronLeft.svelte';
 export { default as ChevronRight } from './outline/ChevronRight.svelte';
 export { default as MagnifyingGlass } from './outline/MagnifyingGlass.svelte';
 export { default as DocumentDuplicate } from './outline/DocumentDuplicate.svelte';
+export { default as ClipboardDocument } from './outline/ClipboardDocument.svelte';
 export { default as StarOutline } from './outline/Star.svelte';
 export { default as Calendar } from './outline/Calendar.svelte';
 
@@ -32,3 +33,6 @@ export { default as ExclamationTriangle } from './outline/ExclamationTriangle.sv
 export { default as InformationCircle } from './outline/InformationCircle.svelte';
 export { default as CheckCircle } from './outline/CheckCircle.svelte';
 export { default as Link } from './outline/Link.svelte';
+export { default as QrCode } from './outline/QrCode.svelte';
+export { default as LockClosed } from './outline/LockClosed.svelte';
+export { default as UserMinus } from './outline/UserMinus.svelte';

@@ -89,6 +89,7 @@ const start = async () => {
     const { adminRoutes } = await import('./routes/admin.js');
     const { baristaRoutes } = await import('./routes/baristas.js');
     const { authRoutes } = await import('./routes/auth.js');
+    const { guestReflectionRoutes } = await import('./routes/guest-reflections.js');
 
     await fastify.register(roasterRoutes);
     await fastify.register(beanRoutes);
@@ -99,6 +100,7 @@ const start = async () => {
     await fastify.register(adminRoutes);
     await fastify.register(baristaRoutes);
     await fastify.register(authRoutes);
+    await fastify.register(guestReflectionRoutes);
 
     const port = parseInt(process.env.PORT || '8080');
     const host = process.env.HOST || '0.0.0.0';
