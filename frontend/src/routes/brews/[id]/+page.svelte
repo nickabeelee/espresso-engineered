@@ -477,7 +477,7 @@
 
   function getGuestState(currentBrew: Brew | null): 'none' | 'draft' | 'editing' | 'locked' {
     if (!currentBrew?.guest_token_hash) {
-      return 'none';
+      return currentBrew?.guest_submitted_at ? 'locked' : 'none';
     }
     if (currentBrew.guest_edit_expires_at) {
       const expiresAt = new Date(currentBrew.guest_edit_expires_at).getTime();
@@ -593,6 +593,7 @@
 
   $: guestState = getGuestState(brew);
   $: guestLockActive = guestState === 'editing';
+  $: guestCompleted = guestState === 'locked' && Boolean(brew?.guest_submitted_at);
   $: guestCountdown = guestState === 'editing' && brew?.guest_edit_expires_at
     ? formatCountdown(brew.guest_edit_expires_at, nowTimestamp)
     : null;
@@ -611,9 +612,10 @@
     }
     if (guestState === 'locked') {
       if (brew.guest_submitted_at) {
+        const guestName = brew.guest_display_name?.trim();
         return brew.guest_edit_expires_at
-          ? `Guest reflection is complete. Finalized at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}.`
-          : 'Guest reflection is complete.';
+          ? `Guest reflection is complete. ${guestName ? `${guestName} submitted it` : 'Guest submission'} at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}.`
+          : `Guest reflection is complete. ${guestName ? `${guestName} submitted it.` : 'Guest submission recorded.'}`;
       }
       return brew.guest_edit_expires_at
         ? `Guest link expired at ${new Date(brew.guest_edit_expires_at).toLocaleTimeString()}.`
@@ -709,7 +711,7 @@
       {/if}
       {#if reflectionMode}
         <div class="brew-details reflection-details">
-          {#if guestLockActive && showGuestSection}
+          {#if (guestLockActive || guestCompleted) && showGuestSection}
             <section class="detail-section guest-reflection-section">
               <div class="guest-reflection-top">
                 <div class="guest-reflection-info">
@@ -811,7 +813,7 @@
               />
             </CollapsibleSection>
           {/if}
-          {#if !guestLockActive && showGuestSection}
+          {#if !guestLockActive && !guestCompleted && showGuestSection}
             <section class="detail-section guest-reflection-section">
               <div class="guest-reflection-top">
                 <div class="guest-reflection-info">

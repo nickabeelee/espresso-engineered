@@ -32,6 +32,7 @@
   let state: GuestReflectionContext['state'] | null = guest?.state ?? null;
   let editExpiresAt: string | null = guest?.edit_expires_at ?? null;
   let canEdit = false;
+  let isSubmitted = false;
   let statusLabel: string | null = null;
   let statusVariant: 'neutral' | 'warning' | 'success' = 'neutral';
   let countdown: string | null = null;
@@ -136,7 +137,8 @@
   $: state = guest?.state ?? null;
   $: editExpiresAt = guest?.edit_expires_at ?? null;
   $: editWindowMinutes = guest?.edit_window_minutes ?? null;
-  $: canEdit = state === 'draft' || state === 'editing';
+  $: isSubmitted = Boolean(guest?.submitted_at);
+  $: canEdit = (state === 'draft' || state === 'editing') && !isSubmitted;
   $: statusLabel = state === 'draft'
     ? 'Guest draft'
     : state === 'editing'
@@ -296,11 +298,11 @@
   {:else if guest}
     <header>
       <h1>{guest.brew.name || 'Espresso Reflection'}</h1>
-      <p class="voice-line">You’re helping complete this brew’s reflection.</p>
-      {#if guestHelper}
+      <p class="voice-line">{isSubmitted ? 'Thank you. This reflection is complete.' : 'You’re helping complete this brew’s reflection.'}</p>
+      {#if guestHelper && !isSubmitted}
         <p class="voice-line guest-helper">{guestHelper}</p>
       {/if}
-      {#if statusLabel}
+      {#if statusLabel && !isSubmitted}
         <div class="status-row">
           <Chip variant={statusVariant} size="sm">{statusLabel}</Chip>
           {#if countdown}
@@ -345,56 +347,99 @@
       </section>
     </details>
 
-    <section class="reflection-form">
-      <h2>Your reflection</h2>
-      {#if !canEdit}
-        <p class="voice-text">Thanks! This reflection is now locked in.</p>
-      {/if}
-      <form on:submit|preventDefault={() => saveGuestReflection(true)}>
-        <div class="form-group">
-          <label for="guest-name">Your name (optional)</label>
-          <input
-            id="guest-name"
-            type="text"
-            placeholder="e.g., Alex"
-            bind:value={guestName}
-            disabled={!canEdit}
-            on:input={scheduleAutosave}
-          />
+    {#if isSubmitted}
+      <section class="reflection-confirmation">
+        <h2>Reflection submitted</h2>
+        <p class="voice-line">Thank you for taking the time.</p>
+        <p class="voice-line">We have your reflection now.</p>
+        <div class="submitted-summary">
+          {#if guest?.brew.guest_display_name}
+            <div class="summary-item">
+              <span class="summary-label">Guest</span>
+              <div class="summary-value">{guest.brew.guest_display_name}</div>
+            </div>
+          {/if}
+          <div class="summary-item">
+            <span class="summary-label">Rating</span>
+            <div class="summary-value">{guest?.brew.rating ?? 'Not provided'}</div>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Tasting notes</span>
+            <div class="summary-value">{guest?.brew.tasting_notes || 'Not provided'}</div>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Reflection</span>
+            <div class="summary-value">{guest?.brew.reflections || 'Not provided'}</div>
+          </div>
         </div>
+      </section>
+    {:else}
+      <section class="reflection-form">
+        <h2>Your reflection</h2>
+        <form on:submit|preventDefault={() => saveGuestReflection(true)}>
+          <div class="form-group">
+            <label for="guest-name">Your name (optional)</label>
+            <input
+              id="guest-name"
+              type="text"
+              placeholder="e.g., Alex"
+              bind:value={guestName}
+              disabled={!canEdit}
+              on:input={scheduleAutosave}
+            />
+          </div>
 
-        <div class="form-group">
-          <label for="guest-rating">Rating (1-10)</label>
-          <input
-            id="guest-rating"
-            type="number"
-            min="1"
-            max="10"
-            step="1"
-            placeholder="e.g., 8"
-            bind:value={rating}
-            disabled={!canEdit}
-            on:input={scheduleAutosave}
-          />
-        </div>
+          <div class="form-group">
+            <label for="guest-rating">Rating (1-10)</label>
+            <input
+              id="guest-rating"
+              type="number"
+              min="1"
+              max="10"
+              step="1"
+              placeholder="e.g., 8"
+              bind:value={rating}
+              disabled={!canEdit}
+              on:input={scheduleAutosave}
+            />
+          </div>
 
-        <div class="form-group">
-          <label for="guest-tasting">Tasting notes</label>
-          <textarea
-            id="guest-tasting"
-            rows="3"
-            placeholder="e.g., notes of cacao and orange"
-            bind:value={tastingNotes}
-            disabled={!canEdit}
-            on:input={scheduleAutosave}
-          />
-          <span class="helper-text">Tap notes below to add them quickly.</span>
-          <div class="tasting-suggestions">
-            {#if beanNotes.length}
+          <div class="form-group">
+            <label for="guest-tasting">Tasting notes</label>
+            <textarea
+              id="guest-tasting"
+              rows="3"
+              placeholder="e.g., notes of cacao and orange"
+              bind:value={tastingNotes}
+              disabled={!canEdit}
+              on:input={scheduleAutosave}
+            />
+            <span class="helper-text">Tap notes below to add them quickly.</span>
+            <div class="tasting-suggestions">
+              {#if beanNotes.length}
+                <div class="tasting-group">
+                  <span class="group-label">Bean tasting notes</span>
+                  <div class="chip-list">
+                    {#each beanNotes as note}
+                      <button
+                        class="chip-button"
+                        type="button"
+                        on:click={() => addTastingNote(note)}
+                        aria-pressed={isNoteIncluded(note)}
+                        disabled={!canEdit}
+                      >
+                        <Chip variant={isNoteIncluded(note) ? 'accent' : 'neutral'} size="sm">
+                          {note}
+                        </Chip>
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
               <div class="tasting-group">
-                <span class="group-label">Bean tasting notes</span>
+                <span class="group-label">Coffee compass</span>
                 <div class="chip-list">
-                  {#each beanNotes as note}
+                  {#each genericNotes as note}
                     <button
                       class="chip-button"
                       type="button"
@@ -409,59 +454,41 @@
                   {/each}
                 </div>
               </div>
-            {/if}
-            <div class="tasting-group">
-              <span class="group-label">Coffee compass</span>
-              <div class="chip-list">
-                {#each genericNotes as note}
-                  <button
-                    class="chip-button"
-                    type="button"
-                    on:click={() => addTastingNote(note)}
-                    aria-pressed={isNoteIncluded(note)}
-                    disabled={!canEdit}
-                  >
-                    <Chip variant={isNoteIncluded(note) ? 'accent' : 'neutral'} size="sm">
-                      {note}
-                    </Chip>
-                  </button>
-                {/each}
-              </div>
             </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="guest-reflection">Reflection</label>
-          <textarea
-            id="guest-reflection"
-            rows="4"
-            placeholder="e.g., What stood out? What would you tweak?"
-            bind:value={reflections}
-            disabled={!canEdit}
-            on:input={scheduleAutosave}
-          />
-        </div>
+          <div class="form-group">
+            <label for="guest-reflection">Reflection</label>
+            <textarea
+              id="guest-reflection"
+              rows="4"
+              placeholder="e.g., What stood out? What would you tweak?"
+              bind:value={reflections}
+              disabled={!canEdit}
+              on:input={scheduleAutosave}
+            />
+          </div>
 
-        <div class="form-footer">
-          {#if saveError}
-            <span class="status-error">{saveError}</span>
-          {:else if autosaveStatus === 'saving'}
-            <span class="status-meta">Saving...</span>
-          {:else if autosaveStatus === 'saved'}
-            <span class="status-meta">Draft saved</span>
-          {:else if autosaveStatus === 'error'}
-            <span class="status-error">Could not save draft</span>
-          {:else}
-            <span class="status-meta">Drafts save automatically.</span>
-          {/if}
+          <div class="form-footer">
+            {#if saveError}
+              <span class="status-error">{saveError}</span>
+            {:else if autosaveStatus === 'saving'}
+              <span class="status-meta">Saving...</span>
+            {:else if autosaveStatus === 'saved'}
+              <span class="status-meta">Draft saved</span>
+            {:else if autosaveStatus === 'error'}
+              <span class="status-error">Could not save draft</span>
+            {:else}
+              <span class="status-meta">Drafts save automatically.</span>
+            {/if}
 
-          <button class="btn-primary" type="submit" disabled={!canEdit || submitLoading}>
-            {submitLoading ? 'Submitting…' : 'Submit Reflection'}
-          </button>
-        </div>
-      </form>
-    </section>
+            <button class="btn-primary" type="submit" disabled={!canEdit || submitLoading}>
+              {submitLoading ? 'Submitting…' : 'Submit Reflection'}
+            </button>
+          </div>
+        </form>
+      </section>
+    {/if}
   {:else}
     <div class="guest-state">Loading guest reflection…</div>
   {/if}
@@ -600,7 +627,8 @@
   }
 
   .brew-summary,
-  .reflection-form {
+  .reflection-form,
+  .reflection-confirmation {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -614,6 +642,18 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 1rem;
+  }
+
+  .submitted-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 
   .summary-label {

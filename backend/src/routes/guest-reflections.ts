@@ -1,10 +1,9 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { supabase } from '../config/supabase.js';
 import { validateSchema, guestReflectionUpdateSchema } from '../validation/schemas.js';
-import { deriveGuestReflectionState, getGuestEditWindowMinutes, getGuestEditWindowMs, hashGuestToken } from '../utils/guest-reflection.js';
+import { deriveGuestReflectionState, getGuestEditWindowMinutes, hashGuestToken } from '../utils/guest-reflection.js';
 import type { GuestReflectionContext, GuestReflectionUpdateRequest } from '../types/index.js';
 
-const guestEditWindowMs = getGuestEditWindowMs();
 const guestEditWindowMinutes = getGuestEditWindowMinutes();
 
 type GuestBrewRow = {
@@ -73,11 +72,12 @@ async function fetchGuestBrew(tokenHash: string): Promise<GuestBrewRow | null> {
 }
 
 function buildGuestContext(brew: GuestBrewRow): GuestReflectionContext {
-  const state = deriveGuestReflectionState({
+  const derivedState = deriveGuestReflectionState({
     guest_token_hash: brew.guest_token_hash ?? null,
     guest_submitted_at: brew.guest_submitted_at ?? null,
     guest_edit_expires_at: brew.guest_edit_expires_at ?? null
   });
+  const state = brew.guest_submitted_at ? 'locked' : derivedState;
 
   return {
     brew: {
@@ -162,9 +162,8 @@ export async function guestReflectionRoutes(fastify: FastifyInstance) {
 
       if (updateRequest.submit && !hasSubmitted) {
         updates.guest_submitted_at = now.toISOString();
-        if (!brew.guest_edit_expires_at) {
-          updates.guest_edit_expires_at = new Date(now.getTime() + guestEditWindowMs).toISOString();
-        }
+        updates.guest_token_hash = null;
+        updates.guest_edit_expires_at = null;
       }
 
       if (!Object.keys(updates).length) {
