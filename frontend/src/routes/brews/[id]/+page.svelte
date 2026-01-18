@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BrewForm from '$lib/components/BrewForm.svelte';
@@ -57,6 +57,7 @@
   let guestEditWindowMinutes: number | null = null;
   let guestLockMessage = 'Locked while guest completes reflection';
   let canShowGuestLinkActions = false;
+  let guestPollTimer: number | null = null;
   const detailStyle = toStyleString({
     '--page-gap': spacing["2xl"],
     '--header-gap': spacing.xl,
@@ -238,6 +239,13 @@
     return () => window.clearInterval(timer);
   });
 
+  onDestroy(() => {
+    if (guestPollTimer) {
+      window.clearInterval(guestPollTimer);
+      guestPollTimer = null;
+    }
+  });
+
   function getGuestStorageKey(id: string) {
     return `guestReflectionToken:${id}`;
   }
@@ -293,6 +301,19 @@
       error = err instanceof Error ? err.message : 'Failed to load brew';
     } finally {
       loading = false;
+    }
+  }
+
+  async function refreshGuestStatus(id: string) {
+    try {
+      const response = await apiClient.getBrew(id);
+      if (response.data) {
+        brew = response.data;
+        const currentBarista = $barista;
+        canEdit = currentBarista?.id === brew.barista_id || Boolean(currentBarista?.is_admin);
+      }
+    } catch (err) {
+      // Silent refresh for live guest status.
     }
   }
 
@@ -647,6 +668,25 @@
     guestShareToken = null;
     guestShareUrl = null;
     clearGuestTokenStorage(brewId);
+  }
+  $: if (typeof window !== 'undefined') {
+    if (reflectionMode && guestState === 'editing' && brewId) {
+      if (!guestPollTimer) {
+        guestPollTimer = window.setInterval(() => {
+          if (guestState !== 'editing') {
+            if (guestPollTimer) {
+              window.clearInterval(guestPollTimer);
+              guestPollTimer = null;
+            }
+            return;
+          }
+          refreshGuestStatus(brewId);
+        }, 5000);
+      }
+    } else if (guestPollTimer) {
+      window.clearInterval(guestPollTimer);
+      guestPollTimer = null;
+    }
   }
 </script>
 
