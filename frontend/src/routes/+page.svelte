@@ -7,7 +7,6 @@
   import BagCard from '$lib/components/BagCard.svelte';
   import BrewCard from '$lib/components/BrewCard.svelte';
   import Sheet from '$lib/components/Sheet.svelte';
-  import BeanAnalysisFilters from '$lib/components/BeanAnalysisFilters.svelte';
   import { apiClient } from '$lib/api-client';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
@@ -40,7 +39,6 @@
   let selectedBag: Bag | null = null;
   let includeCommunity = false;
   let recencyFilter: RecencyPeriod = 'M';
-  let analysisFiltersOpen = false;
   let isMobile = false;
   let viewportQuery: MediaQueryList | null = null;
   let viewportListener: ((event: MediaQueryListEvent) => void) | null = null;
@@ -59,9 +57,6 @@
       viewportQuery = window.matchMedia('(max-width: 768px)');
       const updateViewport = (event?: MediaQueryListEvent) => {
         isMobile = event?.matches ?? viewportQuery?.matches ?? false;
-        if (!isMobile) {
-          analysisFiltersOpen = false;
-        }
       };
       updateViewport();
       viewportListener = updateViewport;
@@ -219,13 +214,6 @@
     goto(`/brews/new?bag=${bagId}`);
   }
 
-  function openAnalysisFilters() {
-    analysisFiltersOpen = true;
-  }
-
-  function closeAnalysisFilters() {
-    analysisFiltersOpen = false;
-  }
 
   async function retryLoad() {
     await loadDashboardData();
@@ -395,7 +383,6 @@
             bind:includeCommunity
             bind:recencyFilter
             showInlineFilters={!isMobile}
-            on:openFilters={openAnalysisFilters}
           />
         </div>
       {:else if analysisLoaded}
@@ -482,27 +469,6 @@
           />
         {/each}
       </div>
-    </Sheet>
-  {/if}
-  {#if analysisLoaded && isMobile}
-    <Sheet
-      open={analysisFiltersOpen}
-      title="Filters"
-      subtitle="Refine the analysis view"
-      closeLabel="Close filters"
-      panelBackground={colorCss.bg.surface.paper.primary}
-      panelMinHeight="70vh"
-      stickyHeader={true}
-      edgeFade={false}
-      on:close={closeAnalysisFilters}
-    >
-      <BeanAnalysisFilters
-        variant="sheet"
-        bind:selectedBean
-        bind:selectedBag
-        bind:includeCommunity
-        bind:recencyFilter
-      />
     </Sheet>
   {/if}
 {:else}

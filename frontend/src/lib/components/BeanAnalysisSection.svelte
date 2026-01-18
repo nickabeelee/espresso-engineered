@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { onDestroy, createEventDispatcher } from "svelte";
+  import { onDestroy } from "svelte";
   import { apiClient } from "$lib/api-client";
   import { barista } from "$lib/auth";
   import ScatterPlot from "./ScatterPlot.svelte";
   import ErrorDisplay from "./ErrorDisplay.svelte";
   import BeanAnalysisFilters from "$lib/components/BeanAnalysisFilters.svelte";
+  import Popover from "$lib/components/Popover.svelte";
   import { ArrowTopRightOnSquareMini } from "$lib/icons";
   import type { Bean, Bag } from "@shared/types";
   import { recordListShell } from "$lib/ui/components/card";
@@ -24,11 +25,6 @@
   export let includeCommunity = false;
   export let recencyFilter: RecencyPeriod = "M";
   export let showInlineFilters = true;
-
-  // Events
-  const dispatch = createEventDispatcher<{
-    openFilters: void;
-  }>();
 
   // Component state
   let loading = true;
@@ -63,6 +59,7 @@
     Y: "the last year",
   };
   let analysisFilterSummary = "";
+  let filtersPopoverOpen = false;
 
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
@@ -205,10 +202,6 @@
       lastFiltersKey = nextKey;
       loadAnalysisData();
     }
-  }
-
-  function requestFilters() {
-    dispatch("openFilters");
   }
 
   function formatFilterSummary({
@@ -470,9 +463,36 @@
       <ErrorDisplay {error} />
     {:else}
       <div class="analysis-mobile-tools">
-        <button type="button" class="filter-trigger" on:click={requestFilters}
-          >Filters</button
+        <Popover
+          bind:open={filtersPopoverOpen}
+          align="end"
+          contentLabel="Analysis filters"
         >
+          <svelte:fragment slot="trigger" let:toggle let:open>
+            <button
+              type="button"
+              class="filter-trigger"
+              aria-haspopup="dialog"
+              aria-expanded={open}
+              on:click={toggle}
+            >
+              Filters
+            </button>
+          </svelte:fragment>
+          <svelte:fragment slot="content">
+            <div class="analysis-popover-header">
+              <h3>Filters</h3>
+              <p>Refine the analysis view</p>
+            </div>
+            <BeanAnalysisFilters
+              variant="popover"
+              bind:selectedBean
+              bind:selectedBag
+              bind:includeCommunity
+              bind:recencyFilter
+            />
+          </svelte:fragment>
+        </Popover>
         <div class="chart-toggle" role="tablist" aria-label="Select chart">
           <button
             type="button"
@@ -688,6 +708,35 @@
     display: none;
     margin: 0;
     padding-bottom: 1.5rem;
+  }
+
+  .analysis-popover-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .analysis-popover-header h3 {
+    margin: 0;
+    color: var(--text-ink-primary);
+    font-size: 1rem;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .analysis-popover-header p {
+    margin: 0;
+    color: var(--text-ink-muted);
+    font-size: 0.85rem;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 
   .filter-trigger {

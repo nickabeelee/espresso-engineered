@@ -14,7 +14,7 @@
   export let selectedBag: Bag | null = null;
   export let includeCommunity = false;
   export let recencyFilter: RecencyPeriod = 'M';
-  export let variant: 'inline' | 'sheet' = 'inline';
+  export let variant: 'inline' | 'sheet' | 'popover' = 'inline';
 
   let availableBags: Bag[] = [];
   let availableBeans: Bean[] = [];
@@ -345,6 +345,7 @@
   class="analysis-controls"
   class:inline={variant === 'inline'}
   class:sheet={variant === 'sheet'}
+  class:popover={variant === 'popover'}
   style={selectorStyle}
   bind:this={selectorRoot}
 >
@@ -492,6 +493,10 @@
   }
 
   .analysis-controls.sheet {
+    margin-bottom: 0;
+  }
+
+  .analysis-controls.popover {
     margin-bottom: 0;
   }
 
