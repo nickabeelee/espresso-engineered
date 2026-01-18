@@ -11,6 +11,7 @@
   export let closeOnEscape = true;
   export let offset: string | null = null;
   export let contentLabel = "Popover";
+  export let contentOverflow: "auto" | "visible" = "auto";
 
   const dispatch = createEventDispatcher<{ open: void; close: void }>();
 
@@ -33,6 +34,7 @@
     "--popover-width": popover.panel.width,
     "--popover-min-width": popover.panel.minWidth,
     "--popover-max-width": popover.panel.maxWidth,
+    "--popover-content-overflow": contentOverflow,
   });
 
   function cssValueToPx(value: string, baseFontSize: number) {
@@ -226,7 +228,8 @@
     width: var(--popover-width);
     min-width: var(--popover-min-width);
     max-width: var(--popover-max-width);
-    overflow-y: auto;
+    overflow-y: var(--popover-content-overflow, auto);
+    overflow-x: visible;
   }
 
   .popover-root[data-side="bottom"] .popover-content {

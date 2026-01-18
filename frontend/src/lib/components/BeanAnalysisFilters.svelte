@@ -218,6 +218,7 @@
     }
   }
 
+
   const recencyButtonAction = (node: HTMLButtonElement, period: RecencyPeriod) => {
     recencyButtons.set(period, node);
     if (!recencyHasPositioned) {
@@ -377,31 +378,37 @@
           </span>
         </button>
         {#if beanMenuOpen}
-          <div class="cascade-panel">
-            <button
-              type="button"
-              class="cascade-option"
-              on:click={() => selectBean(null)}
-            >
-              <span class="option-title">Clear selection</span>
-              <span class="option-meta">Pause the analysis view</span>
-            </button>
-            {#if availableBeans.length === 0}
-              <div class="cascade-empty">No beans yet.</div>
-            {:else}
-              {#each sortedBeans as bean (bean.id)}
-                <button
-                  type="button"
-                  class="cascade-option"
-                  on:click={() => selectBean(bean)}
-                >
-                  <span class="option-title">{bean.name}</span>
-                  <span class="option-meta">
-                    Roast: {bean.roast_level} | Last used {formatRelativeTime(lastUsedByBeanId[bean.id] ?? null) ?? 'never'}
-                  </span>
-                </button>
-              {/each}
-            {/if}
+          <div
+            class="cascade-panel"
+            aria-label="Bean filter"
+          >
+            <div class="cascade-panel-label">Bean</div>
+            <div class="cascade-scroll">
+              <button
+                type="button"
+                class="cascade-option"
+                on:click={() => selectBean(null)}
+              >
+                <span class="option-title">Clear selection</span>
+                <span class="option-meta">Pause the analysis view</span>
+              </button>
+              {#if availableBeans.length === 0}
+                <div class="cascade-empty">No beans yet.</div>
+              {:else}
+                {#each sortedBeans as bean (bean.id)}
+                  <button
+                    type="button"
+                    class="cascade-option"
+                    on:click={() => selectBean(bean)}
+                  >
+                    <span class="option-title">{bean.name}</span>
+                    <span class="option-meta">
+                      Roast: {bean.roast_level} | Last used {formatRelativeTime(lastUsedByBeanId[bean.id] ?? null) ?? 'never'}
+                    </span>
+                  </button>
+                {/each}
+              {/if}
+            </div>
           </div>
         {/if}
       </div>
@@ -422,31 +429,37 @@
             </span>
           </button>
           {#if bagMenuOpen}
-            <div class="cascade-panel">
-              <button
-                type="button"
-                class="cascade-option"
-                on:click={() => selectBag(null)}
-              >
-                <span class="option-title">All bags</span>
-                <span class="option-meta">Show every bag for this bean</span>
-              </button>
-              {#if beanBags.length === 0}
-                <div class="cascade-empty">No bags for this bean yet.</div>
-              {:else}
-                {#each sortedBeanBags as bag (bag.id)}
-                  <button
-                    type="button"
-                    class="cascade-option"
-                    on:click={() => selectBag(bag)}
-                  >
-                    <span class="option-title">{formatBagLabel(bag)}</span>
-                    <span class="option-meta">
-                      Roast: {bag.roast_date ? new Date(bag.roast_date).toLocaleDateString() : 'Unknown'} | Last used {formatRelativeTime(lastUsedByBagId[bag.id] ?? null) ?? 'never'}
-                    </span>
-                  </button>
-                {/each}
-              {/if}
+            <div
+              class="cascade-panel"
+              aria-label="Bag filter"
+            >
+              <div class="cascade-panel-label">Bag</div>
+              <div class="cascade-scroll">
+                <button
+                  type="button"
+                  class="cascade-option"
+                  on:click={() => selectBag(null)}
+                >
+                  <span class="option-title">All bags</span>
+                  <span class="option-meta">Show every bag for this bean</span>
+                </button>
+                {#if beanBags.length === 0}
+                  <div class="cascade-empty">No bags for this bean yet.</div>
+                {:else}
+                  {#each sortedBeanBags as bag (bag.id)}
+                    <button
+                      type="button"
+                      class="cascade-option"
+                      on:click={() => selectBag(bag)}
+                    >
+                      <span class="option-title">{formatBagLabel(bag)}</span>
+                      <span class="option-meta">
+                        Roast: {bag.roast_date ? new Date(bag.roast_date).toLocaleDateString() : 'Unknown'} | Last used {formatRelativeTime(lastUsedByBagId[bag.id] ?? null) ?? 'never'}
+                      </span>
+                    </button>
+                  {/each}
+                {/if}
+              </div>
             </div>
           {/if}
         </div>
@@ -498,11 +511,13 @@
 
   .analysis-controls.popover {
     margin-bottom: 0;
+    overflow: visible;
   }
 
   .cascade-select {
     position: relative;
     width: 100%;
+    overflow: visible;
   }
 
   .cascade-trigger {
@@ -538,20 +553,43 @@
 
   .cascade-panel {
     position: absolute;
-    top: calc(100% + 0.5rem);
+    top: calc(-1 * (var(--cascade-label-height) + var(--cascade-label-gap)));
     left: 0;
-    right: 0;
+    width: 100%;
     background: var(--selector-panel-bg);
     border: 1px solid var(--selector-panel-border);
     border-radius: var(--selector-panel-radius);
     box-shadow: var(--selector-panel-shadow);
-    padding: var(--selector-panel-padding);
-    z-index: 20;
+    z-index: 1300;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: min(70vh, 320px);
+    --cascade-label-height: 2rem;
+    --cascade-label-gap: 0.35rem;
+  }
+
+  .cascade-panel-label {
+    height: var(--cascade-label-height);
+    padding: 0 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-ink-muted);
+    border-bottom: 1px solid var(--selector-panel-border);
+    display: flex;
+    align-items: center;
+  }
+
+  .cascade-scroll {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
-    max-height: 280px;
+    padding: var(--cascade-label-gap) var(--selector-panel-padding)
+      var(--selector-panel-padding);
     overflow-y: auto;
+    min-height: 0;
   }
 
   .cascade-option {

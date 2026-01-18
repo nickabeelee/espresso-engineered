@@ -467,6 +467,7 @@
           bind:open={filtersPopoverOpen}
           align="start"
           contentLabel="Analysis filters"
+          contentOverflow="visible"
         >
           <svelte:fragment slot="trigger" let:toggle let:open>
             <button
