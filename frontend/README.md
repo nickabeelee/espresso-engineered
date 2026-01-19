@@ -79,5 +79,13 @@ This project is configured for deployment on Netlify using the SvelteKit Netlify
 - **Authentication**: Supabase Auth
 - **Data**: Supabase client for direct database access
 - **API**: Calls to Fastify backend for business logic
+- **Styling**: Token-driven CSS in `src/app.css` and `src/lib/ui/**`, Tailwind v4 as an optional utility layer
+- **shadcn-svelte**: Primitives live in `src/lib/shadcn` (no replacements of existing UI)
 - **Testing**: Vitest with Svelte Testing Library and fast-check
 - **Deployment**: Netlify with automatic deployments
+
+## Frontend Layout
+
+- **Tokens**: `src/app.css` and `src/lib/ui/**` are authoritative
+- **Tailwind**: `tailwind.config.ts` + `postcss.config.cjs` (utilities consume CSS variables)
+- **shadcn**: `src/lib/shadcn/**` for primitives and `src/lib/shadcn/utils`

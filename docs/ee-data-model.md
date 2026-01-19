@@ -158,7 +158,7 @@ Table brew_interaction {
   comment text
   created_at timestamptz [default: `now()`]
 
-  Note: 'Supports likes and comments without splitting tables in V1.'
+  Note: 'Supports likes and comments without splitting tables in the current scope.'
 }
 
 Table admin_action_log {

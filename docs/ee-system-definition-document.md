@@ -1,4 +1,4 @@
-# Espresso Engineered — SDD (v1)  
+# Espresso Engineered — System Definition  
   
 Espresso Engineered Project  
   
@@ -126,13 +126,13 @@ Image uploads are supported for relevant entities.
 * Brews are **public by default**  
 * Only owners (or admins) may edit brews  
   
-Social interactions in v1:  
+Social interactions in the current scope:  
 * Feed of recent brews  
 * Likes  
 * Comments  
 * Brew comparisons  
   
-No private feeds or notifications in v1.  
+No private feeds or notifications in the current scope.  
   
 ## 8. Authentication and Access  
 * Authentication is required  
@@ -147,9 +147,9 @@ An admin portal exists with unrestricted access:
 * Normalize or process grinders  
 * Moderate community content  
   
-## 10. Explicit Non-Goals (v1)  
+## 10. Explicit Non-Goals  
   
-Out of scope for v1:  
+Out of scope for the current scope:  
 * Notifications  
 * Data import/export  
 * Recipe marketplaces  

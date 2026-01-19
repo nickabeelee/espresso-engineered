@@ -43,6 +43,8 @@ FRONTEND LAYER
   
 Framework  
 • SvelteKit (TypeScript)  
+• Tailwind v4 as an optional utility layer (token-driven)  
+• shadcn-svelte primitives in a separate namespace  
   
 Hosting  
 • Netlify  
@@ -53,6 +55,7 @@ Responsibilities
 • Calling backend APIs  
 • Subscribing to realtime updates  
 • Managing auth tokens via Supabase client  
+• Maintain token-driven styling (CSS variables in app.css and src/lib/ui/**)  
   
 Characteristics  
 • Fast perceived performance  

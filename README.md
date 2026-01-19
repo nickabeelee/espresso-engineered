@@ -58,15 +58,15 @@ npm run build:all
 
 ## Documentation
 
-- [Architecture](docs/ee-architecture-v1.md)
-- [Data Model](docs/ee-data-model-v1.md)
-- [System Definition](docs/ee-system-definition-document-v1.md)
+- [Architecture](docs/ee-architecture.md)
+- [Data Model](docs/ee-data-model.md)
+- [System Definition](docs/ee-system-definition-document.md)
 - [Frontend README](frontend/README.md)
 - [Backend README](backend/README.md)
 
 ## Technology Stack
 
-- **Frontend**: SvelteKit with TypeScript on Netlify
+- **Frontend**: SvelteKit with TypeScript on Netlify, Tailwind v4 (token-driven utilities), shadcn-svelte primitives
 - **Backend**: Node.js with Fastify on Fly.io
 - **Database**: Supabase (PostgreSQL + Auth + Realtime)
 - **Testing**: Jest (backend), Vitest (frontend), fast-check (property-based testing)
@@ -95,26 +95,26 @@ in the backend environment so redirects land on the correct frontend domain.
 
 If you are using custom domains, substitute the custom domain for the Fly.io or Netlify URLs above.
 
-## MVP Goals & Scope
+## Product Goals & Scope
 
 This README defines:
-- The **Minimum Viable Product (MVP) goals**
-- The **explicit V1 scope**
-- What is **intentionally out of scope** to keep execution fast and focused
+- The core product goals
+- The current scope
+- What is intentionally out of scope to keep execution focused
 
-This document is meant to guide development decisions and prevent scope creep.
+This document guides development decisions and prevents scope creep.
 
 ---
 
-## MVP Goals
+## Product Goals
 
-The MVP exists to validate three core assumptions:
+The product is designed to validate three core assumptions:
 
 1. **People want to record espresso brews quickly and cleanly**
 2. **Shared brew data is more valuable than isolated notes**
 3. **Community-driven suggestions (grind, recipe) are useful even before advanced ML**
 
-To support those assumptions, the MVP must:
+To support those assumptions, the product must:
 - Feel fast and pleasant to use
 - Make brew logging frictionless
 - Enable basic social interaction around brews
@@ -134,7 +134,7 @@ A Barista:
 
 ---
 
-## V1 Feature Scope (In Scope)
+## Feature Scope (In Scope)
 
 ### Authentication & Identity
 - Supabase-based authentication
@@ -171,7 +171,7 @@ Rules:
 
 ---
 
-### Community Suggestions (V1 Rules-Based)
+### Community Suggestions (Rules-Based)
 Suggestions are based on:
 - Beans + Grinder + Machine  
   OR  
@@ -179,7 +179,7 @@ Suggestions are based on:
 
 Notes:
 - Suggestions are communal, not personalized
-- No machine learning in V1
+- No machine learning in the current scope
 - Logic is deterministic and explainable
 
 ---
@@ -191,9 +191,9 @@ Notes:
 
 ---
 
-## Explicitly Out of Scope for V1
+## Explicitly Out of Scope
 
-The following are intentionally excluded to protect MVP velocity:
+The following are intentionally excluded to protect delivery velocity:
 
 - Push notifications
 - Advanced personalization
@@ -212,7 +212,7 @@ The following are intentionally excluded to protect MVP velocity:
 - This is **not** a professional cafe workflow tool
 - This is **not** a complete brew science platform (yet)
 
-V1 prioritizes **learning, validation, and extensibility** over completeness.
+The current scope prioritizes **learning, validation, and extensibility** over completeness.
 
 ---
 
@@ -225,9 +225,9 @@ V1 prioritizes **learning, validation, and extensibility** over completeness.
 
 ---
 
-## Success Criteria for MVP
+## Success Criteria
 
-The MVP is successful if:
+Success is defined by:
 - Users can log brews in under 60 seconds
 - Users return to view or compare brews
 - Community suggestions feel “good enough” to be helpful
@@ -235,7 +235,7 @@ The MVP is successful if:
 
 ---
 
-## Next Phase (Post-V1 Preview)
+## Future Enhancements
 
 Future iterations may include:
 - Personalized suggestions
@@ -245,4 +245,4 @@ Future iterations may include:
 - Richer social graphs
 - Advanced analytics
 
-None of these are required for MVP completion.
+None of these are required for production operation.
