@@ -5,10 +5,6 @@ description: Refactor an existing Svelte component to wrap a shadcn primitive, o
 
 # Shadcn Wrapper Skill
 
-Use this skill when:
-- Wrapping an existing `frontend/src/lib/components/*` component around a shadcn primitive in `frontend/src/lib/shadcn/*`.
-- Creating a new component that relies on shadcn behavior while preserving the app's UI tokens, CSS variables, and look-and-feel.
-
 ## Core rules (always follow)
 - Public API remains stable: no breaking prop changes, no export renames, no call-site changes.
 - Shadcn stays internal: callers import from `frontend/src/lib/components/*`, not `frontend/src/lib/shadcn/*`.
@@ -18,7 +14,7 @@ Use this skill when:
 ## Workflow
 1) Audit the current component API
    - List props, events, slots, and supported CSS custom properties.
-   - Note any `href`/`type`/`disabled` behavior and aria attributes.
+   - Note `href`/`type`/`disabled` behavior, `aria-*`, and any click guards.
 
 2) Choose the wrapper boundary
    - Wrapper file stays in `frontend/src/lib/components/<Component>.svelte`.
@@ -28,17 +24,26 @@ Use this skill when:
    - Create private maps from existing props to shadcn variants/sizes.
    - Use semantic variants from `docs/ee-ui-execution-standard.md` (section 7.2) as the source of truth.
 
-4) Reapply UI tokens and CSS vars on the wrapper
+4) Neutralize shadcn styling where needed
+   - If shadcn classes conflict with app tokens (sizes, font weight, hover), add an internal no-op variant/size (e.g. `ee-base`) in the shadcn component and map to it in the wrapper.
+   - Do not expose these internal variants to callers.
+
+5) Reapply UI tokens and CSS vars on the wrapper
    - Use `frontend/src/lib/ui/components/*` for tokens (e.g. `button.ts`).
    - Generate CSS variables with `toStyleString` from `frontend/src/lib/ui/style`.
-   - Attach vars to the wrapper element (or via `style=` if delegating to shadcn).
+   - Combine `style` from `$$restProps` with token styles in the wrapper.
    - Keep the visual system authoritative; shadcn behavior only.
 
-5) Preserve interaction behavior
+6) Preserve interaction behavior
    - Forward events exactly as before (e.g. `on:click`).
+   - If the shadcn primitive does not dispatch events, add forwarding in `frontend/src/lib/shadcn/*`.
    - For disabled state, prevent default + stop propagation when needed (match existing pattern in `GhostButton.svelte` and `IconButton.svelte`).
 
-6) Verify invariants
+7) Fix Svelte style scoping
+   - Wrapper styles that target classes on the shadcn element must be `:global(...)` so they apply to the inner DOM node.
+   - Keep class names on the shadcn element stable (`class={`ghost-button ${restClass}`.trim()}`) so global styles still match.
+
+8) Verify invariants
    - UI unchanged, API unchanged, tests unchanged.
    - Run `npm run dev:frontend` and relevant tests if requested.
 
@@ -51,6 +56,7 @@ Use this skill when:
 - Maintain `href` / `type` behavior:
   - If current API supports `href`, keep anchor semantics.
   - Ensure `aria-disabled`, `tabindex`, and `disabled` match existing behavior.
+- If shadcn uses slots to render its element, apply `:global` to wrapper CSS selectors.
 
 ## Minimal wrapper skeleton (adapt to the component)
 ```svelte

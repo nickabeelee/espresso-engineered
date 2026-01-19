@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { Button as ShadcnButton } from '$lib/shadcn/button';
   import { iconButtonBase, iconButtonIcon, iconButtonVariants } from '$lib/ui/components/icon-button';
   import { toStyleString } from '$lib/ui/style';
 
@@ -11,11 +12,17 @@
   export let title: string | undefined = undefined;
   export let disabled = false;
 
-  const element = href ? 'a' : 'button';
+  const variantMap = {
+    neutral: 'ee-base',
+    accent: 'ee-base',
+    success: 'ee-base',
+    danger: 'ee-base'
+  } as const;
 
   let restClass = '';
+  let restStyle = '';
   let restProps: Record<string, unknown> = {};
-  $: ({ class: restClass = '', ...restProps } = $$restProps);
+  $: ({ class: restClass = '', style: restStyle = '', ...restProps } = $$restProps);
 
   $: variantTokens = tone === 'dark'
     ? iconButtonVariants.onDark[variant]
@@ -41,6 +48,8 @@
     '--icon-button-icon-size': iconButtonIcon.size
   });
 
+  $: combinedStyle = [style, restStyle].filter(Boolean).join(';');
+
   const dispatch = createEventDispatcher<{ click: MouseEvent }>();
 
   function handleClick(event: MouseEvent) {
@@ -54,20 +63,18 @@
   }
 </script>
 
-<svelte:element
-  this={element}
+<ShadcnButton
   {...restProps}
   href={href ?? undefined}
-  type={element === 'button' ? type : undefined}
+  {type}
   aria-label={ariaLabel}
-  aria-disabled={disabled ? 'true' : undefined}
-  tabindex={disabled && element === 'a' ? -1 : undefined}
-  class={`button-base icon-button icon-button--${variant} ${restClass}`.trim()}
-  class:icon-button--on-dark={tone === 'dark'}
+  class={`button-base icon-button icon-button--${variant} ${tone === 'dark' ? 'icon-button--on-dark' : ''} ${restClass}`.trim()}
   {title}
-  disabled={element === 'button' ? disabled : undefined}
-  style={style}
+  {disabled}
+  variant={variantMap[variant]}
+  size="ee-base"
+  style={combinedStyle}
   on:click={handleClick}
 >
   <slot />
-</svelte:element>
+</ShadcnButton>

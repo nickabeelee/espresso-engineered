@@ -22,10 +22,16 @@
     "install:all": "npm install --workspaces",
     "clean": "rm -rf frontend/node_modules backend/node_modules shared/node_modules node_modules"
   },
-  "keywords": ["espresso", "coffee", "brewing", "community"],
+  "keywords": [
+    "espresso",
+    "coffee",
+    "brewing",
+    "community"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "shadcn": "^3.7.0"
   }
 }

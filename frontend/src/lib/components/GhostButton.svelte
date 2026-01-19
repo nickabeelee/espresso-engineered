@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { Button as ShadcnButton } from '$lib/shadcn/button';
   import { buttonBase, buttonDisabled, buttonFocusRing, buttonSizes, buttonVariants } from '$lib/ui/components/button';
   import { toStyleString } from '$lib/ui/style';
 
@@ -11,11 +12,23 @@
   export let title: string | undefined = undefined;
   export let disabled = false;
 
-  const element = href ? 'a' : 'button';
+  const variantMap = {
+    neutral: 'ee-base',
+    accent: 'ee-base',
+    success: 'ee-base',
+    danger: 'ee-base'
+  } as const;
+
+  const sizeMap = {
+    sm: 'ee-base',
+    md: 'ee-base',
+    lg: 'ee-base'
+  } as const;
 
   let restClass = '';
+  let restStyle = '';
   let restProps: Record<string, unknown> = {};
-  $: ({ class: restClass = '', ...restProps } = $$restProps);
+  $: ({ class: restClass = '', style: restStyle = '', ...restProps } = $$restProps);
 
   $: variantTokens = buttonVariants[variant];
   $: sizeTokens = buttonSizes[size];
@@ -40,6 +53,8 @@
     '--ghost-button-gap': buttonBase.gap
   });
 
+  $: combinedStyle = [style, restStyle].filter(Boolean).join(';');
+
   const dispatch = createEventDispatcher<{ click: MouseEvent }>();
 
   function handleClick(event: MouseEvent) {
@@ -53,25 +68,24 @@
   }
 </script>
 
-<svelte:element
-  this={element}
+<ShadcnButton
   {...restProps}
   href={href ?? undefined}
-  type={element === 'button' ? type : undefined}
+  {type}
   aria-label={ariaLabel}
-  aria-disabled={disabled ? 'true' : undefined}
-  tabindex={disabled && element === 'a' ? -1 : undefined}
-  class={`ghost-button ${restClass}`.trim()}
   {title}
-  disabled={element === 'button' ? disabled : undefined}
-  style={style}
+  class={`ghost-button ${restClass}`.trim()}
+  {disabled}
+  variant={variantMap[variant]}
+  size={sizeMap[size]}
+  style={combinedStyle}
   on:click={handleClick}
 >
   <slot />
-</svelte:element>
+</ShadcnButton>
 
 <style>
-  .ghost-button {
+  :global(.ghost-button) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -90,24 +104,24 @@
     transition: var(--ghost-button-transition);
   }
 
-  .ghost-button:hover {
+  :global(.ghost-button:hover) {
     background: var(--button-hover-bg);
     border-color: var(--button-hover-border);
     color: var(--button-ink);
   }
 
-  .ghost-button:active {
+  :global(.ghost-button:active) {
     background: var(--button-active-bg);
     color: var(--button-ink);
   }
 
-  .ghost-button:focus-visible {
+  :global(.ghost-button:focus-visible) {
     outline: var(--ghost-button-focus-ring);
     outline-offset: var(--ghost-button-focus-offset);
   }
 
-  .ghost-button[aria-disabled="true"],
-  .ghost-button:disabled {
+  :global(.ghost-button[aria-disabled="true"]),
+  :global(.ghost-button:disabled) {
     cursor: not-allowed;
     opacity: var(--ghost-button-disabled-opacity);
   }
