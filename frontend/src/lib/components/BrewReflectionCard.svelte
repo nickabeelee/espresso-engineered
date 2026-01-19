@@ -6,7 +6,7 @@
   import GuestReflectionModal from '$lib/components/GuestReflectionModal.svelte';
   import RatingSlider from '$lib/components/RatingSlider.svelte';
   import { apiClient } from '$lib/api-client';
-  import { CheckCircle, LockClosed, StarMini } from '$lib/icons';
+  import { CheckCircle, LockClosed, QrCode, StarMini } from '$lib/icons';
   import { recordCard } from '$lib/ui/components/card';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
@@ -252,6 +252,7 @@
 
   <footer class="card-footer interactive">
     <GhostButton
+      class="guest-reflection-button"
       type="button"
       variant="neutral"
       size="sm"
@@ -260,6 +261,7 @@
       title={guestReflectionActive ? 'View guest reflection link' : 'Request guest reflection'}
       disabled={guestRequestLoading}
     >
+      <QrCode size={16} />
       Guest reflection
     </GhostButton>
     {#if showSubmit}
@@ -391,10 +393,15 @@
   }
 
   .card-footer {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    gap: 0.75rem;
+  }
+
+  .card-footer :global(.guest-reflection-button) {
+    justify-content: flex-start;
+    width: 100%;
   }
 
   .interactive {
@@ -415,8 +422,7 @@
     }
 
     .card-footer {
-      flex-direction: column;
-      align-items: stretch;
+      grid-template-columns: minmax(0, 1fr) auto;
     }
   }
 </style>
