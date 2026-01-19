@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte/svelte5';
 import RoasterSelector from './RoasterSelector.svelte';
 
 // Mock the API client
@@ -12,23 +12,6 @@ vi.mock('$lib/api-client', () => ({
       ] 
     })
   }
-}));
-
-// Mock the icons
-vi.mock('$lib/icons', () => ({
-  ChevronDown: 'div',
-  MagnifyingGlass: 'div',
-  Plus: 'div'
-}));
-
-// Mock the InlineRoasterCreator component
-vi.mock('./InlineRoasterCreator.svelte', () => ({
-  default: 'div'
-}));
-
-// Mock the IconButton component
-vi.mock('./IconButton.svelte', () => ({
-  default: 'button'
 }));
 
 describe('RoasterSelector', () => {

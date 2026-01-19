@@ -2,12 +2,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { testD3Integration, type BrewDataPoint } from './d3-integration';
 import type { Brew } from '../../../../../shared/types';
 
-// Mock ResizeObserver for testing
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+global.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 
 describe('D3 Integration', () => {
   describe('testD3Integration', () => {

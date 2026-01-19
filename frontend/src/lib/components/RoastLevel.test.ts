@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte/svelte5';
 import { describe, it, expect, vi } from 'vitest';
 import RoastLevel from './RoastLevel.svelte';
 import type { RoastLevel as RoastLevelType } from '../../../shared/types';

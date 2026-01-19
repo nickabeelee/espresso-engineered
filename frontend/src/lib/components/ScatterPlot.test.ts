@@ -1,15 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, cleanup } from '@testing-library/svelte';
+import { render, cleanup } from '@testing-library/svelte/svelte5';
 import ScatterPlot from './ScatterPlot.svelte';
 import type { BrewDataPoint } from '$lib/ui/viz/d3-integration';
 import type { Brew } from '../../../../shared/types';
 
-// Mock ResizeObserver for testing
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+global.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 
 describe('ScatterPlot Component', () => {
   const mockBrew: Brew = {

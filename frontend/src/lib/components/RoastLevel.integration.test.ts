@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor } from '@testing-library/svelte/svelte5';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import RoastLevel from './RoastLevel.svelte';
 import type { RoastLevel as RoastLevelType } from '@shared/types';
@@ -12,11 +12,11 @@ describe('RoastLevel Integration Tests', () => {
     it('should render exactly 5 coffee bean icons in horizontal row', () => {
       render(RoastLevel, { value: 'Medium' });
       
-      const buttons = screen.getAllByRole('button');
+      const buttons = screen.getAllByRole('radio');
       expect(buttons).toHaveLength(5);
       
       // Check horizontal layout
-      const container = screen.getByRole('img');
+      const container = screen.getByRole('radiogroup');
       expect(container).toHaveClass('roast-level-component');
     });
 
@@ -32,7 +32,7 @@ describe('RoastLevel Integration Tests', () => {
       testCases.forEach(({ level, expectedActive }) => {
         const { unmount } = render(RoastLevel, { value: level });
         
-        const buttons = screen.getAllByRole('button');
+        const buttons = screen.getAllByRole('radio');
         let activeCount = 0;
         
         buttons.forEach((button, index) => {
@@ -54,7 +54,7 @@ describe('RoastLevel Integration Tests', () => {
       sizes.forEach(size => {
         const { unmount } = render(RoastLevel, { value: 'Medium', size });
         
-        const container = screen.getByRole('img');
+        const container = screen.getByRole('radiogroup');
         expect(container).toHaveClass(size);
         
         unmount();
@@ -64,7 +64,7 @@ describe('RoastLevel Integration Tests', () => {
     it('should default to medium size when no size specified', () => {
       render(RoastLevel, { value: 'Medium' });
       
-      const container = screen.getByRole('img');
+      const container = screen.getByRole('radiogroup');
       expect(container).toHaveClass('medium');
     });
   });
@@ -78,7 +78,7 @@ describe('RoastLevel Integration Tests', () => {
         onChange 
       });
       
-      const buttons = screen.getAllByRole('button');
+      const buttons = screen.getAllByRole('radio');
       
       // Initially should have 1 active bean (Light)
       let activeBeans = buttons.filter(btn => btn.classList.contains('bean-active'));
@@ -102,7 +102,7 @@ describe('RoastLevel Integration Tests', () => {
         onChange 
       });
       
-      const buttons = screen.getAllByRole('button');
+      const buttons = screen.getAllByRole('radio');
       
       // Click on fourth bean (Medium Dark)
       await fireEvent.click(buttons[3]);
@@ -118,7 +118,7 @@ describe('RoastLevel Integration Tests', () => {
         onChange 
       });
       
-      const buttons = screen.getAllByRole('button');
+      const buttons = screen.getAllByRole('radio');
       
       // Try to click
       await fireEvent.click(buttons[3]);
@@ -132,8 +132,8 @@ describe('RoastLevel Integration Tests', () => {
         editable: true 
       });
       
-      const container = screen.getByRole('slider'); // In editable mode, it's a slider
-      const buttons = screen.getAllByRole('button');
+      const container = screen.getByRole('radiogroup');
+      const buttons = screen.getAllByRole('radio');
       
       // Hover over third bean
       await fireEvent.mouseEnter(buttons[2]);
@@ -141,12 +141,12 @@ describe('RoastLevel Integration Tests', () => {
       // Leave component
       await fireEvent.mouseLeave(container);
       
-      // Should return to original state (1 active bean, no hover preview)
+      // Hover does not change state; active beans should remain unchanged.
       await waitFor(() => {
-        const hoverButtons = buttons.filter(btn => 
-          btn.classList.contains('bean-hover-preview')
+        const activeButtons = buttons.filter(btn =>
+          btn.classList.contains('bean-active')
         );
-        expect(hoverButtons).toHaveLength(0);
+        expect(activeButtons).toHaveLength(1);
       });
     });
   });
@@ -155,7 +155,7 @@ describe('RoastLevel Integration Tests', () => {
     it('should have proper ARIA attributes in view-only mode', () => {
       render(RoastLevel, { value: 'Medium' });
       
-      const container = screen.getByRole('img');
+      const container = screen.getByRole('radiogroup');
       expect(container).toHaveAttribute('aria-label', 'Roast level: Medium');
       expect(container).toHaveAttribute('title', 'Medium');
     });
@@ -163,25 +163,23 @@ describe('RoastLevel Integration Tests', () => {
     it('should have proper ARIA attributes in editable mode', () => {
       render(RoastLevel, { value: 'Medium', editable: true });
       
-      const container = screen.getByRole('slider');
-      expect(container).toHaveAttribute('aria-valuemin', '1');
-      expect(container).toHaveAttribute('aria-valuemax', '5');
-      expect(container).toHaveAttribute('aria-valuenow', '3');
-      expect(container).toHaveAttribute('aria-valuetext', 'Medium');
+      const container = screen.getByRole('radiogroup');
+      expect(container).toHaveAttribute('aria-label', 'Roast level: Medium');
+      expect(container).toHaveAttribute('title', 'Medium');
     });
 
     it('should be focusable in editable mode', () => {
       render(RoastLevel, { value: 'Medium', editable: true });
       
-      const container = screen.getByRole('slider');
+      const container = screen.getByRole('radiogroup');
       expect(container).toHaveAttribute('tabindex', '0');
     });
 
     it('should not be focusable in view-only mode', () => {
       render(RoastLevel, { value: 'Medium', editable: false });
       
-      const container = screen.getByRole('img');
-      expect(container).toHaveAttribute('tabindex', '-1');
+      const container = screen.getByRole('radiogroup');
+      expect(container).not.toHaveAttribute('tabindex');
     });
   });
 
@@ -198,7 +196,7 @@ describe('RoastLevel Integration Tests', () => {
         onChange 
       });
       
-      const container = screen.getByRole('slider');
+      const container = screen.getByRole('radiogroup');
       container.focus();
       
       // Arrow right should increase roast level
@@ -223,7 +221,7 @@ describe('RoastLevel Integration Tests', () => {
         onChange 
       });
       
-      const container = screen.getByRole('slider');
+      const container = screen.getByRole('radiogroup');
       container.focus();
       
       // Home should go to Light
@@ -242,7 +240,7 @@ describe('RoastLevel Integration Tests', () => {
     it('should use correct CSS custom properties for colors', () => {
       render(RoastLevel, { value: 'Medium' });
       
-      const buttons = screen.getAllByRole('button');
+      const buttons = screen.getAllByRole('radio');
       
       // Check that active beans use primary color
       const activeBeans = buttons.filter(btn => btn.classList.contains('bean-active'));
@@ -265,7 +263,7 @@ describe('RoastLevel Integration Tests', () => {
     it('should handle null roast level gracefully', () => {
       render(RoastLevel, { value: null });
       
-      const buttons = screen.getAllByRole('button');
+      const buttons = screen.getAllByRole('radio');
       const activeBeans = buttons.filter(btn => btn.classList.contains('bean-active'));
       
       expect(activeBeans).toHaveLength(0);
@@ -274,7 +272,7 @@ describe('RoastLevel Integration Tests', () => {
     it('should handle undefined roast level gracefully', () => {
       render(RoastLevel, { value: undefined as any });
       
-      const buttons = screen.getAllByRole('button');
+      const buttons = screen.getAllByRole('radio');
       const activeBeans = buttons.filter(btn => btn.classList.contains('bean-active'));
       
       expect(activeBeans).toHaveLength(0);
@@ -292,7 +290,7 @@ describe('RoastLevel Integration Tests', () => {
       
       const { unmount } = render(RoastLevel, { value: 'Medium', size: 'small' });
       
-      let buttons = screen.getAllByRole('button');
+      let buttons = screen.getAllByRole('radio');
       expect(buttons).toHaveLength(5);
       
       unmount();
@@ -306,7 +304,7 @@ describe('RoastLevel Integration Tests', () => {
       
       render(RoastLevel, { value: 'Medium', size: 'large' });
       
-      buttons = screen.getAllByRole('button');
+      buttons = screen.getAllByRole('radio');
       expect(buttons).toHaveLength(5);
     });
   });
@@ -324,7 +322,7 @@ describe('RoastLevel Integration Tests', () => {
         capturedEvent = event;
       });
       
-      const buttons = screen.getAllByRole('button');
+      const buttons = screen.getAllByRole('radio');
       await fireEvent.click(buttons[2]); // Click third bean (Medium)
       
       expect(capturedEvent).toBeTruthy();

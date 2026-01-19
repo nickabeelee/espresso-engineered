@@ -110,9 +110,12 @@
   }
 </script>
 
-{#if errorObj}
+  {#if errorObj}
     <div 
     class="error-display {variant} {size}"
+    class:error-validation={errorType === ErrorType.VALIDATION}
+    class:error-permission={errorType === ErrorType.PERMISSION}
+    class:error-server={errorType === ErrorType.SERVER}
     class:retryable={canRetry}
     role="alert"
     aria-live="polite"
@@ -262,21 +265,21 @@
   }
   
   /* Validation error styling */
-  .error-display:has(.error-title:contains("Invalid Input")) {
+  .error-display.error-validation {
     background: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.3);
     color: rgb(153, 27, 27);
   }
   
   /* Permission error styling */
-  .error-display:has(.error-title:contains("Access Denied")) {
+  .error-display.error-permission {
     background: rgba(245, 101, 101, 0.1);
     border-color: rgba(245, 101, 101, 0.3);
     color: rgb(153, 27, 27);
   }
   
   /* Server error styling */
-  .error-display:has(.error-title:contains("Server Error")) {
+  .error-display.error-server {
     background: rgba(156, 69, 69, 0.1);
     border-color: rgba(156, 69, 69, 0.3);
     color: var(--semantic-error);

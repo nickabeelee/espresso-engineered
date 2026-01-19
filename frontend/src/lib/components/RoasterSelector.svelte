@@ -184,7 +184,13 @@
           </span>
         </button>
         {#if isOpen}
-          <div class="roaster-combobox-panel" on:keydown={closeIfEscape}>
+          <div
+            class="roaster-combobox-panel"
+            role="dialog"
+            aria-label="Roaster options"
+            tabindex="-1"
+            on:keydown={closeIfEscape}
+          >
             <div class="search-field">
               <span class="search-icon" aria-hidden="true">
                 <MagnifyingGlass size={18} />

@@ -14,7 +14,7 @@
   import { globalLoadingManager, LoadingKeys } from '$lib/utils/loading-state';
   import { AppError, debounce } from '$lib/utils/error-handling';
   import { NetworkMonitor } from '$lib/utils/enhanced-api-client';
-  import type { BeanWithContext, BeanFilters, PaginationParams, RoastLevel } from '@shared/types';
+  import type { BeanWithContext, BeanFilters, PaginationParams, RoastLevel as RoastLevelType } from '@shared/types';
 
   export let limit = 20;
 
@@ -26,7 +26,7 @@
 
   // Filter state
   let searchTerm = '';
-  let selectedRoastLevel: RoastLevel | null = null;
+  let selectedRoastLevel: RoastLevelType | null = null;
   let myBeansOnly = false;
 
   const gridShellStyle = toStyleString({
