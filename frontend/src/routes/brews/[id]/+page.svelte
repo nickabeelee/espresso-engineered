@@ -6,6 +6,7 @@
   import BrewForm from '$lib/components/BrewForm.svelte';
   import BrewReflectionForm from '$lib/components/BrewReflectionForm.svelte';
   import CollapsibleSection from '$lib/components/CollapsibleSection.svelte';
+  import GuestReflectionModal from '$lib/components/GuestReflectionModal.svelte';
   import SectionCard from '$lib/components/SectionCard.svelte';
   import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
@@ -1389,43 +1390,16 @@
   {:else}
     <div class="not-found">Brew not found</div>
   {/if}
-  {#if guestShareOpen && guestShareUrl}
-    <div class="guest-share-modal" role="dialog" aria-modal="true" aria-label="Guest reflection link">
-      <button class="guest-share-backdrop" type="button" on:click={handleCloseGuestShare} aria-label="Close"></button>
-      <div class="guest-share-panel">
-        <div class="guest-share-header">
-          <div>
-            <h2>Guest Reflection Link</h2>
-            <p class="guest-share-subtitle">Have your guest scan the QR code or copy the link to share it.</p>
-            {#if guestShareHelper}
-              <p class="guest-share-helper">{guestShareHelper}</p>
-            {/if}
-          </div>
-          <IconButton on:click={handleCloseGuestShare} ariaLabel="Close" title="Close" variant="neutral">
-            <XMark />
-          </IconButton>
-        </div>
-        <div class="guest-share-body">
-          {#if guestShareQrUrl}
-            <div class="guest-share-qr">
-              <img src={guestShareQrUrl} alt="Guest reflection QR code" />
-            </div>
-          {/if}
-          <div class="guest-share-details">
-            <div class="guest-share-actions">
-              <button class="btn-primary btn-with-icon" type="button" on:click={copyGuestShareLink}>
-                <ClipboardDocument size={18} />
-                {guestShareCopied ? 'Link copied' : 'Copy link'}
-              </button>
-              {#if guestShareCopyError}
-                <span class="guest-reflection-error">{guestShareCopyError}</span>
-              {/if}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  {/if}
+  <GuestReflectionModal
+    open={guestShareOpen}
+    {guestShareUrl}
+    {guestShareQrUrl}
+    {guestShareHelper}
+    {guestShareCopied}
+    {guestShareCopyError}
+    on:close={handleCloseGuestShare}
+    on:copy={copyGuestShareLink}
+  />
   </div>
 </AuthGuard>
 
@@ -1545,114 +1519,6 @@
     font-family: var(--state-font-family);
     font-size: var(--state-font-size);
     margin-bottom: 0.75rem;
-  }
-
-  .guest-share-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    min-width: 0;
-  }
-
-  .guest-share-qr img {
-    width: min(320px, 70vw);
-    height: min(320px, 70vw);
-    border-radius: var(--reflection-body-radius);
-    border: var(--reflection-body-border-width) var(--reflection-body-border-style) var(--reflection-body-border);
-  }
-
-  .guest-share-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 30;
-    display: grid;
-    place-items: center;
-    padding: 1.5rem;
-  }
-
-  .guest-share-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(43, 33, 24, 0.55);
-    border: none;
-  }
-
-  .guest-share-panel {
-    position: relative;
-    z-index: 1;
-    width: min(820px, 100%);
-    background: var(--detail-section-bg);
-    border: var(--detail-section-border-width) var(--detail-section-border-style) var(--detail-section-border);
-    border-radius: var(--detail-section-radius);
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    box-shadow: var(--card-shadow, 0 24px 48px rgba(35, 24, 16, 0.25));
-  }
-
-  .guest-share-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .guest-share-header h2 {
-    margin: 0;
-    font-family: var(--detail-title-family);
-    font-size: var(--detail-title-size);
-    font-weight: var(--detail-title-weight);
-    color: var(--detail-title-color);
-  }
-
-  .guest-share-subtitle {
-    margin: 0.35rem 0 0 0;
-    font-family: var(--state-font-family);
-    font-size: var(--state-font-size);
-    color: var(--state-color);
-  }
-
-  .guest-share-helper {
-    margin: 0.5rem 0 0 0;
-    font-family: var(--state-font-family);
-    font-size: var(--state-font-size);
-    color: var(--state-color);
-  }
-
-  .guest-share-body {
-    display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.2fr);
-    gap: 2rem;
-    align-items: center;
-  }
-
-  .guest-share-actions {
-    margin-top: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .btn-with-icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  @media (max-width: 720px) {
-    .guest-share-panel {
-      padding: 1.5rem;
-    }
-
-    .guest-share-body {
-      grid-template-columns: 1fr;
-    }
-
-    .guest-share-qr {
-      justify-self: center;
-    }
   }
 
   .link-button {
