@@ -113,12 +113,9 @@ export class BrewRepository extends BaseRepository<Brew> {
     }
     if (filters.is_draft !== undefined) {
       if (filters.is_draft) {
-        query = query.or('rating.is.null,tasting_notes.is.null,reflections.is.null');
+        query = query.is('rating', null);
       } else {
-        query = query
-          .not('rating', 'is', null)
-          .not('tasting_notes', 'is', null)
-          .not('reflections', 'is', null);
+        query = query.not('rating', 'is', null);
       }
     }
 
@@ -135,14 +132,14 @@ export class BrewRepository extends BaseRepository<Brew> {
   }
 
   /**
-   * Get draft brews (missing rating, tasting_notes, or reflections) for a barista
+   * Get draft brews (missing rating) for a barista
    */
   async findDrafts(baristaId: string): Promise<Brew[]> {
     const { data, error } = await supabase
       .from('brew')
       .select('*')
       .eq('barista_id', baristaId)
-      .or('rating.is.null,tasting_notes.is.null,reflections.is.null')
+      .is('rating', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -190,8 +187,8 @@ export class BrewRepository extends BaseRepository<Brew> {
   ): Promise<Brew> {
     // First verify this is actually a draft
     const existing = await this.findById(id, baristaId);
-    if (existing.rating !== null && existing.tasting_notes && existing.reflections) {
-      throw new Error('Brew is not a draft - reflections are already complete');
+    if (existing.rating !== null) {
+      throw new Error('Brew is not a draft - rating is already set');
     }
 
     return this.update(id, outputData, baristaId);

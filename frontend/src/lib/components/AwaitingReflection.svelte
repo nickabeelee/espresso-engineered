@@ -19,7 +19,7 @@
       error = null;
 
       const response = await apiClient.getDraftBrews();
-      draftBrews = response.data;
+      draftBrews = response.data.filter(brew => typeof brew.rating !== 'number');
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load draft brews';
       console.error('Failed to load draft brews:', err);
@@ -28,14 +28,37 @@
     }
   }
 
-  async function handleRatingSubmit(event: CustomEvent<{ brewId: string; rating: number }>) {
-    const { brewId, rating } = event.detail;
+  function formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString();
+  }
+
+  function formatTime(dateString: string): string {
+    return new Date(dateString).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  }
+
+  function getBrewTitle(brew: Brew): string {
+    if (brew.name) return brew.name;
+    return `Brew ${formatDate(brew.created_at)}`;
+  }
+
+  function getMissingFields(brew: Brew): string[] {
+    return typeof brew.rating === 'number' ? [] : ['Rating'];
+  }
+
+  function getCompletionPercentage(brew: Brew): number {
+    return typeof brew.rating === 'number' ? 100 : 0;
+  }
+
+  async function quickComplete(brew: Brew, field: string, value: any) {
     try {
       const response = await apiClient.updateBrew(brewId, { rating });
       const index = draftBrews.findIndex((entry) => entry.id === brewId);
       if (index !== -1) {
-        draftBrews[index] = { ...draftBrews[index], ...response.data };
-        draftBrews = draftBrews;
+        draftBrews[index] = { ...draftBrews[index], ...updateData };
+        draftBrews = draftBrews.filter(entry => typeof entry.rating !== 'number');
       }
     } catch (err) {
       console.error('Failed to update rating:', err);
@@ -50,7 +73,7 @@
 <div class="awaiting-reflection">
   <div class="section-header">
     <h2>Awaiting Reflection</h2>
-    <p>Complete these brews by adding missing details</p>
+    <p>Complete these brews by adding a rating</p>
   </div>
 
   {#if loading}
@@ -81,6 +104,18 @@
         {/each}
       </div>
     </div>
+
+    <!-- Batch Actions -->
+    {#if draftBrews.length > 1}
+      <div class="batch-actions">
+        <p class="batch-text">
+          You have {draftBrews.length} brews awaiting a rating
+        </p>
+        <a href="/brews/drafts" class="btn-secondary">
+          View All Awaiting Ratings
+        </a>
+      </div>
+    {/if}
   {/if}
 </div>
 
