@@ -12,6 +12,9 @@ description: Refactor an existing Svelte component to wrap a shadcn primitive, o
 - Styling must come from `frontend/src/lib/ui/components/*` tokens and `docs/ee-ui-execution-standard.md`.
 
 ## Workflow
+0) Ensure shadcn primitive exists (from frontend/)
+   - Run from `frontend/`: `npx shadcn-svelte@latest add <primitive>` if missing.
+   - Use the shadcn MCP tool to confirm the primitive and command when needed.
 1) Audit the current component API
    - List props, events, slots, and supported CSS custom properties.
    - Note `href`/`type`/`disabled` behavior, `aria-*`, and any click guards.

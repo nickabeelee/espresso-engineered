@@ -469,8 +469,14 @@
           contentLabel="Analysis filters"
           contentOverflow="visible"
         >
-          <svelte:fragment slot="trigger" let:toggle let:open>
+          <svelte:fragment
+            slot="trigger"
+            let:toggle
+            let:open
+            let:triggerAnchorAction
+          >
             <button
+              use:triggerAnchorAction
               type="button"
               class="filter-trigger"
               aria-haspopup="dialog"
