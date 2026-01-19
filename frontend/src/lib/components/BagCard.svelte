@@ -590,6 +590,7 @@
     </div>
   </article>
 {:else}
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <article
     class="bag-card"
     class:sheet-surface={surface === "sheet"}
@@ -780,7 +781,7 @@
             <h5>Identity</h5>
             <div class="bag-edit-grid">
               <div class="bag-edit-field">
-                <label>Bean</label>
+                <span class="bag-edit-label">Bean</span>
                 <BeanSelector
                   bind:value={formData.bean_id}
                   disabled={isSaving}
@@ -885,7 +886,7 @@
                 />
               </div>
               <div class="bag-edit-field">
-                <label>Unit price</label>
+                <span class="bag-edit-label">Unit price</span>
                 <div class="detail-value detail-readonly">
                   {#if formPricePerUnit}
                     {formPricePerUnit}
@@ -1097,15 +1098,6 @@
     flex-direction: column;
     gap: 0.35rem;
     min-width: 0;
-  }
-
-  .bag-preview-title h4 {
-    margin: 0;
-    color: var(--editable-card-title-color, var(--text-ink-primary));
-    font-family: var(--editable-card-title-font, inherit);
-    font-size: 0.95rem;
-    font-weight: var(--editable-card-title-weight, 600);
-    word-wrap: break-word;
   }
 
   .bag-preview-roaster {
@@ -1446,7 +1438,8 @@
   }
 
 
-  .bag-edit-field label {
+  .bag-edit-field label,
+  .bag-edit-label {
     font-weight: var(--editable-card-label-weight, 500);
     color: var(--editable-card-label-color, var(--text-ink-secondary));
     font-size: var(--editable-card-label-size, 0.8rem);

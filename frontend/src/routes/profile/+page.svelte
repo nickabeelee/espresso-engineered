@@ -175,7 +175,7 @@
         {#if $barista}
           <div class="account-info">
             <div class="info-item">
-              <label>Member Since</label>
+              <span class="info-label">Member Since</span>
               <span>{new Date($barista.created_at).toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'long', 
@@ -183,7 +183,7 @@
               })}</span>
             </div>
             <div class="info-item">
-              <label>Account ID</label>
+              <span class="info-label">Account ID</span>
               <span class="account-id">{$barista.id}</span>
             </div>
           </div>
@@ -285,7 +285,7 @@
     border-bottom: none;
   }
 
-  .info-item label {
+  .info-item .info-label {
     font-weight: 500;
     color: var(--text-ink-primary);
   }

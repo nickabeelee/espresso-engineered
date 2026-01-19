@@ -113,6 +113,7 @@
   });
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 <article
   class="brew-card"
   class:summary={variant === 'summary'}
@@ -469,10 +470,6 @@
     gap: 0.5rem;
   }
 
-  .detail-row.rating-row {
-    grid-column: 1 / -1;
-  }
-
   .detail-row .label {
     font-weight: var(--record-card-detail-label-weight, 500);
     color: var(--record-card-detail-label-color, var(--text-ink-secondary));
@@ -483,21 +480,6 @@
     color: var(--record-card-detail-value-color, var(--text-ink-primary));
     font-weight: var(--record-card-detail-value-weight, 600);
     font-family: var(--record-card-detail-value-font, inherit);
-  }
-
-  .value.rating {
-    color: var(--accent-primary);
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.35rem;
-    white-space: nowrap;
-  }
-
-  .rating-number {
-    color: var(--text-ink-muted);
-    font-weight: normal;
-    font-size: 0.8rem;
-    margin-left: 0;
   }
 
   .brew-notes {
@@ -542,10 +524,6 @@
 
     .brew-chips {
       align-items: center;
-    }
-
-    .barista-chip {
-      max-width: 100%;
     }
 
     .brew-card.summary {

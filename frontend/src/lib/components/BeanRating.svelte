@@ -99,7 +99,7 @@
 </script>
 
 <div class="bean-rating" class:disabled>
-  <div class="rating-stars" on:mouseleave={handleMouseLeave}>
+  <div class="rating-stars" role="group" aria-label="Rating stars" on:mouseleave={handleMouseLeave}>
     {#each [1, 2, 3, 4, 5] as star}
       <button
         type="button"

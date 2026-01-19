@@ -368,12 +368,14 @@
         
         <div class="space-y-4">
           {#each config.fields.filter(f => !f.includes('_at') && f !== 'id') as field}
+            {@const fieldId = `admin-field-${field}`}
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-gray-700 mb-1" for={fieldId}>
                 {field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </label>
               {#if field === 'inventory_status'}
                 <select
+                  id={fieldId}
                   bind:value={selectedEntity[field]}
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -385,6 +387,7 @@
                 </select>
               {:else}
                 <input
+                  id={fieldId}
                   type="text"
                   bind:value={selectedEntity[field]}
                   inputmode={getInputMode(field)}
@@ -462,19 +465,20 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <span class="block text-sm font-medium text-gray-700 mb-1">
               Current Name
-            </label>
+            </span>
             <div class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-600">
               {selectedEntity.name || 'No name set'}
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="admin-override-name">
               New Name *
             </label>
             <input
+              id="admin-override-name"
               type="text"
               bind:value={nameOverrideData.name}
               placeholder="e.g., Custom name"
@@ -484,10 +488,11 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="admin-override-reason">
               Reason (Optional)
             </label>
             <textarea
+              id="admin-override-reason"
               bind:value={nameOverrideData.reason}
               placeholder="e.g., Known alias from label"
               rows="3"

@@ -413,7 +413,7 @@
               bind:value={tastingNotes}
               disabled={!canEdit}
               on:input={scheduleAutosave}
-            />
+            ></textarea>
             <span class="helper-text">Tap notes below to add them quickly.</span>
             <div class="tasting-suggestions">
               {#if beanNotes.length}
@@ -466,7 +466,7 @@
               bind:value={reflections}
               disabled={!canEdit}
               on:input={scheduleAutosave}
-            />
+            ></textarea>
           </div>
 
           <div class="form-footer">
@@ -587,16 +587,6 @@
     font-family: var(--voice-font-family, "Libre Baskerville", serif);
     font-size: var(--voice-font-size, 1rem);
     line-height: var(--voice-line-height, 1.6);
-    letter-spacing: var(--voice-letter-spacing, 0.02em);
-    font-style: var(--voice-font-style, normal);
-    color: var(--voice-color, var(--text-ink-muted));
-    margin: 0;
-  }
-
-  .voice-text {
-    font-family: var(--voice-font-family, "Libre Baskerville", serif);
-    font-size: var(--voice-font-size, 0.95rem);
-    line-height: var(--voice-line-height, 1.7);
     letter-spacing: var(--voice-letter-spacing, 0.02em);
     font-style: var(--voice-font-style, normal);
     color: var(--voice-color, var(--text-ink-muted));

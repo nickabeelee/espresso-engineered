@@ -992,6 +992,7 @@
                     </div>
                   </article>
 
+                  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                   <article
                     class="equipment-card bag-card bag-card--wide"
                     class:bag-card--clickable={Boolean(bean)}
@@ -1240,6 +1241,7 @@
                   </div>
                 </article>
 
+                <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                 <article
                   class="equipment-card bag-card bag-card--wide"
                   class:bag-card--clickable={Boolean(bean)}
@@ -1496,8 +1498,7 @@
     margin-left: auto;
   }
 
-  .guest-reflection-status,
-  .guest-reflection-status-line {
+  .guest-reflection-status {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -1528,16 +1529,6 @@
   .guest-request-action {
     display: flex;
     align-items: center;
-  }
-
-  .guest-reflection-status-line {
-    margin-bottom: 0.75rem;
-  }
-
-  .guest-reflection-meta {
-    color: var(--state-color);
-    font-family: var(--state-font-family);
-    font-size: var(--state-font-size);
   }
 
   .guest-reflection-error {
@@ -1774,12 +1765,6 @@
     line-height: var(--detail-title-line-height);
   }
 
-  .detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(var(--detail-grid-min), 1fr));
-    gap: var(--detail-grid-gap);
-  }
-
   .metric-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--detail-grid-min), 1fr));
@@ -1794,10 +1779,6 @@
     border: var(--metric-card-border-width) var(--metric-card-border-style) var(--metric-card-border);
     border-radius: var(--metric-card-radius);
     padding: var(--metric-card-padding-y) var(--metric-card-padding-x);
-  }
-
-  .metric-card--wide {
-    grid-column: span 2;
   }
 
   .metric-label {
@@ -2032,24 +2013,6 @@
     object-fit: cover;
   }
 
-  .detail-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .detail-item label {
-    font-weight: var(--metric-label-weight);
-    color: var(--metric-label-color);
-    font-size: var(--metric-label-size);
-    font-family: var(--metric-label-family);
-    line-height: var(--metric-label-line-height);
-  }
-
-  .detail-item span {
-    color: var(--metric-value-color);
-  }
-
   .incomplete-notice {
     background: var(--incomplete-bg);
     border: var(--incomplete-border-width) var(--incomplete-border-style) var(--incomplete-border);
@@ -2067,10 +2030,6 @@
   }
 
   @media (max-width: 768px) {
-    .metric-card--wide {
-      grid-column: span 1;
-    }
-
     .equipment-content-row {
       flex-direction: column;
     }

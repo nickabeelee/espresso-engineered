@@ -598,9 +598,5 @@
       min-width: min(86vw, 280px);
     }
 
-    .bag-card-wrapper.with-image {
-      width: min(86vw, 280px);
-      min-width: min(86vw, 280px);
-    }
   }
 </style>

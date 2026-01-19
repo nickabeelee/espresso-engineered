@@ -547,6 +547,7 @@
         <div class="group-row">
           {#each brewGroups as group, groupIndex (getGroupKey(group))}
             {@const averageRating = getGroupAverageRating(group)}
+            <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
             <article
               class="group-stack"
               bind:this={groupElements[groupIndex]}
@@ -578,12 +579,21 @@
 
               <div
                 class="stack-area"
+                role="button"
+                tabindex="0"
+                aria-label={`Open ${group.bean.name} brew stack`}
                 on:pointerdown={(event) =>
                   handleStackPointerDown(groupIndex, event)}
                 on:pointerup={(event) =>
                   handleStackPointerUp(groupIndex, event)}
                 on:pointercancel={() => swipeStates.delete(groupIndex)}
                 on:click={() => openGroupOverlay(groupIndex)}
+                on:keydown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openGroupOverlay(groupIndex);
+                  }
+                }}
               >
                 {#each getStackedBrews(group, groupIndex, stackOrders) as stackItem (stackItem.brew.id)}
                   <div
