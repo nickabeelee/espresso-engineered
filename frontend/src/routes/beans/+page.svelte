@@ -235,10 +235,6 @@
         <h1>Beans</h1>
         <p>Your collection and the community's discoveries.</p>
       </div>
-      <div class="header-actions">
-        <button class="btn-secondary" on:click={() => showBagCreator = true}>New bag</button>
-        <button class="btn-secondary" on:click={() => showRoasterCreator = true}>New roaster</button>
-      </div>
     </div>
 
     {#if showBeanCreator}
