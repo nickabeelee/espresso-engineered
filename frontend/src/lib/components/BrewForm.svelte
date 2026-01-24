@@ -22,6 +22,7 @@
   export let onViewGuestLink: (() => void) | null = null;
   export let onCopyGuestLink: (() => void) | null = null;
   export let guestLinkError: string | null = null;
+  export let prefillDataOverride: PrefillData | null = null;
   let name = '';
   let isNameAuto = true;
   let nameTouched = false;
@@ -110,9 +111,16 @@
     if (brew) {
       // Editing existing brew
       loadBrewData(brew);
-    } else {
-      await checkPrefillAvailability();
+      return;
     }
+
+    if (prefillDataOverride) {
+      applyPrefillData(prefillDataOverride);
+      prefillApplied = true;
+      return;
+    }
+
+    await checkPrefillAvailability();
   });
 
   function normalizeNumber(value: number | null | undefined): number | undefined {
@@ -168,6 +176,10 @@
     name = '';
     lastGeneratedName = '';
     prefillApplied = true;
+  }
+
+  $: if (!brew && prefillDataOverride && !prefillApplied) {
+    applyPrefillData(prefillDataOverride);
   }
 
   async function handleDuplicateFromLast() {
