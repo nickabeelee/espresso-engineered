@@ -64,8 +64,19 @@
       .getPropertyValue("--popover-offset")
       .trim();
     const offsetPx = cssValueToPx(offsetValue, rootFontSize);
+    const spaceAbove = rootRect.top - offsetPx - viewportPadding;
+    const spaceBelow =
+      window.innerHeight - rootRect.bottom - offsetPx - viewportPadding;
+    const fitsAbove = contentRect.height <= spaceAbove;
+    const fitsBelow = contentRect.height <= spaceBelow;
+    if (side === "top") {
+      placementSide = fitsAbove || !fitsBelow ? "top" : "bottom";
+    } else {
+      placementSide = fitsBelow || !fitsAbove ? "bottom" : "top";
+    }
+
     let top =
-      side === "top"
+      placementSide === "top"
         ? -contentRect.height - offsetPx
         : rootRect.height + offsetPx;
 
@@ -84,14 +95,13 @@
     );
     left += clampedViewportLeft - desiredViewportLeft;
 
-    placementSide = side;
     placementAlign = align;
     const anchorViewportTop =
-      side === "top"
+      placementSide === "top"
         ? rootRect.top - offsetPx - contentRect.height
         : rootRect.bottom + offsetPx;
     const maxHeight =
-      side === "top"
+      placementSide === "top"
         ? Math.max(0, rootRect.top - offsetPx - viewportPadding)
         : Math.max(0, window.innerHeight - viewportPadding - anchorViewportTop);
     contentStyle = toStyleString({

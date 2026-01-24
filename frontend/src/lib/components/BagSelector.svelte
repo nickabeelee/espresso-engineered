@@ -220,22 +220,31 @@
     }
   }
 
-  // Filtered bags based on search
-  const matchesSearch = (bag: Bag) => {
+  $: normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  $: filteredUserBags = userBags.filter((bag) => {
     const bean = getBeanInfo(bag.bean_id);
     if (!bean) return false;
-
+    if (!normalizedSearchTerm) return true;
     const roasterName = getRoasterName(bean.roaster_id);
     const bagDisplay = formatBagDisplay(bag);
-    
-    return !searchTerm || 
-      bagDisplay.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bean.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      roasterName.toLowerCase().includes(searchTerm.toLowerCase());
-  };
-
-  $: filteredUserBags = userBags.filter(matchesSearch);
-  $: filteredOtherBags = otherBags.filter(matchesSearch);
+    return (
+      bagDisplay.toLowerCase().includes(normalizedSearchTerm) ||
+      bean.name.toLowerCase().includes(normalizedSearchTerm) ||
+      roasterName.toLowerCase().includes(normalizedSearchTerm)
+    );
+  });
+  $: filteredOtherBags = otherBags.filter((bag) => {
+    const bean = getBeanInfo(bag.bean_id);
+    if (!bean) return false;
+    if (!normalizedSearchTerm) return true;
+    const roasterName = getRoasterName(bean.roaster_id);
+    const bagDisplay = formatBagDisplay(bag);
+    return (
+      bagDisplay.toLowerCase().includes(normalizedSearchTerm) ||
+      bean.name.toLowerCase().includes(normalizedSearchTerm) ||
+      roasterName.toLowerCase().includes(normalizedSearchTerm)
+    );
+  });
 
   function getLastUsedTimestamp(bag: Bag): number | null {
     return lastUseByBagId[bag.id] ?? null;
