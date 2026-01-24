@@ -13,10 +13,9 @@
   import { adminService } from '$lib/admin-service';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { ChevronDown, ClipboardDocument, LockClosed, PencilSquare, QrCode, Trash, UserMinus, XMark } from '$lib/icons';
+  import { CheckCircle, ChevronDown, ClipboardDocument, DocumentDuplicate, LockClosed, PencilSquare, QrCode, Trash, UserMinus, XMark } from '$lib/icons';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import { imageFrame, imageSizes } from '$lib/ui/components/image';
-  import { alertBase, alertSizes, alertVariants } from '$lib/ui/components/alert';
   import { cardVariants, detailGrid, equipmentCard, recordCard, sectionSurface } from '$lib/ui/components/card';
   import { colorCss } from '$lib/ui/foundations/color';
   import { motion } from '$lib/ui/foundations/motion';
@@ -68,10 +67,6 @@
     '--page-title-line-height': textStyles.headingPrimary.lineHeight,
     '--page-title-margin-top': spacing.sm,
     '--actions-gap': spacing.sm,
-    '--link-color': colorCss.accent.primary,
-    '--link-font-family': textStyles.helper.fontFamily,
-    '--link-font-size': textStyles.helper.fontSize,
-    '--link-font-weight': textStyles.helper.fontWeight,
     '--state-padding': spacing["2xl"],
     '--state-color': colorCss.text.ink.muted,
     '--state-font-family': textStyles.helper.fontFamily,
@@ -153,16 +148,6 @@
     '--reflection-empty-size': textStyles.helper.fontSize,
     '--reflection-empty-family': textStyles.helper.fontFamily,
     '--reflection-empty-line-height': textStyles.helper.lineHeight,
-    '--incomplete-bg': alertVariants.warning.background,
-    '--incomplete-border': alertVariants.warning.borderColor,
-    '--incomplete-border-width': alertBase.borderWidth,
-    '--incomplete-border-style': recordCard.container.borderStyle,
-    '--incomplete-radius': alertBase.borderRadius,
-    '--incomplete-padding': alertSizes.lg.padding,
-    '--incomplete-margin-top': spacing["2xl"],
-    '--incomplete-color': alertVariants.warning.textColor,
-    '--incomplete-font-family': alertBase.fontFamily,
-    '--incomplete-font-size': alertSizes.lg.fontSize,
   });
 
   const equipmentStyle = toStyleString({
@@ -426,6 +411,12 @@
   function openReflection() {
     if (brew) {
       goto(`/brews/${brew.id}?reflect=true`);
+    }
+  }
+
+  function handleStartNewBrew() {
+    if (brew) {
+      goto(`/brews/new?from=${brew.id}`);
     }
   }
 
@@ -713,24 +704,9 @@
             <XMark />
           </IconButton>
         {/if}
-        {#if canEdit && brew && !reflectionMode}
-          {#if editing}
-            <IconButton on:click={toggleEdit} ariaLabel="Cancel editing" title="Cancel" variant="neutral" disabled={loading}>
-              <XMark />
-            </IconButton>
-          {:else}
-            <IconButton on:click={toggleEdit} ariaLabel="Edit brew" variant="accent" disabled={loading}>
-              <PencilSquare />
-            </IconButton>
-          {/if}
-          <IconButton
-            on:click={handleDelete}
-            ariaLabel={deleting ? 'Deleting brew' : 'Delete brew'}
-            title={deleting ? 'Deleting...' : 'Delete'}
-            variant="danger"
-            disabled={loading || deleting}
-          >
-            <Trash />
+        {#if editing && canEdit}
+          <IconButton on:click={toggleEdit} ariaLabel="Cancel editing" title="Cancel" variant="neutral" disabled={loading}>
+            <XMark />
           </IconButton>
         {/if}
       </div>
@@ -744,11 +720,6 @@
     <!-- TypeScript workaround: create local variable with proper type -->
     {@const currentBrew = brew}
     <div class="brew-content">
-      {#if (!currentBrew.yield_g || !currentBrew.rating) && !reflectionMode && !guestLockActive}
-        <div class="incomplete-notice">
-          <p>This brew is incomplete. {#if canEdit}<button on:click={openReflection} class="link-button">Complete it now</button>.{/if}</p>
-        </div>
-      {/if}
       {#if reflectionMode}
         <div class="brew-details reflection-details">
           {#if (guestLockActive || guestCompleted) && showGuestSection}
@@ -1117,68 +1088,144 @@
         />
       {:else}
         <div class="brew-details">
-          {#if showGuestSection}
-            <section class="detail-section guest-reflection-section">
-              <div class="guest-reflection-top">
-                <div class="guest-reflection-info">
-                  <h3>Guest Reflection</h3>
-                  {#if guestStatusMessage}
-                    <div class="guest-reflection-status">
-                      <p class="voice-text guest-reflection-status-text">{guestStatusMessage}</p>
-                    </div>
-                  {/if}
+          {#if canEdit || showGuestSection}
+            <section class="detail-section action-section">
+              <div class="action-header">
+                <div class="action-heading">
+                  <h3>Actions</h3>
                 </div>
-                {#if canEdit && !brew.guest_submitted_at}
-                  <div class="guest-reflection-toolbar">
-                    {#if canShowGuestLinkActions}
-                      <div class="guest-link-actions">
-                        <GhostButton type="button" size="sm" variant="neutral" on:click={handleOpenGuestShare}>
-                          View Guest Link
-                        </GhostButton>
+                {#if canEdit}
+                  <div class="action-toolbar">
+                    <GhostButton
+                      type="button"
+                      size="sm"
+                      variant="accent"
+                      ariaLabel="Start a new brew from this one"
+                      title="Start a new brew from this one"
+                      on:click={handleStartNewBrew}
+                      disabled={loading}
+                    >
+                      <DocumentDuplicate size={18} />
+                      Start new brew
+                    </GhostButton>
+                    <IconButton on:click={toggleEdit} ariaLabel="Edit brew" title="Edit" variant="accent" disabled={loading}>
+                      <PencilSquare />
+                    </IconButton>
+                    <IconButton
+                      on:click={handleDelete}
+                      ariaLabel={deleting ? 'Deleting brew' : 'Delete brew'}
+                      title={deleting ? 'Deleting...' : 'Delete'}
+                      variant="danger"
+                      disabled={loading || deleting}
+                    >
+                      <Trash />
+                    </IconButton>
+                  </div>
+                {/if}
+              </div>
+              {#if canEdit || showGuestSection}
+                <div class="action-block reflection-block">
+                  <div class="reflection-header">
+                    <h3>Reflection</h3>
+                    {#if canEdit}
+                      <p class="reflection-status">
+                        {#if (!currentBrew.yield_g || !currentBrew.rating) && !guestLockActive}
+                          Reflection is incomplete. Choose how you want to finish it.
+                        {:else}
+                          Update your notes, or invite a guest to add theirs.
+                        {/if}
+                      </p>
+                    {/if}
+                    {#if guestStatusMessage && guestState !== 'none'}
+                      <p class="voice-text guest-reflection-status-text">{guestStatusMessage}</p>
+                    {/if}
+                  </div>
+                  {#if canEdit && !guestLockActive}
+                    <div class="reflection-options">
+                      <GhostButton
+                        type="button"
+                        size="sm"
+                        variant={(!currentBrew.yield_g || !currentBrew.rating) ? 'success' : 'accent'}
+                        ariaLabel="Open reflection"
+                        title="Open reflection"
+                        on:click={openReflection}
+                        disabled={loading}
+                      >
+                        <CheckCircle size={18} />
+                        {#if (!currentBrew.yield_g || !currentBrew.rating)}
+                          Complete reflection
+                        {:else}
+                          Review reflection
+                        {/if}
+                      </GhostButton>
+                      {#if guestState === 'none' && !brew.guest_submitted_at}
                         <GhostButton
                           type="button"
                           size="sm"
                           variant="neutral"
-                          ariaLabel="Copy guest link"
-                          title="Copy guest link"
-                          on:click={copyGuestShareLink}
-                          disabled={!guestShareUrl}
-                        >
-                          <ClipboardDocument size={18} />
-                        </GhostButton>
-                        <GhostButton
-                          type="button"
-                          size="sm"
-                          variant="danger"
-                          ariaLabel="Cancel guest reflection"
-                          title="Cancel guest reflection"
-                          on:click={handleCancelGuestReflection}
-                          disabled={guestCancelLoading}
-                        >
-                          <UserMinus size={18} />
-                        </GhostButton>
-                      </div>
-                    {:else}
-                      <div class="guest-request-action">
-                        <GhostButton
-                          type="button"
-                          size="sm"
-                          variant="neutral"
-                          ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
-                          title={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Invite guest reflection'}
+                          title={guestRequestLoading ? 'Preparing guest link...' : 'Invite guest reflection'}
                           on:click={handleRequestGuestReflection}
                           disabled={guestRequestLoading}
                         >
                           <QrCode size={18} />
-                          Begin guest reflection
+                          Invite guest reflection
                         </GhostButton>
-                      </div>
-                    {/if}
-                  </div>
-                {/if}
-              </div>
-              {#if guestShareError}
-                <div class="guest-reflection-error">{guestShareError}</div>
+                      {/if}
+                    </div>
+                  {/if}
+                  {#if canEdit && !brew.guest_submitted_at && guestState !== 'none'}
+                    <div class="guest-reflection-toolbar">
+                      {#if canShowGuestLinkActions}
+                        <div class="guest-link-actions">
+                          <GhostButton type="button" size="sm" variant="neutral" on:click={handleOpenGuestShare}>
+                            View Guest Link
+                          </GhostButton>
+                          <GhostButton
+                            type="button"
+                            size="sm"
+                            variant="neutral"
+                            ariaLabel="Copy guest link"
+                            title="Copy guest link"
+                            on:click={copyGuestShareLink}
+                            disabled={!guestShareUrl}
+                          >
+                            <ClipboardDocument size={18} />
+                          </GhostButton>
+                          <GhostButton
+                            type="button"
+                            size="sm"
+                            variant="danger"
+                            ariaLabel="Cancel guest reflection"
+                            title="Cancel guest reflection"
+                            on:click={handleCancelGuestReflection}
+                            disabled={guestCancelLoading}
+                          >
+                            <UserMinus size={18} />
+                          </GhostButton>
+                        </div>
+                      {:else}
+                        <div class="guest-request-action">
+                          <GhostButton
+                            type="button"
+                            size="sm"
+                            variant="neutral"
+                            ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                            title={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                            on:click={handleRequestGuestReflection}
+                            disabled={guestRequestLoading}
+                          >
+                            <QrCode size={18} />
+                            Begin guest reflection
+                          </GhostButton>
+                        </div>
+                      {/if}
+                    </div>
+                  {/if}
+                  {#if guestShareError}
+                    <div class="guest-reflection-error">{guestShareError}</div>
+                  {/if}
+                </div>
               {/if}
             </section>
           {/if}
@@ -1457,6 +1504,62 @@
     gap: var(--actions-gap);
   }
 
+  .action-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--detail-section-gap);
+  }
+
+  .action-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .action-section .action-heading h3 {
+    margin: 0;
+  }
+
+  .action-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .action-block {
+    border-top: 1px solid var(--detail-section-border);
+    padding-top: var(--detail-section-gap);
+  }
+
+  .reflection-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .reflection-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .reflection-status {
+    margin: 0;
+    color: var(--state-color);
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+  }
+
+  .reflection-options {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
   .guest-reflection-section {
     display: flex;
     flex-direction: column;
@@ -1653,18 +1756,6 @@
     .guest-share-qr {
       justify-self: center;
     }
-  }
-
-  .link-button {
-    background: none;
-    border: none;
-    color: var(--link-color);
-    font-family: var(--link-font-family);
-    font-size: var(--link-font-size);
-    font-weight: var(--link-font-weight);
-    text-decoration: underline;
-    cursor: pointer;
-    padding: 0;
   }
 
   button:disabled:hover {
@@ -2050,21 +2141,6 @@
     color: var(--metric-value-color);
   }
 
-  .incomplete-notice {
-    background: var(--incomplete-bg);
-    border: var(--incomplete-border-width) var(--incomplete-border-style) var(--incomplete-border);
-    border-radius: var(--incomplete-radius);
-    padding: var(--incomplete-padding);
-    margin-top: 0;
-    margin-bottom: var(--detail-section-gap);
-    color: var(--incomplete-color);
-    font-family: var(--incomplete-font-family);
-    font-size: var(--incomplete-font-size);
-  }
-
-  .incomplete-notice p {
-    margin: 0;
-  }
 
   @media (max-width: 768px) {
     .metric-card--wide {
