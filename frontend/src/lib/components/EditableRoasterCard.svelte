@@ -321,129 +321,132 @@
 
 <style>
   .roaster-card {
-    background: var(--editable-card-bg, var(--bg-surface-paper));
-    border: var(--editable-card-border-width, 1px) var(--editable-card-border-style, solid) var(--editable-card-border, var(--border-subtle));
-    border-radius: var(--editable-card-radius, var(--radius-md));
-    padding: var(--editable-card-padding, 1rem);
-    transition: var(--editable-card-transition, border-color var(--motion-fast));
+    background: var(--editable-card-bg);
+    border: var(--editable-card-border-width) var(--editable-card-border-style) var(--editable-card-border);
+    border-radius: var(--editable-card-radius);
+    padding: var(--editable-card-padding);
+    transition: var(--editable-card-transition);
   }
 
   .roaster-card.editing {
-    border-color: var(--editable-card-edit-border, var(--accent-primary));
-    box-shadow: var(--editable-card-edit-shadow, 0 0 0 2px rgba(176, 138, 90, 0.1));
+    border-color: var(--editable-card-edit-border);
+    box-shadow: var(--editable-card-edit-shadow);
   }
 
   .roaster-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: var(--editable-card-header-margin, 0.75rem);
+    margin-bottom: var(--editable-card-header-margin);
   }
 
   .roaster-title h4 {
-    font-family: var(--editable-card-title-font, var(--font-brand));
-    font-size: var(--editable-card-title-size, 1.2rem);
-    font-weight: var(--editable-card-title-weight, 600);
-    color: var(--editable-card-title-color, var(--text-ink-primary));
+    font-family: var(--editable-card-title-font);
+    font-size: var(--editable-card-title-size);
+    font-weight: var(--editable-card-title-weight);
+    color: var(--editable-card-title-color);
     margin: 0;
   }
 
   .roaster-info {
-    font-family: var(--editable-card-info-font, var(--font-ui));
-    font-size: var(--editable-card-info-size, 0.85rem);
-    color: var(--editable-card-info-color, var(--text-ink-muted));
+    font-family: var(--editable-card-info-font);
+    font-size: var(--editable-card-info-size);
+    color: var(--editable-card-info-color);
   }
 
   .roaster-details {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(var(--editable-card-detail-min-col, 200px), 1fr));
-    gap: var(--editable-card-grid-gap, 1rem);
+    grid-template-columns: repeat(auto-fit, minmax(var(--editable-card-detail-min-col), 1fr));
+    gap: var(--editable-card-grid-gap);
   }
 
   .roaster-detail {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: calc(var(--editable-card-grid-gap) / 2);
   }
 
   .detail-label {
-    font-family: var(--editable-card-label-font, var(--font-ui));
-    font-size: var(--editable-card-label-size, 0.8rem);
-    font-weight: var(--editable-card-label-weight, 600);
-    color: var(--editable-card-label-color, var(--text-ink-muted));
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    font-family: var(--editable-card-label-font);
+    font-size: var(--editable-card-label-size);
+    font-weight: var(--editable-card-label-weight);
+    color: var(--editable-card-label-color);
   }
 
   .detail-value {
-    font-family: var(--editable-card-value-font, var(--font-body));
-    font-size: var(--editable-card-value-size, 0.95rem);
-    color: var(--editable-card-value-color, var(--text-ink-primary));
+    font-family: var(--editable-card-value-font);
+    font-size: var(--editable-card-value-size);
+    color: var(--editable-card-value-color);
   }
 
   .detail-value.detail-empty {
-    font-style: var(--editable-card-empty-style, italic);
-    color: var(--editable-card-empty-color, var(--text-ink-muted));
+    font-style: var(--editable-card-empty-style);
+    color: var(--editable-card-empty-color);
   }
 
   .detail-input {
-    font-family: var(--editable-card-input-font, var(--font-ui));
-    font-size: var(--editable-card-input-size, 0.95rem);
-    color: var(--editable-card-input-color, var(--text-ink-primary));
-    background: var(--editable-card-input-bg, var(--bg-surface-paper));
-    border: var(--editable-card-input-border-width, 1px) solid var(--editable-card-input-border, var(--border-subtle));
-    border-radius: var(--editable-card-input-radius, var(--radius-sm));
-    padding: var(--editable-card-input-padding, 0.5rem 0.6rem);
+    font-family: var(--editable-card-input-font);
+    font-size: var(--editable-card-input-size);
+    color: var(--editable-card-input-color);
+    background: var(--editable-card-input-bg);
+    border: var(--editable-card-input-border-width) solid var(--editable-card-input-border);
+    border-radius: var(--editable-card-input-radius);
+    padding: var(--editable-card-input-padding);
   }
 
   .detail-input:focus {
     outline: none;
-    box-shadow: var(--editable-card-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.2));
+    border-color: var(--editable-card-edit-border);
+    box-shadow: var(--editable-card-input-focus);
   }
 
   .detail-input.error {
-    border-color: var(--semantic-error);
+    border-color: var(--editable-card-error-border);
   }
 
   .validation-error {
-    color: var(--semantic-error);
-    font-size: 0.8rem;
+    color: var(--editable-card-error-color);
+    font-family: var(--editable-card-error-font);
+    font-size: var(--editable-card-error-size);
   }
 
   .detail-link {
-    color: var(--accent-primary);
+    color: var(--editable-card-edit-border);
     text-decoration: none;
+    font-family: var(--editable-card-input-font);
+    font-size: var(--editable-card-input-size);
   }
 
   .detail-link:hover {
+    color: var(--editable-card-title-color);
     text-decoration: underline;
   }
 
   .roaster-actions-row {
     display: flex;
     justify-content: flex-end;
-    margin-top: 1rem;
+    margin-top: var(--editable-card-header-margin);
   }
 
   .roaster-actions {
     display: flex;
-    gap: var(--editable-card-actions-gap, 0.5rem);
+    gap: var(--editable-card-actions-gap);
     align-items: center;
   }
 
   .edit-actions {
     display: flex;
-    gap: var(--editable-card-edit-actions-gap, 0.4rem);
+    gap: var(--editable-card-edit-actions-gap);
   }
 
   .error-message {
-    background: var(--editable-card-error-bg, rgba(122, 62, 47, 0.12));
-    border: 1px solid var(--editable-card-error-border, rgba(122, 62, 47, 0.25));
-    color: var(--editable-card-error-color, var(--semantic-error));
-    border-radius: var(--editable-card-error-radius, var(--radius-sm));
-    padding: var(--editable-card-error-padding, 0.75rem);
-    font-family: var(--editable-card-error-font, var(--font-ui));
-    font-size: var(--editable-card-error-size, 0.9rem);
-    margin-bottom: 1rem;
+    background: var(--editable-card-error-bg);
+    border: var(--editable-card-border-width) solid var(--editable-card-error-border);
+    color: var(--editable-card-error-color);
+    border-radius: var(--editable-card-error-radius);
+    padding: var(--editable-card-error-padding);
+    font-family: var(--editable-card-error-font);
+    font-size: var(--editable-card-error-size);
+    margin-bottom: var(--editable-card-header-margin);
   }
 </style>

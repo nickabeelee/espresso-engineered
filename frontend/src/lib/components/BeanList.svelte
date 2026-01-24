@@ -6,6 +6,7 @@
   import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
+  import RailScroller from '$lib/components/RailScroller.svelte';
   import { MagnifyingGlass } from '$lib/icons';
   import { recordListShell } from '$lib/ui/components/card';
   import { toStyleString } from '$lib/ui/style';
@@ -16,12 +17,15 @@
   import type { BeanWithContext, BeanFilters, PaginationParams, RoastLevel } from '@shared/types';
 
   export let limit = 20;
+  export let layout: 'grid' | 'rail' = 'grid';
 
   let beans: BeanWithContext[] = [];
   let error: AppError | null = null;
   let hasMore = false;
   let currentPage = 1;
   let isOnline = true;
+  let lastLimit = limit;
+  let isRail = false;
 
   // Filter state
   let searchTerm = '';
@@ -98,6 +102,13 @@
     }
   }
 
+  $: if (limit !== lastLimit) {
+    lastLimit = limit;
+    refreshBeans();
+  }
+
+  $: isRail = layout === 'rail';
+
 
   function loadMore() {
     if (!$isLoading && hasMore) {
@@ -159,64 +170,66 @@
 
 <div class="bean-list">
   <!-- Filters -->
-  <div class="filters">
-    <div class="filter-row">
-      <div class="search-group">
-        <div class="search-field">
-          <span class="search-icon" aria-hidden="true">
-            <MagnifyingGlass size={18} />
-          </span>
-          <input
-            id="bean-search"
-            type="text"
-            bind:value={searchTerm}
-            on:input={handleSearchInput}
-            placeholder="Search beans, tasting notes..."
-            class="search-input"
-            disabled={!isOnline}
-          />
-        </div>
-      </div>
-
-      <div class="filter-group">
-        <div class="roast-level-filter">
-          <RoastLevel
-            value={selectedRoastLevel}
-            editable={isOnline}
-            size="small"
-            on:change={handleRoastLevelChange}
-          />
-          {#if selectedRoastLevel}
-            <button
-              type="button"
-              class="clear-roast-level"
-              on:click={handleRoastLevelClear}
+  {#if !isRail}
+    <div class="filters">
+      <div class="filter-row">
+        <div class="search-group">
+          <div class="search-field">
+            <span class="search-icon" aria-hidden="true">
+              <MagnifyingGlass size={18} />
+            </span>
+            <input
+              id="bean-search"
+              type="text"
+              bind:value={searchTerm}
+              on:input={handleSearchInput}
+              placeholder="Search beans, tasting notes..."
+              class="search-input"
               disabled={!isOnline}
-              title="Clear roast level filter"
-              aria-label="Clear roast level filter"
-            >
-              ×
-            </button>
-          {/if}
+            />
+          </div>
         </div>
+
+        <div class="filter-group">
+          <div class="roast-level-filter">
+            <RoastLevel
+              value={selectedRoastLevel}
+              editable={isOnline}
+              size="small"
+              on:change={handleRoastLevelChange}
+            />
+            {#if selectedRoastLevel}
+              <button
+                type="button"
+                class="clear-roast-level"
+                on:click={handleRoastLevelClear}
+                disabled={!isOnline}
+                title="Clear roast level filter"
+                aria-label="Clear roast level filter"
+              >
+                ×
+              </button>
+            {/if}
+          </div>
+        </div>
+
+        <label class="quick-toggle">
+          <input
+            type="checkbox"
+            bind:checked={myBeansOnly}
+            on:change={applyFilters}
+            disabled={!$barista?.id || !isOnline}
+          />
+          <span class="toggle-track" aria-hidden="true"></span>
+          <span class="toggle-label">My Beans</span>
+        </label>
+
+        <button on:click={clearFilters} class="btn-secondary" disabled={!isOnline}>
+          Clear
+        </button>
       </div>
-
-      <label class="quick-toggle">
-        <input
-          type="checkbox"
-          bind:checked={myBeansOnly}
-          on:change={applyFilters}
-          disabled={!$barista?.id || !isOnline}
-        />
-        <span class="toggle-track" aria-hidden="true"></span>
-        <span class="toggle-label">My Beans</span>
-      </label>
-
-      <button on:click={clearFilters} class="btn-secondary" disabled={!isOnline}>
-        Clear
-      </button>
     </div>
-  </div>
+  {/if}
 
   <!-- Network Status Warning -->
   {#if !isOnline}
@@ -231,21 +244,22 @@
 
   <!-- Roaster Loading Error (Non-blocking) -->
   <!-- Results Summary -->
-  <div class="results-header">
-    <div class="results-summary">
-      {#if $isLoading && beans.length === 0}
-        <LoadingIndicator variant="dots" size="sm" inline message="Loading beans..." />
-      {:else if $isSearching}
-        <LoadingIndicator variant="dots" size="sm" inline message="Searching..." />
-      {:else}
-        <span>
-          {beans.length} bean{beans.length !== 1 ? 's' : ''}
-          {#if myBeansOnly}(my collection){/if}
-        </span>
-      {/if}
+  {#if !isRail}
+    <div class="results-header">
+      <div class="results-summary">
+        {#if $isLoading && beans.length === 0}
+          <LoadingIndicator variant="dots" size="sm" inline message="Loading beans..." />
+        {:else if $isSearching}
+          <LoadingIndicator variant="dots" size="sm" inline message="Searching..." />
+        {:else}
+          <span>
+            {beans.length} bean{beans.length !== 1 ? 's' : ''}
+            {#if myBeansOnly}(my collection){/if}
+          </span>
+        {/if}
+      </div>
     </div>
-    
-  </div>
+  {/if}
 
   <!-- Main Error State -->
   {#if error}
@@ -291,18 +305,25 @@
 
   <!-- Bean Cards -->
   {#if beans.length > 0}
-    <div class="bean-grid-shell" style={gridShellStyle}>
-      <div class="bean-grid">
-        {#each beans as bean (bean.id)}
-          {@const roasterRecord = roastersById[bean.roaster_id] ?? bean.roaster ?? null}
-          <BeanCard {bean} roaster={roasterRecord} variant="preview" />
-        {/each}
+    {#if isRail}
+      <RailScroller items={beans} cardMinWidth={350} shellStyle={gridShellStyle} let:item>
+        {@const roasterRecord = roastersById[item.roaster_id] ?? item.roaster ?? null}
+        <BeanCard bean={item} roaster={roasterRecord} variant="preview" />
+      </RailScroller>
+    {:else}
+      <div class="bean-grid-shell" style={gridShellStyle}>
+        <div class="bean-grid">
+          {#each beans as bean (bean.id)}
+            {@const roasterRecord = roastersById[bean.roaster_id] ?? bean.roaster ?? null}
+            <BeanCard {bean} roaster={roasterRecord} variant="preview" />
+          {/each}
+        </div>
       </div>
-    </div>
+    {/if}
   {/if}
 
   <!-- Load More -->
-  {#if hasMore && !$isLoading}
+  {#if hasMore && !$isLoading && !isRail}
     <div class="load-more">
       <button on:click={loadMore} class="btn-primary" disabled={!isOnline}>
         Load More Beans
@@ -311,7 +332,7 @@
   {/if}
 
   <!-- Loading More -->
-  {#if $isLoading && beans.length > 0}
+  {#if $isLoading && beans.length > 0 && !isRail}
     <div class="loading-more">
       <LoadingIndicator variant="dots" size="sm" inline message="Loading more beans..." />
     </div>

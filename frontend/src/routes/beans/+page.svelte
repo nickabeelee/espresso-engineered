@@ -9,11 +9,12 @@
   import InlineBeanCreator from '$lib/components/InlineBeanCreator.svelte';
   import InlineRoasterCreator from '$lib/components/InlineRoasterCreator.svelte';
   import EditableRoasterCard from '$lib/components/EditableRoasterCard.svelte';
+  import RailScroller from '$lib/components/RailScroller.svelte';
   import Sheet from '$lib/components/Sheet.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
-  import { Plus, ArrowPath, MagnifyingGlass } from '$lib/icons';
+  import { ArrowPath, ChevronDown, ChevronRight, MagnifyingGlass } from '$lib/icons';
   import { apiClient } from '$lib/api-client';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
   import { barista } from '$lib/auth';
@@ -50,10 +51,13 @@
   let bagSearch = '';
   let inspectedBag: BagWithDetails | null = null;
   let bagSheetOpen = false;
+  let beansExpanded = false;
+  let bagsExpanded = false;
   let roasters: Roaster[] = [];
   let roasterError: string | null = null;
   let roasterLoading = false;
   let roasterSearch = '';
+  let roastersExpanded = false;
   let baristasById: Record<string, BaristaType> = {};
 
   const breadcrumbLinkStyle = toStyleString({
@@ -261,9 +265,25 @@
             >
               <ArrowPath />
             </IconButton>
+            <IconButton
+              on:click={() => beansExpanded = !beansExpanded}
+              ariaLabel={beansExpanded ? 'Collapse beans' : 'Expand beans'}
+              title={beansExpanded ? 'Collapse beans' : 'Expand beans'}
+              variant="neutral"
+            >
+              {#if beansExpanded}
+                <ChevronDown />
+              {:else}
+                <ChevronRight />
+              {/if}
+            </IconButton>
           </div>
         </div>
-        <BeanList bind:this={beanListComponent} />
+        <BeanList
+          bind:this={beanListComponent}
+          layout={beansExpanded ? 'grid' : 'rail'}
+          limit={beansExpanded ? 24 : 8}
+        />
       </section>
 
       <section class="hub-section">
@@ -283,6 +303,18 @@
             >
               <ArrowPath />
             </IconButton>
+            <IconButton
+              on:click={() => bagsExpanded = !bagsExpanded}
+              ariaLabel={bagsExpanded ? 'Collapse bags' : 'Expand bags'}
+              title={bagsExpanded ? 'Collapse bags' : 'Expand bags'}
+              variant="neutral"
+            >
+              {#if bagsExpanded}
+                <ChevronDown />
+              {:else}
+                <ChevronRight />
+              {/if}
+            </IconButton>
           </div>
         </div>
 
@@ -290,28 +322,30 @@
           <InlineBagCreator on:created={handleBagCreated} on:cancel={() => showBagCreator = false} />
         {/if}
 
-        <div class="section-controls">
-          <div class="search-field">
-            <span class="search-icon" aria-hidden="true">
-              <MagnifyingGlass size={18} />
-            </span>
-            <input
-              type="text"
-              bind:value={bagSearch}
-              placeholder="Search bags, beans, roasters..."
-              class="search-input"
-            />
+        {#if bagsExpanded}
+          <div class="section-controls">
+            <div class="search-field">
+              <span class="search-icon" aria-hidden="true">
+                <MagnifyingGlass size={18} />
+              </span>
+              <input
+                type="text"
+                bind:value={bagSearch}
+                placeholder="Search bags, beans, roasters..."
+                class="search-input"
+              />
+            </div>
+            <label class="quick-toggle">
+              <input
+                type="checkbox"
+                bind:checked={includeCommunityBags}
+                on:change={loadBags}
+              />
+              <span class="toggle-track" aria-hidden="true"></span>
+              <span class="toggle-label">Include community</span>
+            </label>
           </div>
-          <label class="quick-toggle">
-            <input
-              type="checkbox"
-              bind:checked={includeCommunityBags}
-              on:change={loadBags}
-            />
-            <span class="toggle-track" aria-hidden="true"></span>
-            <span class="toggle-label">Include community</span>
-          </label>
-        </div>
+        {/if}
 
         {#if bagLoading}
           <LoadingIndicator variant="dots" size="sm" inline message="Loading bags..." />
@@ -332,50 +366,91 @@
             on:action={() => showBagCreator = true}
           />
         {:else}
-          <div class="list-shell" style={listShellStyle}>
+          {#if bagsExpanded}
+            <div class="list-shell" style={listShellStyle}>
+              <div class="bag-groups">
+                {#if myBags.length > 0}
+                  <div class="bag-group">
+                    <h3>Your bags</h3>
+                    <div class="bag-grid">
+                      {#each myBags as bag (bag.id)}
+                        <BagCard
+                          variant="preview"
+                          bag={bag}
+                          beanName={bag.bean?.name || 'Unknown Bean'}
+                          roasterName={bag.bean?.roaster?.name || null}
+                          beanImagePath={bag.bean?.image_path || null}
+                          beanRoastLevel={bag.bean?.roast_level || null}
+                          tastingNotes={bag.bean?.tasting_notes || null}
+                          baristasById={baristasById}
+                          on:inspect={() => handleBagInspect(bag)}
+                        />
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
+                {#if includeCommunityBags && communityBags.length > 0}
+                  <div class="bag-group">
+                    <h3>Community bags</h3>
+                    <div class="bag-grid">
+                      {#each communityBags as bag (bag.id)}
+                        <BagCard
+                          variant="preview"
+                          bag={bag}
+                          beanName={bag.bean?.name || 'Unknown Bean'}
+                          roasterName={bag.bean?.roaster?.name || null}
+                          beanImagePath={bag.bean?.image_path || null}
+                          beanRoastLevel={bag.bean?.roast_level || null}
+                          tastingNotes={bag.bean?.tasting_notes || null}
+                          baristasById={baristasById}
+                          on:inspect={() => handleBagInspect(bag)}
+                        />
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {:else}
             <div class="bag-groups">
               {#if myBags.length > 0}
                 <div class="bag-group">
                   <h3>Your bags</h3>
-                  <div class="bag-grid">
-                    {#each myBags as bag (bag.id)}
-                      <BagCard
-                        variant="preview"
-                        bag={bag}
-                        beanName={bag.bean?.name || 'Unknown Bean'}
-                        roasterName={bag.bean?.roaster?.name || null}
-                        beanImagePath={bag.bean?.image_path || null}
-                        beanRoastLevel={bag.bean?.roast_level || null}
-                        tastingNotes={bag.bean?.tasting_notes || null}
-                        baristasById={baristasById}
-                        on:inspect={() => handleBagInspect(bag)}
-                      />
-                    {/each}
-                  </div>
+                  <RailScroller items={myBags} cardMinWidth={320} shellStyle={listShellStyle} let:item>
+                    <BagCard
+                      variant="preview"
+                      bag={item}
+                      beanName={item.bean?.name || 'Unknown Bean'}
+                      roasterName={item.bean?.roaster?.name || null}
+                      beanImagePath={item.bean?.image_path || null}
+                      beanRoastLevel={item.bean?.roast_level || null}
+                      tastingNotes={item.bean?.tasting_notes || null}
+                      baristasById={baristasById}
+                      on:inspect={() => handleBagInspect(item)}
+                    />
+                  </RailScroller>
                 </div>
               {/if}
               {#if includeCommunityBags && communityBags.length > 0}
                 <div class="bag-group">
                   <h3>Community bags</h3>
-                  <div class="bag-grid">
-                    {#each communityBags as bag (bag.id)}
-                      <BagCard
-                        variant="preview"
-                        bag={bag}
-                        beanName={bag.bean?.name || 'Unknown Bean'}
-                        roasterName={bag.bean?.roaster?.name || null}
-                        beanImagePath={bag.bean?.image_path || null}
-                        beanRoastLevel={bag.bean?.roast_level || null}
-                        tastingNotes={bag.bean?.tasting_notes || null}
-                        baristasById={baristasById}
-                        on:inspect={() => handleBagInspect(bag)}
-                      />
-                    {/each}
-                  </div>
+                  <RailScroller items={communityBags} cardMinWidth={320} shellStyle={listShellStyle} let:item>
+                    <BagCard
+                      variant="preview"
+                      bag={item}
+                      beanName={item.bean?.name || 'Unknown Bean'}
+                      roasterName={item.bean?.roaster?.name || null}
+                      beanImagePath={item.bean?.image_path || null}
+                      beanRoastLevel={item.bean?.roast_level || null}
+                      tastingNotes={item.bean?.tasting_notes || null}
+                      baristasById={baristasById}
+                      on:inspect={() => handleBagInspect(item)}
+                    />
+                  </RailScroller>
                 </div>
               {/if}
             </div>
-          </div>
+          {/if}
         {/if}
       </section>
 
@@ -396,6 +471,18 @@
             >
               <ArrowPath />
             </IconButton>
+            <IconButton
+              on:click={() => roastersExpanded = !roastersExpanded}
+              ariaLabel={roastersExpanded ? 'Collapse roasters' : 'Expand roasters'}
+              title={roastersExpanded ? 'Collapse roasters' : 'Expand roasters'}
+              variant="neutral"
+            >
+              {#if roastersExpanded}
+                <ChevronDown />
+              {:else}
+                <ChevronRight />
+              {/if}
+            </IconButton>
           </div>
         </div>
 
@@ -406,19 +493,21 @@
           />
         {/if}
 
-        <div class="section-controls">
-          <div class="search-field">
-            <span class="search-icon" aria-hidden="true">
-              <MagnifyingGlass size={18} />
-            </span>
-            <input
-              type="text"
-              bind:value={roasterSearch}
-              placeholder="Search roasters or websites..."
-              class="search-input"
-            />
+        {#if roastersExpanded}
+          <div class="section-controls">
+            <div class="search-field">
+              <span class="search-icon" aria-hidden="true">
+                <MagnifyingGlass size={18} />
+              </span>
+              <input
+                type="text"
+                bind:value={roasterSearch}
+                placeholder="Search roasters or websites..."
+                class="search-input"
+              />
+            </div>
           </div>
-        </div>
+        {/if}
 
         {#if roasterLoading}
           <LoadingIndicator variant="dots" size="sm" inline message="Loading roasters..." />
@@ -439,17 +528,27 @@
             on:action={() => showRoasterCreator = true}
           />
         {:else}
-          <div class="list-shell" style={listShellStyle}>
-            <div class="roaster-grid">
-              {#each filteredRoasters as roaster (roaster.id)}
-                <EditableRoasterCard
-                  {roaster}
-                  on:updated={handleRoasterUpdated}
-                  on:deleted={handleRoasterDeleted}
-                />
-              {/each}
+          {#if roastersExpanded}
+            <div class="list-shell" style={listShellStyle}>
+              <div class="roaster-grid">
+                {#each filteredRoasters as roaster (roaster.id)}
+                  <EditableRoasterCard
+                    {roaster}
+                    on:updated={handleRoasterUpdated}
+                    on:deleted={handleRoasterDeleted}
+                  />
+                {/each}
+              </div>
             </div>
-          </div>
+          {:else}
+            <RailScroller items={filteredRoasters} cardMinWidth={320} shellStyle={listShellStyle} let:item>
+              <EditableRoasterCard
+                roaster={item}
+                on:updated={handleRoasterUpdated}
+                on:deleted={handleRoasterDeleted}
+              />
+            </RailScroller>
+          {/if}
         {/if}
       </section>
     </div>
