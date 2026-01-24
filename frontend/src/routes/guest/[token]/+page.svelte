@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import Chip from '$lib/components/Chip.svelte';
+  import RatingSlider from '$lib/components/RatingSlider.svelte';
   import { editableField, formHelperText, formLabel, formSection } from '$lib/ui/components/form';
   import { sectionSurface } from '$lib/ui/components/card';
   import { colorCss } from '$lib/ui/foundations/color';
@@ -20,7 +21,7 @@
 
   let guest = data.guest;
   let guestError = data.guestError ?? null;
-  let rating: number | undefined = guest?.brew.rating ?? undefined;
+  let rating: number | null = guest?.brew.rating ?? null;
   let tastingNotes = guest?.brew.tasting_notes ?? '';
   let reflections = guest?.brew.reflections ?? '';
   let guestName = guest?.brew.guest_display_name ?? '';
@@ -216,6 +217,11 @@
     scheduleAutosave();
   }
 
+  function handleRatingInput(event: CustomEvent<number>) {
+    rating = event.detail;
+    scheduleAutosave();
+  }
+
   function formatCountdown(expiresAt: string): string {
     const diffMs = Math.max(0, new Date(expiresAt).getTime() - nowTimestamp);
     const totalSeconds = Math.ceil(diffMs / 1000);
@@ -390,17 +396,18 @@
           </div>
 
           <div class="form-group">
-            <label for="guest-rating">Rating (1-10)</label>
-            <input
-              id="guest-rating"
-              type="number"
-              min="1"
-              max="10"
-              step="1"
-              placeholder="e.g., 8"
-              bind:value={rating}
+            <label>Rating (1-10)</label>
+            <div class="rating-display" class:unrated={rating === null}>
+              <span class="rating-value">{rating ?? 'Not rated yet'}</span>
+            </div>
+            <RatingSlider
+              value={rating}
+              min={1}
+              max={10}
+              step={1}
+              on:input={handleRatingInput}
+              ariaLabel="Set guest rating"
               disabled={!canEdit}
-              on:input={scheduleAutosave}
             />
           </div>
 
@@ -707,6 +714,24 @@
   textarea:disabled {
     background: var(--bg-surface-paper-secondary);
     cursor: not-allowed;
+  }
+
+  .rating-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: var(--text-ink-primary);
+    font-size: 1.05rem;
+  }
+
+  .rating-display.unrated {
+    color: var(--text-ink-muted);
+    font-weight: 500;
+  }
+
+  .rating-value {
+    font-size: 1.2rem;
   }
 
   .form-footer {

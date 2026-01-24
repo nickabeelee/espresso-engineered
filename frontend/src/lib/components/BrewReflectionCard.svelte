@@ -19,8 +19,8 @@
     refresh: void;
   }>();
 
-  let ratingValue = 6;
-  let initialRating = 6;
+  let ratingValue: number | null = null;
+  let initialRating: number | null = null;
   let ratingTouched = false;
   let guestShareOpen = false;
   let guestShareUrl: string | null = null;
@@ -54,13 +54,13 @@
 
   $: if (brew && brew.id !== currentBrewId) {
     currentBrewId = brew.id;
-    initialRating = brew.rating ?? 6;
+    initialRating = brew.rating ?? null;
     ratingValue = initialRating;
     ratingTouched = false;
   }
 
   $: if (brew && brew.rating !== initialRating && brew.id === currentBrewId) {
-    const nextRating = brew.rating ?? 6;
+    const nextRating = brew.rating ?? null;
     initialRating = nextRating;
     ratingValue = nextRating;
     ratingTouched = false;
@@ -72,7 +72,7 @@
       new Date(brew.guest_edit_expires_at).getTime() > Date.now()
   );
 
-  $: showSubmit = ratingTouched && ratingValue !== initialRating && !guestReflectionActive;
+  $: showSubmit = ratingTouched && ratingValue !== initialRating && ratingValue !== null && !guestReflectionActive;
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString();
@@ -97,6 +97,7 @@
 
   function handleSubmit(event: Event) {
     event.stopPropagation();
+    if (ratingValue === null) return;
     dispatch('ratingSubmit', { brewId: brew.id, rating: ratingValue });
   }
 
@@ -235,8 +236,8 @@
 
   {#if !guestReflectionActive}
     <div class="rating-block interactive">
-      <div class="rating-display">
-        <span class="rating-value">{ratingValue}</span>
+      <div class="rating-display" class:unrated={ratingValue === null}>
+        <span class="rating-value">{ratingValue ?? 'Not rated'}</span>
         <StarMini size={18} />
       </div>
       <RatingSlider
@@ -386,6 +387,11 @@
     font-weight: 600;
     color: var(--text-ink-primary);
     font-size: 1.1rem;
+  }
+
+  .rating-display.unrated {
+    color: var(--text-ink-muted);
+    font-weight: 500;
   }
 
   .rating-value {

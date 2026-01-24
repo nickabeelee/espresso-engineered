@@ -52,12 +52,14 @@
     return typeof brew.rating === 'number' ? 100 : 0;
   }
 
-  async function quickComplete(brew: Brew, field: string, value: any) {
+  async function handleRatingSubmit(event: CustomEvent<{ brewId: string; rating: number }>) {
+    const { brewId, rating } = event.detail;
+
     try {
       const response = await apiClient.updateBrew(brewId, { rating });
       const index = draftBrews.findIndex((entry) => entry.id === brewId);
-      if (index !== -1) {
-        draftBrews[index] = { ...draftBrews[index], ...updateData };
+      if (index !== -1 && response.data) {
+        draftBrews[index] = { ...draftBrews[index], ...response.data };
         draftBrews = draftBrews.filter(entry => typeof entry.rating !== 'number');
       }
     } catch (err) {

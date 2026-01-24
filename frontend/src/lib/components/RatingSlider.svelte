@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
 
-  export let value = 6;
+  export let value: number | null = null;
   export let min = 1;
   export let max = 10;
   export let step = 1;
@@ -10,8 +10,10 @@
 
   const dispatch = createEventDispatcher<{ input: number; change: number }>();
 
-  $: clampedValue = Math.min(Math.max(value, min), max);
-  $: percentage = ((clampedValue - min) / (max - min)) * 100;
+  $: neutralValue = Math.floor((min + max) / 2);
+  $: isUnset = value === null || value === undefined || Number.isNaN(value);
+  $: clampedValue = Math.min(Math.max(isUnset ? neutralValue : value, min), max);
+  $: percentage = isUnset ? 0 : ((clampedValue - min) / (max - min)) * 100;
   $: ticks = Array.from({ length: max - min + 1 }, (_, index) => min + index);
 
   function handleInput(event: Event) {
@@ -27,11 +29,11 @@
   }
 </script>
 
-<div class="rating-slider" style={`--slider-percentage: ${percentage}%; --slider-ticks: ${ticks.length};`}>
+<div class="rating-slider" class:unset={isUnset} style={`--slider-percentage: ${percentage}%; --slider-ticks: ${ticks.length};`}>
   <div class="slider-track" aria-hidden="true">
     <div class="slider-dots">
       {#each ticks as tick}
-        <span class="slider-dot" class:active={tick <= clampedValue}></span>
+        <span class="slider-dot" class:active={!isUnset && tick <= clampedValue}></span>
       {/each}
     </div>
   </div>
@@ -70,6 +72,10 @@
       rgba(123, 94, 58, 0.2) var(--slider-percentage),
       rgba(123, 94, 58, 0.2) 100%
     );
+  }
+
+  .rating-slider.unset .slider-track {
+    background: rgba(123, 94, 58, 0.2);
   }
 
   .slider-dots {
@@ -128,6 +134,11 @@
     margin-top: -7px;
   }
 
+  .rating-slider.unset input[type='range']::-webkit-slider-thumb {
+    border-color: rgba(123, 94, 58, 0.45);
+    box-shadow: 0 2px 6px rgba(24, 17, 9, 0.12);
+  }
+
   input[type='range']::-moz-range-track {
     height: 6px;
     background: transparent;
@@ -140,6 +151,11 @@
     background: var(--bg-surface-paper);
     border: 2px solid var(--accent-primary);
     box-shadow: 0 4px 8px rgba(24, 17, 9, 0.18);
+  }
+
+  .rating-slider.unset input[type='range']::-moz-range-thumb {
+    border-color: rgba(123, 94, 58, 0.45);
+    box-shadow: 0 2px 6px rgba(24, 17, 9, 0.12);
   }
 
   input[type='range']:focus-visible {
