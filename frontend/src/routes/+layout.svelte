@@ -14,6 +14,7 @@
   $: isGuestPage = $page.url.pathname.startsWith('/guest');
   $: isPublicPage = (publicPages.includes($page.url.pathname)
     && !($page.url.pathname === '/' && $isAuthenticated)) || isGuestPage;
+  $: isAuthPage = $page.url.pathname.startsWith('/auth');
 
   let isNavHidden = false;
   let lastScrollY = 0;
@@ -202,7 +203,7 @@
     </div>
   {:else}
     <main>
-      <div class="page-frame public-frame">
+      <div class="page-frame public-frame" class:auth-frame={isAuthPage}>
         <div class="page-surface">
           <slot />
         </div>

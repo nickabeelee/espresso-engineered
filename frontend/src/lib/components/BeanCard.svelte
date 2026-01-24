@@ -1,8 +1,11 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
   import { goto } from '$app/navigation';
   import Chip from '$lib/components/Chip.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
+  import { StarMicro } from '$lib/icons';
   import { recordCard } from '$lib/ui/components/card';
+  import { editableCard } from '$lib/ui/components/editable-card';
   import { imageFrame, imageSizes } from '$lib/ui/components/image';
   import { toStyleString } from '$lib/ui/style';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
@@ -10,6 +13,11 @@
 
   export let bean: BeanWithContext;
   export let roaster: Roaster | null = null;
+  export let variant: 'preview' | 'inspect' = 'inspect';
+
+  const dispatch = createEventDispatcher<{
+    inspect: void;
+  }>();
 
   // Removed showActions, isDeleting, deleteError, and permissions since we only want navigation
 
@@ -50,12 +58,14 @@
 
   function handleCardClick(event: MouseEvent) {
     goto(`/beans/${bean.id}`);
+    dispatch('inspect');
   }
 
   function handleCardKeydown(event: KeyboardEvent) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       goto(`/beans/${bean.id}`);
+      dispatch('inspect');
     }
   }
 
@@ -102,48 +112,50 @@
     '--record-card-image-placeholder-bg': imageFrame.placeholder.background,
     '--record-card-image-placeholder-border-style': imageFrame.placeholder.borderStyle,
     '--record-card-image-width': `${imageSizes.card.width}px`,
-    '--record-card-image-height': `${imageSizes.card.height}px`
+    '--record-card-image-height': `${imageSizes.card.height}px`,
+    '--preview-title-font': editableCard.title.fontFamily,
+    '--preview-title-size': editableCard.title.fontSize,
+    '--preview-title-weight': editableCard.title.fontWeight,
+    '--preview-title-color': editableCard.title.textColor,
+    '--preview-image-size': `${imageSizes.thumbnail.width}px`,
+    '--preview-meta-size': editableCard.info.fontSize,
+    '--preview-meta-color': editableCard.info.textColor,
+    '--preview-meta-font': editableCard.info.fontFamily
   });
 </script>
 
-<article
-  class="bean-card has-media"
-  style={style}
-  role="link"
-  tabindex="0"
-  aria-label={`View ${bean.name} details`}
-  on:click={handleCardClick}
-  on:keydown={handleCardKeydown}
->
-  <div class="bean-card-body">
-    <div class="bean-header">
-      <div class="bean-header-main">
-        <div class="bean-header-text">
-          <div class="bean-title-row">
-            <h3 class="bean-title">{bean.name}</h3>
-          </div>
-          <div class="bean-meta">
-            {#if roaster}
-              <span class="meta-item">By {roaster.name}</span>
-            {/if}
-          </div>
-        </div>
-        <div class="bean-header-status">
-          {#if bean.roast_level}
-            <Chip variant="neutral" size="sm">
-              <RoastLevel value={bean.roast_level} size="small" />
-            </Chip>
-          {/if}
-          <Chip variant={getOwnershipVariant(bean.ownership_status)} size="sm">
-            {getOwnershipLabel(bean.ownership_status)}
+{#if variant === 'preview'}
+  <article
+    class="bean-card preview"
+    style={style}
+    role="link"
+    tabindex="0"
+    aria-label={`View ${bean.name} details`}
+    on:click={handleCardClick}
+    on:keydown={handleCardKeydown}
+  >
+    <div class="bean-preview">
+      <div class="bean-preview-top">
+        <span class="bean-preview-roaster">{roaster?.name || 'Roaster'}</span>
+        <div class="bean-preview-chips">
+          <Chip
+            variant={bean.average_rating !== null && bean.average_rating !== undefined && bean.rating_count > 0 ? 'accent' : 'neutral'}
+            size="sm"
+          >
+            <span class="rating-chip">
+              {bean.average_rating !== null && bean.average_rating !== undefined && bean.rating_count > 0
+                ? bean.average_rating.toFixed(1)
+                : '—'}
+              <StarMicro size={14} />
+            </span>
           </Chip>
         </div>
       </div>
-    </div>
-
-    <div class="bean-content">
-      <div class="bean-media">
-        <div class="card-media" class:placeholder={!bean.image_path} aria-hidden={!bean.image_path ? 'true' : undefined}>
+      <div class="bean-preview-title">
+        <h4>{bean.name}</h4>
+      </div>
+      <div class="bean-preview-body">
+        <div class="bean-preview-media" class:placeholder={!bean.image_path}>
           {#if bean.image_path}
             <img
               src={getTransformedImageUrl(bean.image_path, 'bean', imageSizes.card)}
@@ -153,72 +165,136 @@
             />
           {/if}
         </div>
+        <div class="bean-preview-main">
+          {#if bean.tasting_notes}
+            <p class="bean-preview-notes">{bean.tasting_notes}</p>
+          {:else}
+            <p class="bean-preview-notes empty">No tasting notes yet.</p>
+          {/if}
+          {#if bean.roast_level}
+            <div class="bean-preview-meta">
+              <RoastLevel value={bean.roast_level} size="small" />
+            </div>
+          {/if}
+        </div>
       </div>
-
-      <div class="bean-details">
-        {#if bean.personal_rating}
-          <div class="detail-row rating-row">
-            <span class="label">My Rating</span>
-            <span class="value rating personal">
-              {renderStars(bean.personal_rating)}
-              <span class="rating-number">({bean.personal_rating}/5)</span>
-            </span>
-          </div>
-        {/if}
-        {#if bean.average_rating}
-          <div class="detail-row rating-row">
-            <span class="label">Community</span>
-            <span class="value rating community">
-              {renderStars(bean.average_rating)}
-              <span class="rating-number">({bean.average_rating.toFixed(1)}/5)</span>
-              {#if bean.rating_count > 0}
-                <span class="rating-count">{bean.rating_count}</span>
+    </div>
+  </article>
+{:else}
+  <article
+    class="bean-card has-media"
+    style={style}
+    role="link"
+    tabindex="0"
+    aria-label={`View ${bean.name} details`}
+    on:click={handleCardClick}
+    on:keydown={handleCardKeydown}
+  >
+    <div class="bean-card-body">
+      <div class="bean-header">
+        <div class="bean-header-main">
+          <div class="bean-header-text">
+            <div class="bean-title-row">
+              <h3 class="bean-title">{bean.name}</h3>
+            </div>
+            <div class="bean-meta">
+              {#if roaster}
+                <span class="meta-item">By {roaster.name}</span>
               {/if}
-            </span>
+            </div>
           </div>
-        {/if}
-
-        {#if bean.country_of_origin}
-          <div class="detail-row">
-            <span class="label">Origin</span>
-            <span class="value">{bean.country_of_origin}</span>
-          </div>
-        {/if}
-
-        <div class="detail-row">
-          <span class="label">Stats</span>
-          <div class="value stats-chips">
-            <Chip variant="neutral" size="sm">
-              {bean.total_brews} {bean.total_brews === 1 ? 'brew' : 'brews'}
-            </Chip>
-            <Chip variant="neutral" size="sm">
-              {bean.bag_count} {bean.bag_count === 1 ? 'bag' : 'bags'}
+          <div class="bean-header-status">
+            {#if bean.roast_level}
+              <Chip variant="neutral" size="sm">
+                <RoastLevel value={bean.roast_level} size="small" />
+              </Chip>
+            {/if}
+            <Chip variant={getOwnershipVariant(bean.ownership_status)} size="sm">
+              {getOwnershipLabel(bean.ownership_status)}
             </Chip>
           </div>
         </div>
       </div>
+
+      <div class="bean-content">
+        <div class="bean-media">
+          <div class="card-media" class:placeholder={!bean.image_path} aria-hidden={!bean.image_path ? 'true' : undefined}>
+            {#if bean.image_path}
+              <img
+                src={getTransformedImageUrl(bean.image_path, 'bean', imageSizes.card)}
+                alt={bean.name}
+                loading="lazy"
+                on:error={(e) => e.currentTarget.style.display = 'none'}
+              />
+            {/if}
+          </div>
+        </div>
+
+        <div class="bean-details">
+          {#if bean.personal_rating}
+            <div class="detail-row rating-row">
+              <span class="label">My Rating</span>
+              <span class="value rating personal">
+                {renderStars(bean.personal_rating)}
+                <span class="rating-number">({bean.personal_rating}/5)</span>
+              </span>
+            </div>
+          {/if}
+          {#if bean.average_rating}
+            <div class="detail-row rating-row">
+              <span class="label">Community</span>
+              <span class="value rating community">
+                {renderStars(bean.average_rating)}
+                <span class="rating-number">({bean.average_rating.toFixed(1)}/5)</span>
+                {#if bean.rating_count > 0}
+                  <span class="rating-count">{bean.rating_count}</span>
+                {/if}
+              </span>
+            </div>
+          {/if}
+
+          {#if bean.country_of_origin}
+            <div class="detail-row">
+              <span class="label">Origin</span>
+              <span class="value">{bean.country_of_origin}</span>
+            </div>
+          {/if}
+
+          <div class="detail-row">
+            <span class="label">Stats</span>
+            <div class="value stats-chips">
+              <Chip variant="neutral" size="sm">
+                {bean.total_brews} {bean.total_brews === 1 ? 'brew' : 'brews'}
+              </Chip>
+              <Chip variant="neutral" size="sm">
+                {bean.bag_count} {bean.bag_count === 1 ? 'bag' : 'bags'}
+              </Chip>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {#if bean.tasting_notes}
+        <div class="bean-notes">
+          <p class="notes-preview">
+            {bean.tasting_notes.length > 100
+              ? bean.tasting_notes.substring(0, 100) + '...'
+              : bean.tasting_notes}
+          </p>
+        </div>
+      {/if}
+
+      <!-- Social signals as subtle secondary metadata -->
+      {#if bean.recent_activity && bean.recent_activity.length > 0}
+        <div class="social-signals">
+          <span class="activity-indicator">
+            Recent activity by {bean.recent_activity[0].barista_display_name}
+          </span>
+        </div>
+      {/if}
     </div>
-
-    {#if bean.tasting_notes}
-      <div class="bean-notes">
-        <p class="notes-preview">
-          {bean.tasting_notes.length > 100
-            ? bean.tasting_notes.substring(0, 100) + '...'
-            : bean.tasting_notes}
-        </p>
-      </div>
-    {/if}
-
-    <!-- Social signals as subtle secondary metadata -->
-    {#if bean.recent_activity && bean.recent_activity.length > 0}
-      <div class="social-signals">
-        <span class="activity-indicator">
-          Recent activity by {bean.recent_activity[0].barista_display_name}
-        </span>
-      </div>
-    {/if}
-  </div>
-</article>
+  </article>
+{/if}
 
 <style>
   .bean-card {
@@ -229,6 +305,105 @@
     transition: border-color var(--motion-fast);
     cursor: pointer;
     position: relative;
+  }
+
+  .bean-card.preview {
+    padding: 1.1rem;
+  }
+
+  .bean-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .bean-preview-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .bean-preview-roaster {
+    color: var(--preview-meta-color, var(--text-ink-secondary));
+    font-family: var(--preview-meta-font, inherit);
+    font-size: var(--preview-meta-size, 0.8rem);
+    font-weight: 600;
+  }
+
+  .bean-preview-chips {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .rating-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .bean-preview-title h4 {
+    margin: 0;
+    font-size: var(--preview-title-size, 1rem);
+    color: var(--preview-title-color, var(--text-ink-primary));
+    font-family: var(--preview-title-font, inherit);
+    font-weight: var(--preview-title-weight, 600);
+  }
+
+  .bean-preview-body {
+    display: grid;
+    grid-template-columns: var(--preview-image-size, 96px) 1fr;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .bean-preview-media {
+    width: var(--preview-image-size, 96px);
+    height: var(--preview-image-size, 96px);
+    aspect-ratio: 1 / 1;
+    border-radius: var(--record-card-image-radius, var(--radius-sm));
+    border: var(--record-card-image-border-width, 1px) var(--record-card-image-border-style, dashed)
+      var(--record-card-image-border, rgba(123, 94, 58, 0.2));
+    overflow: hidden;
+    background: var(--record-card-image-bg, rgba(123, 94, 58, 0.06));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bean-preview-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .bean-preview-media.placeholder {
+    background: var(--record-card-image-placeholder-bg, rgba(123, 94, 58, 0.04));
+    border-style: var(--record-card-image-placeholder-border-style, dashed);
+  }
+
+  .bean-preview-notes {
+    margin: 0;
+    color: var(--text-ink-muted);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    max-height: 3.6em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+
+  .bean-preview-meta {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.5rem;
+  }
+
+  .bean-preview-notes.empty {
+    color: var(--text-ink-secondary);
   }
 
   .bean-card:hover {
@@ -450,6 +625,16 @@
 
     .bean-content {
       grid-template-columns: 1fr;
+    }
+
+    .bean-preview-body {
+      grid-template-columns: 1fr;
+    }
+
+    .bean-preview-media {
+      width: min(100%, var(--preview-image-size, 96px));
+      height: auto;
+      margin: 0 auto;
     }
 
     .bean-meta {
