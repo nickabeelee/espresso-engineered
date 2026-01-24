@@ -3,7 +3,7 @@
   import Chip from '$lib/components/Chip.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
   import RatingSlider from '$lib/components/RatingSlider.svelte';
-  import { CheckCircle, XMark } from '$lib/icons';
+  import { CheckCircle, StarMini, XMark } from '$lib/icons';
   import { editableField, formHelperText, formLabel, formSection } from '$lib/ui/components/form';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
@@ -188,9 +188,6 @@
 
       <div class="form-group" class:missing={missingRating}>
         <label>Rating (1-10)</label>
-        <div class="rating-display" class:unrated={missingRating}>
-          <span class="rating-value">{rating ?? 'Not rated yet'}</span>
-        </div>
         <RatingSlider
           value={rating}
           min={1}
@@ -199,7 +196,12 @@
           on:input={handleRatingInput}
           ariaLabel="Set brew rating"
           disabled={reflectionLocked}
-        />
+        >
+          <span slot="label">
+            {rating ?? 'Not rated yet'}
+            <StarMini size={16} />
+          </span>
+        </RatingSlider>
         {#if validationErrors.rating}
           <span class="error-text">{validationErrors.rating}</span>
         {:else if missingRating}
@@ -345,7 +347,7 @@
     font-size: var(--form-label-size, 0.95rem);
   }
 
-  .form-group input,
+  .form-group input:not([type='range']),
   .form-group textarea {
     padding: var(--form-input-padding, 0.75rem);
     border: var(--form-input-border-width, 1px) solid var(--form-input-border, var(--border-subtle));
@@ -355,14 +357,14 @@
     background: var(--form-input-bg, var(--bg-surface-paper));
   }
 
-  .form-group input:focus,
+  .form-group input:not([type='range']):focus,
   .form-group textarea:focus {
     outline: none;
     border-color: var(--accent-primary);
     box-shadow: var(--form-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.2));
   }
 
-  .form-group.missing input,
+  .form-group.missing input:not([type='range']),
   .form-group.missing textarea {
     border-color: rgba(176, 138, 90, 0.65);
     background: var(--form-input-bg-missing, var(--bg-surface-paper-secondary));

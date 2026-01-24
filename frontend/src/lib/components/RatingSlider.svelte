@@ -9,6 +9,7 @@
   export let ariaLabel = 'Rating slider';
 
   const dispatch = createEventDispatcher<{ input: number; change: number }>();
+  let rangeInput: HTMLInputElement | null = null;
 
   $: neutralValue = Math.floor((min + max) / 2);
   $: isUnset = value === null || value === undefined || Number.isNaN(value);
@@ -27,9 +28,50 @@
     value = nextValue;
     dispatch('change', nextValue);
   }
+
+  function snapToStep(rawValue: number): number {
+    if (step <= 0) return rawValue;
+    const clamped = Math.min(Math.max(rawValue, min), max);
+    const stepped = Math.round((clamped - min) / step) * step + min;
+    return Math.min(Math.max(stepped, min), max);
+  }
+
+  function handlePointerDown(event: PointerEvent) {
+    if (disabled || event.pointerType === 'mouse') return;
+    if (!rangeInput) return;
+    rangeInput.setPointerCapture(event.pointerId);
+    updateFromPointer(event);
+  }
+
+  function handlePointerMove(event: PointerEvent) {
+    if (disabled || event.pointerType === 'mouse') return;
+    if (!rangeInput || !rangeInput.hasPointerCapture(event.pointerId)) return;
+    updateFromPointer(event);
+  }
+
+  function handlePointerUp(event: PointerEvent) {
+    if (disabled || event.pointerType === 'mouse') return;
+    if (!rangeInput || !rangeInput.hasPointerCapture(event.pointerId)) return;
+    rangeInput.releasePointerCapture(event.pointerId);
+  }
+
+  function updateFromPointer(event: PointerEvent) {
+    if (!rangeInput) return;
+    const rect = rangeInput.getBoundingClientRect();
+    if (!rect.width) return;
+    const offset = Math.min(Math.max(event.clientX - rect.left, 0), rect.width);
+    const percent = offset / rect.width;
+    const nextValue = snapToStep(min + percent * (max - min));
+    rangeInput.value = String(nextValue);
+    value = nextValue;
+    dispatch('input', nextValue);
+  }
 </script>
 
 <div class="rating-slider" class:unset={isUnset} style={`--slider-percentage: ${percentage}%; --slider-ticks: ${ticks.length};`}>
+  <div class="slider-label" class:unset={isUnset}>
+    <slot name="label" />
+  </div>
   <div class="slider-track" aria-hidden="true">
     <div class="slider-dots">
       {#each ticks as tick}
@@ -47,6 +89,11 @@
     disabled={disabled}
     on:input={handleInput}
     on:change={handleChange}
+    on:pointerdown={handlePointerDown}
+    on:pointermove={handlePointerMove}
+    on:pointerup={handlePointerUp}
+    on:pointercancel={handlePointerUp}
+    bind:this={rangeInput}
   />
 </div>
 
@@ -57,6 +104,27 @@
     display: flex;
     align-items: center;
     min-height: 32px;
+    padding: 0 var(--slider-edge-padding, 10px);
+  }
+
+  .slider-label {
+    position: absolute;
+    left: var(--slider-percentage);
+    top: 50%;
+    transform: translate(-50%, calc(-100% - 0.65rem));
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-ink-primary);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .slider-label.unset {
+    color: var(--text-ink-muted);
+    font-weight: 500;
   }
 
   .slider-track {
@@ -82,7 +150,7 @@
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(var(--slider-ticks), 1fr);
+    grid-template-columns: repeat(var(--slider-ticks), minmax(0, 1fr));
     gap: 0;
     align-items: center;
     pointer-events: none;
@@ -97,6 +165,14 @@
     justify-self: center;
   }
 
+  .slider-dot:first-child {
+    justify-self: start;
+  }
+
+  .slider-dot:last-child {
+    justify-self: end;
+  }
+
   .slider-dot.active {
     background: var(--accent-primary);
     border-color: var(--accent-primary);
@@ -109,7 +185,9 @@
     appearance: none;
     height: 28px;
     margin: 0;
+    padding: 0;
     cursor: pointer;
+    touch-action: pan-y;
   }
 
   input[type='range']:disabled {
@@ -169,4 +247,5 @@
   input[type='range']:focus-visible::-moz-range-thumb {
     box-shadow: 0 0 0 3px rgba(176, 138, 90, 0.3);
   }
+
 </style>

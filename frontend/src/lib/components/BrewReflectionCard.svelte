@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import { goto } from '$app/navigation';
   import Chip from '$lib/components/Chip.svelte';
   import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
@@ -93,6 +94,17 @@
   function handleRatingInput(event: CustomEvent<number>) {
     ratingValue = event.detail;
     ratingTouched = true;
+  }
+
+  function handleCardClick() {
+    goto(`/brews/${brew.id}?reflect=true`);
+  }
+
+  function handleCardKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      goto(`/brews/${brew.id}?reflect=true`);
+    }
   }
 
   function handleSubmit(event: Event) {
@@ -208,12 +220,15 @@
   }
 </script>
 
-<article class="brew-reflection-card" style={style}>
-  <a
-    class="card-link"
-    href={`/brews/${brew.id}?reflect=true`}
-    aria-label={`Open reflection for ${getBrewTitle(brew)}`}
-  ></a>
+<article
+  class="brew-reflection-card"
+  style={style}
+  role="link"
+  tabindex="0"
+  aria-label={`Open reflection for ${getBrewTitle(brew)}`}
+  on:click={handleCardClick}
+  on:keydown={handleCardKeydown}
+>
   <div class="card-copy">
     <header class="card-header">
       <div class="card-title">
@@ -235,11 +250,7 @@
   </div>
 
   {#if !guestReflectionActive}
-    <div class="rating-block interactive">
-      <div class="rating-display" class:unrated={ratingValue === null}>
-        <span class="rating-value">{ratingValue ?? 'Not rated'}</span>
-        <StarMini size={18} />
-      </div>
+    <div class="rating-block interactive" on:click|stopPropagation>
       <RatingSlider
         value={ratingValue}
         min={1}
@@ -247,11 +258,16 @@
         step={1}
         on:input={handleRatingInput}
         ariaLabel="Set brew rating"
-      />
+      >
+        <span slot="label">
+          {ratingValue ?? 'Not rated'}
+          <StarMini size={16} />
+        </span>
+      </RatingSlider>
     </div>
   {/if}
 
-  <footer class="card-footer interactive">
+  <footer class="card-footer interactive" on:click|stopPropagation>
     <GhostButton
       class="guest-reflection-button"
       type="button"
@@ -313,15 +329,7 @@
     box-shadow: var(--record-card-hover-shadow, none);
   }
 
-  .card-link {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    border-radius: inherit;
-    text-decoration: none;
-  }
-
-  .card-link:focus-visible {
+  .brew-reflection-card:focus-visible {
     outline: var(--record-card-focus-width, 2px) solid var(--record-card-focus-color, rgba(176, 138, 90, 0.4));
     outline-offset: var(--record-card-focus-offset, 2px);
   }
@@ -378,24 +386,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-  }
-
-  .rating-display {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-weight: 600;
-    color: var(--text-ink-primary);
-    font-size: 1.1rem;
-  }
-
-  .rating-display.unrated {
-    color: var(--text-ink-muted);
-    font-weight: 500;
-  }
-
-  .rating-value {
-    font-size: 1.35rem;
   }
 
   .card-footer {
