@@ -926,7 +926,7 @@
   .bean-image {
     max-width: 220px;
     width: 100%;
-    height: auto;
+    aspect-ratio: 1 / 1;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-subtle);
     object-fit: cover;

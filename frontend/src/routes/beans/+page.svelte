@@ -17,6 +17,7 @@
   import { apiClient } from '$lib/api-client';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
   import { barista } from '$lib/auth';
+  import { recordListShell } from '$lib/ui/components/card';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
   import { toStyleString } from '$lib/ui/style';
@@ -65,6 +66,15 @@
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
     color: colorCss.text.ink.primary
+  });
+
+  const listShellStyle = toStyleString({
+    '--record-list-bg': recordListShell.background,
+    '--record-list-border': recordListShell.borderColor,
+    '--record-list-border-width': recordListShell.borderWidth,
+    '--record-list-border-style': recordListShell.borderStyle,
+    '--record-list-radius': recordListShell.borderRadius,
+    '--record-list-padding': recordListShell.padding
   });
 
   onMount(() => {
@@ -224,13 +234,6 @@
       <div class="header-actions">
         <button class="btn-secondary" on:click={() => showBagCreator = true}>New bag</button>
         <button class="btn-secondary" on:click={() => showRoasterCreator = true}>New roaster</button>
-        <IconButton
-          on:click={() => showBeanCreator = true}
-          ariaLabel="New bean"
-          variant="accent"
-        >
-          <Plus />
-        </IconButton>
       </div>
     </div>
 
@@ -247,6 +250,17 @@
           <div>
             <h2 style={sectionTitleStyle}>Beans</h2>
             <p class="section-subtitle">Browse your stash and the wider community.</p>
+          </div>
+          <div class="section-actions">
+            <button class="btn-secondary" on:click={() => showBeanCreator = true}>Add bean</button>
+            <IconButton
+              on:click={() => beanListComponent?.refreshBeans()}
+              ariaLabel="Refresh beans"
+              title="Refresh beans"
+              variant="neutral"
+            >
+              <ArrowPath />
+            </IconButton>
           </div>
         </div>
         <BeanList bind:this={beanListComponent} />
@@ -318,47 +332,49 @@
             on:action={() => showBagCreator = true}
           />
         {:else}
-          <div class="bag-groups">
-            {#if myBags.length > 0}
-              <div class="bag-group">
-                <h3>Your bags</h3>
-                <div class="bag-grid">
-                  {#each myBags as bag (bag.id)}
-                    <BagCard
-                      variant="preview"
-                      bag={bag}
-                      beanName={bag.bean?.name || 'Unknown Bean'}
-                      roasterName={bag.bean?.roaster?.name || null}
-                      beanImagePath={bag.bean?.image_path || null}
-                      beanRoastLevel={bag.bean?.roast_level || null}
-                      tastingNotes={bag.bean?.tasting_notes || null}
-                      baristasById={baristasById}
-                      on:inspect={() => handleBagInspect(bag)}
-                    />
-                  {/each}
+          <div class="list-shell" style={listShellStyle}>
+            <div class="bag-groups">
+              {#if myBags.length > 0}
+                <div class="bag-group">
+                  <h3>Your bags</h3>
+                  <div class="bag-grid">
+                    {#each myBags as bag (bag.id)}
+                      <BagCard
+                        variant="preview"
+                        bag={bag}
+                        beanName={bag.bean?.name || 'Unknown Bean'}
+                        roasterName={bag.bean?.roaster?.name || null}
+                        beanImagePath={bag.bean?.image_path || null}
+                        beanRoastLevel={bag.bean?.roast_level || null}
+                        tastingNotes={bag.bean?.tasting_notes || null}
+                        baristasById={baristasById}
+                        on:inspect={() => handleBagInspect(bag)}
+                      />
+                    {/each}
+                  </div>
                 </div>
-              </div>
-            {/if}
-            {#if includeCommunityBags && communityBags.length > 0}
-              <div class="bag-group">
-                <h3>Community bags</h3>
-                <div class="bag-grid">
-                  {#each communityBags as bag (bag.id)}
-                    <BagCard
-                      variant="preview"
-                      bag={bag}
-                      beanName={bag.bean?.name || 'Unknown Bean'}
-                      roasterName={bag.bean?.roaster?.name || null}
-                      beanImagePath={bag.bean?.image_path || null}
-                      beanRoastLevel={bag.bean?.roast_level || null}
-                      tastingNotes={bag.bean?.tasting_notes || null}
-                      baristasById={baristasById}
-                      on:inspect={() => handleBagInspect(bag)}
-                    />
-                  {/each}
+              {/if}
+              {#if includeCommunityBags && communityBags.length > 0}
+                <div class="bag-group">
+                  <h3>Community bags</h3>
+                  <div class="bag-grid">
+                    {#each communityBags as bag (bag.id)}
+                      <BagCard
+                        variant="preview"
+                        bag={bag}
+                        beanName={bag.bean?.name || 'Unknown Bean'}
+                        roasterName={bag.bean?.roaster?.name || null}
+                        beanImagePath={bag.bean?.image_path || null}
+                        beanRoastLevel={bag.bean?.roast_level || null}
+                        tastingNotes={bag.bean?.tasting_notes || null}
+                        baristasById={baristasById}
+                        on:inspect={() => handleBagInspect(bag)}
+                      />
+                    {/each}
+                  </div>
                 </div>
-              </div>
-            {/if}
+              {/if}
+            </div>
           </div>
         {/if}
       </section>
@@ -423,14 +439,16 @@
             on:action={() => showRoasterCreator = true}
           />
         {:else}
-          <div class="roaster-grid">
-            {#each filteredRoasters as roaster (roaster.id)}
-              <EditableRoasterCard
-                {roaster}
-                on:updated={handleRoasterUpdated}
-                on:deleted={handleRoasterDeleted}
-              />
-            {/each}
+          <div class="list-shell" style={listShellStyle}>
+            <div class="roaster-grid">
+              {#each filteredRoasters as roaster (roaster.id)}
+                <EditableRoasterCard
+                  {roaster}
+                  on:updated={handleRoasterUpdated}
+                  on:deleted={handleRoasterDeleted}
+                />
+              {/each}
+            </div>
           </div>
         {/if}
       </section>
@@ -579,6 +597,13 @@
 
   .bag-group h3 {
     margin: 0 0 0.75rem;
+  }
+
+  .list-shell {
+    background: var(--record-list-bg, var(--bg-surface-paper-secondary));
+    border: var(--record-list-border-width, 1px) var(--record-list-border-style, solid) var(--record-list-border, rgba(123, 94, 58, 0.2));
+    border-radius: var(--record-list-radius, var(--radius-md));
+    padding: var(--record-list-padding, 1.5rem);
   }
 
   .bag-grid,

@@ -2,12 +2,11 @@
   import { onMount } from 'svelte';
   import { barista } from '$lib/auth';
   import BeanCard from '$lib/components/BeanCard.svelte';
-  import IconButton from '$lib/components/IconButton.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
   import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import RoastLevel from '$lib/components/RoastLevel.svelte';
-  import { ArrowPath, MagnifyingGlass } from '$lib/icons';
+  import { MagnifyingGlass } from '$lib/icons';
   import { recordListShell } from '$lib/ui/components/card';
   import { toStyleString } from '$lib/ui/style';
   import { enhancedApiClient } from '$lib/utils/enhanced-api-client';
@@ -245,15 +244,7 @@
         </span>
       {/if}
     </div>
-    <IconButton
-      type="button"
-      ariaLabel="Refresh beans"
-      title="Refresh"
-      on:click={refreshBeans}
-      disabled={$isLoading || !isOnline}
-    >
-      <ArrowPath />
-    </IconButton>
+    
   </div>
 
   <!-- Main Error State -->
@@ -304,7 +295,7 @@
       <div class="bean-grid">
         {#each beans as bean (bean.id)}
           {@const roasterRecord = roastersById[bean.roaster_id] ?? bean.roaster ?? null}
-          <BeanCard {bean} roaster={roasterRecord} />
+          <BeanCard {bean} roaster={roasterRecord} variant="preview" />
         {/each}
       </div>
     </div>
