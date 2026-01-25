@@ -25,6 +25,7 @@
   let searchTerm = '';
   let searchInput: HTMLInputElement | null = null;
   let comboboxRoot: HTMLDivElement | null = null;
+  let normalizedSearchTerm = '';
 
   const style = toStyleString({
     '--selector-trigger-padding': selector.trigger.padding,
@@ -143,16 +144,25 @@
     }
   }
 
-  const matchesSearch = (bean: Bean) => {
-    const roasterName = getRoasterName(bean.roaster_id);
-    return !searchTerm ||
-      bean.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      roasterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bean.roast_level.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (bean.country_of_origin && bean.country_of_origin.toLowerCase().includes(searchTerm.toLowerCase()));
+  $: normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
+  const matchesSearch = (bean: Bean, term: string) => {
+    if (!term) return true;
+    const roasterName = getRoasterName(bean.roaster_id).toLowerCase();
+    const beanName = bean.name?.toLowerCase() ?? '';
+    const roastLevel = bean.roast_level?.toLowerCase() ?? '';
+    const origin = bean.country_of_origin?.toLowerCase() ?? '';
+    return (
+      beanName.includes(term) ||
+      roasterName.includes(term) ||
+      roastLevel.includes(term) ||
+      origin.includes(term)
+    );
   };
 
-  $: filteredBeans = beans.filter(matchesSearch);
+  $: filteredBeans = beans.filter((bean) =>
+    matchesSearch(bean, normalizedSearchTerm),
+  );
   $: selectedBean = beans.find(bean => bean.id === value) || null;
   $: selectedLabel = selectedBean ? selectedBean.name : 'Select a bean...';
 </script>

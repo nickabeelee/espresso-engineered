@@ -21,7 +21,7 @@
   let weight_g: number | undefined = undefined;
   let price: number | undefined = undefined;
   let purchase_location = '';
-  let inventory_status: InventoryStatus | undefined = undefined;
+  let inventory_status: InventoryStatus | undefined = 'unopened';
 
 
   // UI state
@@ -210,21 +210,6 @@
             disabled={loading}
           />
         </div>
-      </div>
-
-      <div class="form-group">
-        <label for="inventory-status">Inventory Status</label>
-        <select
-          id="inventory-status"
-          bind:value={inventory_status}
-          disabled={loading}
-        >
-          <option value="">Select status...</option>
-          <option value="unopened">📦 Unopened</option>
-          <option value="plenty">✅ Plenty</option>
-          <option value="getting_low">⚠️ Getting Low</option>
-          <option value="empty">❌ Empty</option>
-        </select>
       </div>
 
       <div class="form-actions">

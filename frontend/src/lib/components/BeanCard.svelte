@@ -71,13 +71,14 @@
 
   const style = toStyleString({
     '--record-card-bg': recordCard.container.background,
-    '--record-card-border': recordCard.container.borderColor,
-    '--record-card-border-width': recordCard.container.borderWidth,
-    '--record-card-border-style': recordCard.container.borderStyle,
+    '--record-card-border': editableCard.container.borderColor,
+    '--record-card-border-width': editableCard.container.borderWidth,
+    '--record-card-border-style': editableCard.container.borderStyle,
+    '--record-card-transition': editableCard.container.transition,
     '--record-card-radius': recordCard.container.borderRadius,
     '--record-card-padding': recordCard.container.padding,
-    '--record-card-hover-shadow': recordCard.container.hover.shadow,
-    '--record-card-hover-border': recordCard.container.hover.borderColor,
+    '--record-card-hover-shadow': editableCard.container.hover.shadow,
+    '--record-card-hover-border': editableCard.container.hover.borderColor,
     '--record-card-focus-width': recordCard.container.focusRing.width,
     '--record-card-focus-color': recordCard.container.focusRing.color,
     '--record-card-focus-offset': recordCard.container.focusRing.offset,
@@ -302,7 +303,7 @@
     border: var(--record-card-border-width, 1px) var(--record-card-border-style, solid) var(--record-card-border, rgba(123, 94, 58, 0.2));
     border-radius: var(--record-card-radius, var(--radius-md));
     padding: var(--record-card-padding, 1.5rem);
-    transition: border-color var(--motion-fast);
+    transition: var(--record-card-transition, border-color var(--motion-fast));
     cursor: pointer;
     position: relative;
   }
@@ -356,7 +357,7 @@
     display: grid;
     grid-template-columns: var(--preview-image-size, 96px) 1fr;
     gap: 1rem;
-    align-items: center;
+    align-items: start;
   }
 
   .bean-preview-media {
@@ -369,8 +370,8 @@
     overflow: hidden;
     background: var(--record-card-image-bg, rgba(123, 94, 58, 0.06));
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .bean-preview-media img {
@@ -394,6 +395,7 @@
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
+    white-space: pre-line;
   }
 
   .bean-preview-meta {
@@ -408,6 +410,7 @@
 
   .bean-card:hover {
     border-color: var(--record-card-hover-border, var(--accent-primary));
+    box-shadow: var(--record-card-hover-shadow, none);
   }
 
   .bean-card:focus-visible {
@@ -599,6 +602,7 @@
     font-size: var(--record-card-notes-size, 0.9rem);
     line-height: var(--record-card-notes-line-height, 1.4);
     font-style: italic;
+    white-space: pre-line;
   }
 
   .social-signals {
@@ -621,20 +625,6 @@
     .bean-header-main {
       flex-direction: column;
       align-items: flex-start;
-    }
-
-    .bean-content {
-      grid-template-columns: 1fr;
-    }
-
-    .bean-preview-body {
-      grid-template-columns: 1fr;
-    }
-
-    .bean-preview-media {
-      width: min(100%, var(--preview-image-size, 96px));
-      height: auto;
-      margin: 0 auto;
     }
 
     .bean-meta {

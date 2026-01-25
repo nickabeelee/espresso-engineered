@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import AuthGuard from '$lib/components/AuthGuard.svelte';
   import BeanList from '$lib/components/BeanList.svelte';
@@ -22,7 +22,7 @@
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
   import { toStyleString } from '$lib/ui/style';
-  import type { BagWithBarista, Barista as BaristaType, Bean, Roaster } from '@shared/types';
+  import type { BagWithBarista, Barista as BaristaType, Bean, Brew, Roaster } from '@shared/types';
 
   type BagWithDetails = BagWithBarista & {
     bean?: {
@@ -59,6 +59,19 @@
   let roasterSearch = '';
   let roastersExpanded = false;
   let baristasById: Record<string, BaristaType> = {};
+  let recentBrews: Brew[] = [];
+  let lastBrewByBagId: Record<string, number> = {};
+  let lastBrewByBeanId: Record<string, number> = {};
+  let lastBrewByRoasterId: Record<string, number> = {};
+  let brewsLoaded = false;
+  let isCompact = false;
+  let viewportQuery: MediaQueryList | null = null;
+  let viewportListener: ((event: MediaQueryListEvent) => void) | null = null;
+
+  $: cardMinWidth = isCompact ? 280 : 320;
+  $: cardWidthStyle = toStyleString({
+    '--bean-page-card-min-width': `${cardMinWidth}px`
+  });
 
   const breadcrumbLinkStyle = toStyleString({
     ...textStyles.helper,
@@ -84,7 +97,114 @@
   onMount(() => {
     loadBags();
     loadRoasters();
+    loadRecentBrews();
+    viewportQuery = window.matchMedia('(max-width: 480px)');
+    const updateViewport = (event?: MediaQueryListEvent) => {
+      isCompact = event?.matches ?? viewportQuery?.matches ?? false;
+    };
+    updateViewport();
+    viewportListener = updateViewport;
+    if (viewportQuery.addEventListener) {
+      viewportQuery.addEventListener('change', updateViewport);
+    } else {
+      viewportQuery.addListener(updateViewport);
+    }
   });
+
+  onDestroy(() => {
+    if (viewportQuery && viewportListener) {
+      if (viewportQuery.removeEventListener) {
+        viewportQuery.removeEventListener('change', viewportListener);
+      } else {
+        viewportQuery.removeListener(viewportListener);
+      }
+    }
+  });
+
+  function toTimestamp(value?: string | null) {
+    if (!value) return 0;
+    const timestamp = new Date(value).getTime();
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+
+  function rebuildBrewMaps() {
+    if (recentBrews.length === 0 || bags.length === 0) {
+      lastBrewByBagId = {};
+      lastBrewByBeanId = {};
+      lastBrewByRoasterId = {};
+      return;
+    }
+
+    const bagLookup = new Map(bags.map((bag) => [bag.id, bag]));
+    const nextBagMap: Record<string, number> = {};
+    const nextBeanMap: Record<string, number> = {};
+    const nextRoasterMap: Record<string, number> = {};
+
+    for (const brew of recentBrews) {
+      if (!brew.bag_id || !brew.created_at) continue;
+      const timestamp = toTimestamp(brew.created_at);
+      if (!timestamp) continue;
+      const current = nextBagMap[brew.bag_id] ?? 0;
+      if (timestamp > current) {
+        nextBagMap[brew.bag_id] = timestamp;
+      }
+    }
+
+    Object.entries(nextBagMap).forEach(([bagId, timestamp]) => {
+      const bag = bagLookup.get(bagId);
+      if (!bag) return;
+      if (bag.bean_id) {
+        const currentBean = nextBeanMap[bag.bean_id] ?? 0;
+        if (timestamp > currentBean) {
+          nextBeanMap[bag.bean_id] = timestamp;
+        }
+      }
+      const roasterId = bag.bean?.roaster?.id ?? null;
+      if (roasterId) {
+        const currentRoaster = nextRoasterMap[roasterId] ?? 0;
+        if (timestamp > currentRoaster) {
+          nextRoasterMap[roasterId] = timestamp;
+        }
+      }
+    });
+
+    lastBrewByBagId = nextBagMap;
+    lastBrewByBeanId = nextBeanMap;
+    lastBrewByRoasterId = nextRoasterMap;
+  }
+
+  async function loadRecentBrews() {
+    if (!$barista?.id || brewsLoaded) return;
+    brewsLoaded = true;
+    try {
+      const response = await apiClient.getBrews(
+        { barista_id: $barista.id },
+        { limit: 250 },
+      );
+      recentBrews = response.data;
+    } catch (err) {
+      console.error('Failed to load recent brews:', err);
+    }
+  }
+
+  function sortByLatestBrew<T>(
+    list: T[],
+    getId: (item: T) => string,
+    getFallbackDate: (item: T) => string | null | undefined,
+    lastBrewMap: Record<string, number>,
+  ) {
+    return [...list].sort((a, b) => {
+      const aBrew = lastBrewMap[getId(a)] ?? 0;
+      const bBrew = lastBrewMap[getId(b)] ?? 0;
+      if (aBrew !== bBrew) return bBrew - aBrew;
+      return toTimestamp(getFallbackDate(b)) - toTimestamp(getFallbackDate(a));
+    });
+  }
+
+  $: rebuildBrewMaps();
+  $: if ($barista?.id && !brewsLoaded) {
+    loadRecentBrews();
+  }
 
   function handleBeanCreated(event: CustomEvent<Bean>) {
     showBeanCreator = false;
@@ -208,6 +328,18 @@
   $: communityBags = includeCommunityBags
     ? filteredBags.filter((bag) => bag.owner_id !== $barista?.id)
     : [];
+  $: sortedMyBags = sortByLatestBrew(
+    myBags,
+    (bag) => bag.id,
+    (bag) => bag.created_at,
+    lastBrewByBagId,
+  );
+  $: sortedCommunityBags = sortByLatestBrew(
+    communityBags,
+    (bag) => bag.id,
+    (bag) => bag.created_at,
+    lastBrewByBagId,
+  );
 
   $: filteredRoasters = roasters.filter((roaster) => {
     if (!roasterSearch.trim()) return true;
@@ -217,6 +349,12 @@
       roaster.website_url?.toLowerCase().includes(query)
     );
   });
+  $: sortedRoasters = sortByLatestBrew(
+    filteredRoasters,
+    (roaster) => roaster.id,
+    (roaster) => roaster.created_at,
+    lastBrewByRoasterId,
+  );
 </script>
 
 <svelte:head>
@@ -225,7 +363,7 @@
 </svelte:head>
 
 <AuthGuard>
-  <div class="beans-page">
+  <div class="beans-page" style={cardWidthStyle}>
     <nav class="breadcrumb">
       <a href="/" class="breadcrumb-link" style={breadcrumbLinkStyle}>← Home</a>
     </nav>
@@ -279,6 +417,8 @@
           bind:this={beanListComponent}
           layout={beansExpanded ? 'grid' : 'rail'}
           limit={beansExpanded ? 24 : 8}
+          {cardMinWidth}
+          {lastBrewByBeanId}
         />
       </section>
 
@@ -369,7 +509,7 @@
                   <div class="bag-group">
                     <h3>Your bags</h3>
                     <div class="bag-grid">
-                      {#each myBags as bag (bag.id)}
+                    {#each sortedMyBags as bag (bag.id)}
                         <BagCard
                           variant="preview"
                           bag={bag}
@@ -389,7 +529,7 @@
                   <div class="bag-group">
                     <h3>Community bags</h3>
                     <div class="bag-grid">
-                      {#each communityBags as bag (bag.id)}
+                    {#each sortedCommunityBags as bag (bag.id)}
                         <BagCard
                           variant="preview"
                           bag={bag}
@@ -412,7 +552,7 @@
               {#if myBags.length > 0}
                 <div class="bag-group">
                   <h3>Your bags</h3>
-                  <RailScroller items={myBags} cardMinWidth={320} shellStyle={listShellStyle} let:item>
+                  <RailScroller items={sortedMyBags} {cardMinWidth} shellStyle={listShellStyle} let:item>
                     <BagCard
                       variant="preview"
                       bag={item}
@@ -430,7 +570,7 @@
               {#if includeCommunityBags && communityBags.length > 0}
                 <div class="bag-group">
                   <h3>Community bags</h3>
-                  <RailScroller items={communityBags} cardMinWidth={320} shellStyle={listShellStyle} let:item>
+                  <RailScroller items={sortedCommunityBags} {cardMinWidth} shellStyle={listShellStyle} let:item>
                     <BagCard
                       variant="preview"
                       bag={item}
@@ -527,7 +667,7 @@
           {#if roastersExpanded}
             <div class="list-shell" style={listShellStyle}>
               <div class="roaster-grid">
-                {#each filteredRoasters as roaster (roaster.id)}
+                {#each sortedRoasters as roaster (roaster.id)}
                   <EditableRoasterCard
                     {roaster}
                     on:updated={handleRoasterUpdated}
@@ -537,7 +677,7 @@
               </div>
             </div>
           {:else}
-            <RailScroller items={filteredRoasters} cardMinWidth={320} shellStyle={listShellStyle} let:item>
+            <RailScroller items={sortedRoasters} {cardMinWidth} shellStyle={listShellStyle} let:item>
               <EditableRoasterCard
                 roaster={item}
                 on:updated={handleRoasterUpdated}
@@ -704,7 +844,10 @@
   .bag-grid,
   .roaster-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(var(--bean-page-card-min-width, 320px), 1fr)
+    );
     gap: 1.5rem;
   }
 
@@ -785,7 +928,10 @@
 
     .bag-grid,
     .roaster-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(var(--bean-page-card-min-width, 280px), 1fr)
+      );
     }
   }
 </style>

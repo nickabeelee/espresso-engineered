@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { barista } from '$lib/auth';
   import BeanCard from '$lib/components/BeanCard.svelte';
   import ErrorDisplay from '$lib/components/ErrorDisplay.svelte';
@@ -18,6 +18,8 @@
 
   export let limit = 20;
   export let layout: 'grid' | 'rail' = 'grid';
+  export let cardMinWidth = 320;
+  export let lastBrewByBeanId: Record<string, number> = {};
 
   let beans: BeanWithContext[] = [];
   let error: AppError | null = null;
@@ -26,6 +28,9 @@
   let isOnline = true;
   let lastLimit = limit;
   let isRail = false;
+  let isCompact = false;
+  let viewportQuery: MediaQueryList | null = null;
+  let viewportListener: ((event: MediaQueryListEvent) => void) | null = null;
 
   // Filter state
   let searchTerm = '';
@@ -41,6 +46,26 @@
     '--record-list-padding': recordListShell.padding
   });
 
+  $: effectiveCardMinWidth = isCompact ? 280 : cardMinWidth;
+  $: listStyle = toStyleString({
+    '--bean-card-min-width': `${effectiveCardMinWidth}px`
+  });
+
+  function toTimestamp(value?: string | null) {
+    if (!value) return 0;
+    const timestamp = new Date(value).getTime();
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+
+  function sortBeansByLatestBrew(list: BeanWithContext[]) {
+    return [...list].sort((a, b) => {
+      const aBrew = lastBrewByBeanId[a.id] ?? 0;
+      const bBrew = lastBrewByBeanId[b.id] ?? 0;
+      if (aBrew !== bBrew) return bBrew - aBrew;
+      return toTimestamp(b.created_at) - toTimestamp(a.created_at);
+    });
+  }
+
   // Loading states
   $: isLoading = globalLoadingManager.isLoading(LoadingKeys.BEANS_LIST);
   $: isSearching = globalLoadingManager.isLoading(LoadingKeys.SEARCH);
@@ -52,6 +77,17 @@
 
   onMount(() => {
     loadBeans();
+    viewportQuery = window.matchMedia('(max-width: 480px)');
+    const updateViewport = (event?: MediaQueryListEvent) => {
+      isCompact = event?.matches ?? viewportQuery?.matches ?? false;
+    };
+    updateViewport();
+    viewportListener = updateViewport;
+    if (viewportQuery.addEventListener) {
+      viewportQuery.addEventListener('change', updateViewport);
+    } else {
+      viewportQuery.addListener(updateViewport);
+    }
     
     // Monitor network status
     const unsubscribeNetwork = NetworkMonitor.addListener((online) => {
@@ -62,7 +98,19 @@
       }
     });
     
-    return unsubscribeNetwork;
+    return () => {
+      unsubscribeNetwork();
+    };
+  });
+
+  onDestroy(() => {
+    if (viewportQuery && viewportListener) {
+      if (viewportQuery.removeEventListener) {
+        viewportQuery.removeEventListener('change', viewportListener);
+      } else {
+        viewportQuery.removeListener(viewportListener);
+      }
+    }
   });
 
   async function loadBeans(page = 1, append = false) {
@@ -160,6 +208,7 @@
     error = null;
   }
 
+  $: sortedBeans = sortBeansByLatestBrew(beans);
   $: roastersById = beans.reduce<Record<string, BeanWithContext['roaster']>>((acc, bean) => {
     if (bean.roaster) {
       acc[bean.roaster.id] = bean.roaster;
@@ -168,7 +217,7 @@
   }, {});
 </script>
 
-<div class="bean-list">
+<div class="bean-list" style={listStyle}>
   <!-- Filters -->
   {#if !isRail}
     <div class="filters">
@@ -306,14 +355,14 @@
   <!-- Bean Cards -->
   {#if beans.length > 0}
     {#if isRail}
-      <RailScroller items={beans} cardMinWidth={350} shellStyle={gridShellStyle} let:item>
+      <RailScroller items={sortedBeans} cardMinWidth={effectiveCardMinWidth} shellStyle={gridShellStyle} let:item>
         {@const roasterRecord = roastersById[item.roaster_id] ?? item.roaster ?? null}
         <BeanCard bean={item} roaster={roasterRecord} variant="preview" />
       </RailScroller>
     {:else}
       <div class="bean-grid-shell" style={gridShellStyle}>
         <div class="bean-grid">
-          {#each beans as bean (bean.id)}
+          {#each sortedBeans as bean (bean.id)}
             {@const roasterRecord = roastersById[bean.roaster_id] ?? bean.roaster ?? null}
             <BeanCard {bean} roaster={roasterRecord} variant="preview" />
           {/each}
@@ -558,7 +607,10 @@
 
   .bean-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(var(--bean-card-min-width, 320px), 1fr)
+    );
     gap: 1.5rem;
   }
 
@@ -600,7 +652,10 @@
     }
 
     .bean-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(
+        auto-fill,
+        minmax(var(--bean-card-min-width, 280px), 1fr)
+      );
     }
   }
 </style>
