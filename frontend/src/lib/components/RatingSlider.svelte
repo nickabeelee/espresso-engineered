@@ -7,6 +7,7 @@
   export let max = 10;
   export let step = 1;
   export let disabled = false;
+  export let id: string | null = null;
   export let ariaLabel = 'Rating slider';
 
   const dispatch = createEventDispatcher<{ input: number; change: number }>();
@@ -101,6 +102,10 @@
     if (!rangeInput.hasPointerCapture(event.pointerId)) return;
     rangeInput.releasePointerCapture(event.pointerId);
   }
+
+  export function focus() {
+    rangeInput?.focus();
+  }
 </script>
 
 <div
@@ -134,6 +139,7 @@
       max={safeMax}
       step={normalizedStep}
       value={snappedValue}
+      id={id ?? undefined}
       aria-label={ariaLabel}
       aria-valuetext={isUnset ? 'Not rated yet' : String(snappedValue)}
       disabled={disabled}
