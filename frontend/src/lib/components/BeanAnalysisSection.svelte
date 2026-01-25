@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
+  import { browser } from "$app/environment";
   import { apiClient } from "$lib/api-client";
   import { barista } from "$lib/auth";
   import ScatterPlot from "./ScatterPlot.svelte";
@@ -43,6 +44,10 @@
   };
 
   let analysisData: AnalysisPoint[] = [];
+  let hasLoadedOnce = false;
+  let isRefreshing = false;
+  let defaultsLoading = false;
+  let defaultsPromise: Promise<void> | null = null;
   let ratioChartCard: HTMLDivElement | null = null;
   let chartCardWidth = 0;
   let cardResizeObserver: ResizeObserver | null = null;
@@ -168,10 +173,15 @@
         analysisData = [];
         error = null;
         loading = false;
+        isRefreshing = false;
         return;
       }
 
-      loading = true;
+      if (analysisData.length > 0) {
+        isRefreshing = true;
+      } else {
+        loading = true;
+      }
       error = null;
 
       const params: any = { recency: recencyFilter };
@@ -187,12 +197,14 @@
         include_community: includeCommunity,
       });
       analysisData = response.data;
+      hasLoadedOnce = true;
     } catch (err) {
       error =
         err instanceof Error ? err.message : "Failed to load analysis data";
       console.error("Failed to load analysis data:", err);
     } finally {
       loading = false;
+      isRefreshing = false;
     }
   }
 
@@ -202,6 +214,45 @@
       lastFiltersKey = nextKey;
       loadAnalysisData();
     }
+  }
+
+  async function loadDefaultSelection() {
+    if (!$barista?.id) return;
+    defaultsLoading = true;
+    try {
+      const brewsResponse = await apiClient.getBrews(
+        { barista_id: $barista.id },
+        { limit: 1 },
+      );
+      const recentBrews = brewsResponse.data;
+      if (recentBrews.length === 0) return;
+      const mostRecentBrew = recentBrews[0];
+      if (!mostRecentBrew.bag_id) return;
+      const bagResponse = await apiClient.getBag(mostRecentBrew.bag_id);
+      const bag = bagResponse.data;
+      if (!bag) return;
+      selectedBag = bag;
+      if (bag.bean_id) {
+        const beanResponse = await apiClient.getBean(bag.bean_id);
+        if (beanResponse.data) {
+          selectedBean = beanResponse.data;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load default analysis selection:", err);
+    } finally {
+      defaultsLoading = false;
+    }
+  }
+
+  $: if (
+    browser &&
+    $barista?.id &&
+    !selectedBag &&
+    !selectedBean &&
+    !defaultsPromise
+  ) {
+    defaultsPromise = loadDefaultSelection();
   }
 
   function formatFilterSummary({
@@ -439,6 +490,10 @@
     recencyFilter,
     baristaId: $barista?.id ?? null,
   });
+
+  $: showBlockingLoading =
+    (loading && !hasLoadedOnce && analysisData.length === 0) ||
+    (defaultsLoading && !selectedBag && !selectedBean);
 </script>
 
 <section class="bean-analysis-section">
@@ -452,7 +507,7 @@
   </div>
 
   <div class="analysis-shell" style={analysisShellStyle}>
-    {#if loading}
+    {#if showBlockingLoading}
       <div class="analysis-loading">
         <div class="loading-circle" aria-hidden="true"></div>
         <p class="voice-text loading-message" style={voiceLineStyle}>
@@ -536,7 +591,7 @@
           <p class="voice-text" style={voiceLineStyle}>{emptyStateMessage}</p>
         </div>
       {:else}
-        <div class="charts-container">
+        <div class="charts-container" class:is-refreshing={isRefreshing}>
           <div
             class="chart-wrapper"
             class:is-hidden={activeChart !== "ratio"}
@@ -571,6 +626,11 @@
               highlightedBagId={selectedBag?.id || null}
             />
           </div>
+          {#if isRefreshing}
+            <div class="analysis-refresh-overlay" aria-hidden="true">
+              <div class="loading-circle" aria-hidden="true"></div>
+            </div>
+          {/if}
         </div>
 
         <div class="analysis-table">
@@ -799,6 +859,7 @@
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: clamp(1.25rem, 2vw, 2rem);
     align-items: stretch;
+    position: relative;
   }
 
   .chart-wrapper {
@@ -811,6 +872,21 @@
     border-radius: var(--radius-md);
     border: 1px solid rgba(123, 94, 58, 0.2);
     background: var(--bg-surface-paper);
+  }
+
+  .charts-container.is-refreshing .chart-wrapper {
+    opacity: 0.45;
+  }
+
+  .analysis-refresh-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 250, 242, 0.65);
+    border-radius: var(--radius-md);
+    pointer-events: none;
   }
 
   .chart-header {
