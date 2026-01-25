@@ -187,7 +187,7 @@
       {/if}
 
       <div class="form-group" class:missing={missingRating}>
-        <label>Rating (1-10)</label>
+        <label for="reflection-rating">Rating (1-10)</label>
         <RatingSlider
           value={rating}
           min={1}
@@ -196,6 +196,7 @@
           on:input={handleRatingInput}
           ariaLabel="Set brew rating"
           disabled={reflectionLocked}
+          id="reflection-rating"
         >
           <span slot="label">
             {rating ?? 'Not rated yet'}
