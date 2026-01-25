@@ -162,6 +162,25 @@ export class BeanRepository extends BaseRepository<Bean> {
    * Search beans by name and tasting notes (case-insensitive)
    */
   async searchByNameAndNotes(searchTerm: string, baristaId?: string): Promise<BeanWithContext[]> {
+    const { data: matchingRoasters, error: roasterError } = await supabase
+      .from('roaster')
+      .select('id')
+      .ilike('name', `%${searchTerm}%`);
+
+    if (roasterError) {
+      throw new Error(`Database error: ${roasterError.message}`);
+    }
+
+    const roasterIds = (matchingRoasters || []).map((roaster) => roaster.id);
+    const searchFilters = [
+      `name.ilike.%${searchTerm}%`,
+      `tasting_notes.ilike.%${searchTerm}%`,
+    ];
+
+    if (roasterIds.length > 0) {
+      searchFilters.push(`roaster_id.in.(${roasterIds.join(',')})`);
+    }
+
     const { data, error } = await supabase
       .from(this.tableName)
       .select(`
@@ -176,7 +195,7 @@ export class BeanRepository extends BaseRepository<Bean> {
           barista_id
         )
       `)
-      .or(`name.ilike.%${searchTerm}%,tasting_notes.ilike.%${searchTerm}%`)
+      .or(searchFilters.join(','))
       .order('name');
 
     if (error) {

@@ -926,7 +926,7 @@
   .bean-image {
     max-width: 220px;
     width: 100%;
-    height: auto;
+    aspect-ratio: 1 / 1;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-subtle);
     object-fit: cover;
@@ -1159,7 +1159,7 @@
 
   .bags-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 1rem;
   }
 

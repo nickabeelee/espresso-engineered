@@ -475,6 +475,20 @@ class ApiClient {
     });
   }
 
+  async updateRoaster(id: string, roaster: Partial<CreateRoasterRequest>): Promise<ApiResponse<Roaster>> {
+    const sanitizedRoaster = stripNullish(roaster);
+    return this.makeRequest<ApiResponse<Roaster>>(`/roasters/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(sanitizedRoaster),
+    });
+  }
+
+  async deleteRoaster(id: string): Promise<ApiResponse<void>> {
+    return this.makeRequest<ApiResponse<void>>(`/roasters/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getBaristas(): Promise<ListResponse<Barista>> {
     return this.makeRequest<ListResponse<Barista>>('/baristas');
   }
@@ -515,5 +529,7 @@ export const {
   deleteMachine,
   getRoasters,
   createRoaster,
+  updateRoaster,
+  deleteRoaster,
   getBaristas
 } = apiClient;

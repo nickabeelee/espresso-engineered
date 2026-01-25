@@ -167,7 +167,16 @@
 
   function formatRoastDate(dateString?: string): string {
     if (!dateString) return "Not specified";
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const dateOnlyMatch = /^\d{4}-\d{2}-\d{2}$/;
+    const parsedDate = dateOnlyMatch.test(dateString)
+      ? (() => {
+          const [year, month, day] = dateString.split("-").map(Number);
+          if (!year || !month || !day) return null;
+          return new Date(year, month - 1, day);
+        })()
+      : new Date(dateString);
+    if (!parsedDate) return "Not specified";
+    return parsedDate.toLocaleDateString("en-US", {
       month: "2-digit",
       day: "2-digit",
       year: "2-digit",
@@ -229,7 +238,7 @@
         weight_g: undefined,
         price: undefined,
         purchase_location: "",
-        inventory_status: undefined,
+        inventory_status: "unopened",
       };
       nameTouched = false;
       isNameAuto = false;
@@ -460,6 +469,9 @@
     "--editable-card-owner-highlight": editableCard.owner.highlightColor,
     "--editable-card-owner-size": editableCard.owner.fontSize,
     "--editable-card-owner-weight": editableCard.owner.fontWeight,
+    "--bag-preview-meta-font": editableCard.info.fontFamily,
+    "--bag-preview-meta-size": editableCard.info.fontSize,
+    "--bag-preview-meta-color": editableCard.info.textColor,
     "--editable-card-actions-gap": editableCard.actions.gap,
     "--editable-card-edit-actions-gap": editableCard.actions.editActionsGap,
     "--editable-card-status-font-size": editableCard.statusPill.fontSize,
@@ -515,6 +527,7 @@
     "--editable-card-section-title-color": editableCard.section.title.textColor,
     "--editable-card-image-width": `${imageSizes.card.width}px`,
     "--editable-card-image-height": `${imageSizes.card.height}px`,
+    "--preview-image-size": `${imageSizes.thumbnail.width}px`,
   });
 </script>
 
@@ -897,37 +910,41 @@
             </div>
           </section>
 
-          <section class="bag-edit-section">
-            <h5>Inventory</h5>
-            <div class="bag-edit-grid">
-              <div class="bag-edit-field">
-                <label for="bag-status">Status</label>
-                <select
-                  id="bag-status"
-                  bind:value={formData.inventory_status}
-                  class="detail-select"
-                  disabled={isSaving}
-                >
-                  <option value="">Select status</option>
-                  <option value="unopened">Unopened</option>
-                  <option value="plenty">Plenty</option>
-                  <option value="getting_low">Getting Low</option>
-                  <option value="empty">Empty</option>
-                </select>
+          {#if !isNewBag}
+            <section class="bag-edit-section">
+              <h5>Inventory</h5>
+              <div class="bag-edit-grid">
+                <div class="bag-edit-field">
+                  <label for="bag-status">Status</label>
+                  <select
+                    id="bag-status"
+                    bind:value={formData.inventory_status}
+                    class="detail-select"
+                    disabled={isSaving}
+                  >
+                    <option value="">Select status</option>
+                    <option value="unopened">Unopened</option>
+                    <option value="plenty">Plenty</option>
+                    <option value="getting_low">Getting Low</option>
+                    <option value="empty">Empty</option>
+                  </select>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          {/if}
 
-          <section class="bag-edit-section">
-            <h5>Notes</h5>
-            <div class="bag-edit-notes">
-              {#if tastingNotes}
-                <p class="notes-preview">{tastingNotes}</p>
-              {:else}
-                <p class="detail-empty">No tasting notes for this bean.</p>
-              {/if}
-            </div>
-          </section>
+          {#if !isNewBag}
+            <section class="bag-edit-section">
+              <h5>Notes</h5>
+              <div class="bag-edit-notes">
+                {#if tastingNotes}
+                  <p class="notes-preview">{tastingNotes}</p>
+                {:else}
+                  <p class="detail-empty">No tasting notes for this bean.</p>
+                {/if}
+              </div>
+            </section>
+          {/if}
         </div>
 
         <div class="bag-actions-row">
@@ -1047,14 +1064,16 @@
     margin: 0;
     color: var(--editable-card-title-color, var(--text-ink-primary));
     font-family: var(--editable-card-title-font, inherit);
-    font-size: 0.98rem;
+    font-size: var(--editable-card-title-size, 1rem);
     font-weight: var(--editable-card-title-weight, 600);
     word-wrap: break-word;
   }
 
   .bag-preview-owner {
     color: var(--editable-card-owner-color, var(--text-ink-muted));
-    font-size: 0.8rem;
+    font-family: var(--bag-preview-meta-font, inherit);
+    font-size: var(--editable-card-owner-size, var(--bag-preview-meta-size, 0.8rem));
+    font-weight: var(--editable-card-owner-weight, 600);
   }
 
   .bag-preview-body {
@@ -1071,8 +1090,8 @@
   }
 
   .bag-preview-media {
-    width: 86px;
-    height: 86px;
+    width: var(--preview-image-size, 96px);
+    height: var(--preview-image-size, 96px);
     border-radius: var(--radius-sm);
     border: 1px solid var(--editable-card-border, rgba(123, 94, 58, 0.2));
     overflow: hidden;
@@ -1103,21 +1122,23 @@
     margin: 0;
     color: var(--editable-card-title-color, var(--text-ink-primary));
     font-family: var(--editable-card-title-font, inherit);
-    font-size: 0.95rem;
+    font-size: var(--editable-card-title-size, 1rem);
     font-weight: var(--editable-card-title-weight, 600);
     word-wrap: break-word;
   }
 
   .bag-preview-roaster {
     margin: 0;
-    font-size: 0.8rem;
-    color: var(--text-ink-secondary);
+    font-family: var(--bag-preview-meta-font, inherit);
+    font-size: var(--bag-preview-meta-size, 0.8rem);
+    color: var(--bag-preview-meta-color, var(--text-ink-secondary));
   }
 
   .bag-preview-meta-text {
     margin: 0;
-    font-size: 0.8rem;
-    color: var(--text-ink-secondary);
+    font-family: var(--bag-preview-meta-font, inherit);
+    font-size: var(--bag-preview-meta-size, 0.8rem);
+    color: var(--bag-preview-meta-color, var(--text-ink-secondary));
     display: flex;
     flex-direction: column;
     gap: 0.15rem;

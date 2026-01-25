@@ -606,6 +606,11 @@ textarea:disabled {
     padding: 1.5rem 1rem 2.5rem;
   }
 
+  .auth-frame {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .page-surface {
     --page-side-padding-left: calc(1rem + env(safe-area-inset-left, 0px));
     --page-side-padding-right: calc(1rem + env(safe-area-inset-right, 0px));

@@ -6,6 +6,7 @@
   import BrewForm from '$lib/components/BrewForm.svelte';
   import BrewReflectionForm from '$lib/components/BrewReflectionForm.svelte';
   import CollapsibleSection from '$lib/components/CollapsibleSection.svelte';
+  import GuestReflectionModal from '$lib/components/GuestReflectionModal.svelte';
   import SectionCard from '$lib/components/SectionCard.svelte';
   import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
@@ -13,10 +14,9 @@
   import { adminService } from '$lib/admin-service';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { ChevronDown, ClipboardDocument, LockClosed, PencilSquare, QrCode, Trash, UserMinus, XMark } from '$lib/icons';
+  import { CheckCircle, ChevronDown, ClipboardDocument, DocumentDuplicate, LockClosed, PencilSquare, QrCode, Trash, UserMinus, XMark } from '$lib/icons';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import { imageFrame, imageSizes } from '$lib/ui/components/image';
-  import { alertBase, alertSizes, alertVariants } from '$lib/ui/components/alert';
   import { cardVariants, detailGrid, equipmentCard, recordCard, sectionSurface } from '$lib/ui/components/card';
   import { colorCss } from '$lib/ui/foundations/color';
   import { motion } from '$lib/ui/foundations/motion';
@@ -68,10 +68,6 @@
     '--page-title-line-height': textStyles.headingPrimary.lineHeight,
     '--page-title-margin-top': spacing.sm,
     '--actions-gap': spacing.sm,
-    '--link-color': colorCss.accent.primary,
-    '--link-font-family': textStyles.helper.fontFamily,
-    '--link-font-size': textStyles.helper.fontSize,
-    '--link-font-weight': textStyles.helper.fontWeight,
     '--state-padding': spacing["2xl"],
     '--state-color': colorCss.text.ink.muted,
     '--state-font-family': textStyles.helper.fontFamily,
@@ -153,16 +149,6 @@
     '--reflection-empty-size': textStyles.helper.fontSize,
     '--reflection-empty-family': textStyles.helper.fontFamily,
     '--reflection-empty-line-height': textStyles.helper.lineHeight,
-    '--incomplete-bg': alertVariants.warning.background,
-    '--incomplete-border': alertVariants.warning.borderColor,
-    '--incomplete-border-width': alertBase.borderWidth,
-    '--incomplete-border-style': recordCard.container.borderStyle,
-    '--incomplete-radius': alertBase.borderRadius,
-    '--incomplete-padding': alertSizes.lg.padding,
-    '--incomplete-margin-top': spacing["2xl"],
-    '--incomplete-color': alertVariants.warning.textColor,
-    '--incomplete-font-family': alertBase.fontFamily,
-    '--incomplete-font-size': alertSizes.lg.fontSize,
   });
 
   const equipmentStyle = toStyleString({
@@ -426,6 +412,12 @@
   function openReflection() {
     if (brew) {
       goto(`/brews/${brew.id}?reflect=true`);
+    }
+  }
+
+  function handleStartNewBrew() {
+    if (brew) {
+      goto(`/brews/new?from=${brew.id}`);
     }
   }
 
@@ -713,24 +705,9 @@
             <XMark />
           </IconButton>
         {/if}
-        {#if canEdit && brew && !reflectionMode}
-          {#if editing}
-            <IconButton on:click={toggleEdit} ariaLabel="Cancel editing" title="Cancel" variant="neutral" disabled={loading}>
-              <XMark />
-            </IconButton>
-          {:else}
-            <IconButton on:click={toggleEdit} ariaLabel="Edit brew" variant="accent" disabled={loading}>
-              <PencilSquare />
-            </IconButton>
-          {/if}
-          <IconButton
-            on:click={handleDelete}
-            ariaLabel={deleting ? 'Deleting brew' : 'Delete brew'}
-            title={deleting ? 'Deleting...' : 'Delete'}
-            variant="danger"
-            disabled={loading || deleting}
-          >
-            <Trash />
+        {#if editing && canEdit}
+          <IconButton on:click={toggleEdit} ariaLabel="Cancel editing" title="Cancel" variant="neutral" disabled={loading}>
+            <XMark />
           </IconButton>
         {/if}
       </div>
@@ -744,11 +721,6 @@
     <!-- TypeScript workaround: create local variable with proper type -->
     {@const currentBrew = brew}
     <div class="brew-content">
-      {#if (!currentBrew.yield_g || !currentBrew.rating) && !reflectionMode && !guestLockActive}
-        <div class="incomplete-notice">
-          <p>This brew is incomplete. {#if canEdit}<button on:click={openReflection} class="link-button">Complete it now</button>.{/if}</p>
-        </div>
-      {/if}
       {#if reflectionMode}
         <div class="brew-details reflection-details">
           {#if (guestLockActive || guestCompleted) && showGuestSection}
@@ -1117,68 +1089,144 @@
         />
       {:else}
         <div class="brew-details">
-          {#if showGuestSection}
-            <section class="detail-section guest-reflection-section">
-              <div class="guest-reflection-top">
-                <div class="guest-reflection-info">
-                  <h3>Guest Reflection</h3>
-                  {#if guestStatusMessage}
-                    <div class="guest-reflection-status">
-                      <p class="voice-text guest-reflection-status-text">{guestStatusMessage}</p>
-                    </div>
-                  {/if}
+          {#if canEdit || showGuestSection}
+            <section class="detail-section action-section">
+              <div class="action-header">
+                <div class="action-heading">
+                  <h3>Actions</h3>
                 </div>
-                {#if canEdit && !brew.guest_submitted_at}
-                  <div class="guest-reflection-toolbar">
-                    {#if canShowGuestLinkActions}
-                      <div class="guest-link-actions">
-                        <GhostButton type="button" size="sm" variant="neutral" on:click={handleOpenGuestShare}>
-                          View Guest Link
-                        </GhostButton>
+                {#if canEdit}
+                  <div class="action-toolbar">
+                    <GhostButton
+                      type="button"
+                      size="sm"
+                      variant="accent"
+                      ariaLabel="Start a new brew from this one"
+                      title="Start a new brew from this one"
+                      on:click={handleStartNewBrew}
+                      disabled={loading}
+                    >
+                      <DocumentDuplicate size={18} />
+                      Start new brew
+                    </GhostButton>
+                    <IconButton on:click={toggleEdit} ariaLabel="Edit brew" title="Edit" variant="accent" disabled={loading}>
+                      <PencilSquare />
+                    </IconButton>
+                    <IconButton
+                      on:click={handleDelete}
+                      ariaLabel={deleting ? 'Deleting brew' : 'Delete brew'}
+                      title={deleting ? 'Deleting...' : 'Delete'}
+                      variant="danger"
+                      disabled={loading || deleting}
+                    >
+                      <Trash />
+                    </IconButton>
+                  </div>
+                {/if}
+              </div>
+              {#if canEdit || showGuestSection}
+                <div class="action-block reflection-block">
+                  <div class="reflection-header">
+                    <h3>Reflection</h3>
+                    {#if canEdit}
+                      <p class="reflection-status">
+                        {#if (!currentBrew.yield_g || !currentBrew.rating) && !guestLockActive}
+                          Reflection is incomplete. Choose how you want to finish it.
+                        {:else}
+                          Update your notes, or invite a guest to add theirs.
+                        {/if}
+                      </p>
+                    {/if}
+                    {#if guestStatusMessage && guestState !== 'none'}
+                      <p class="voice-text guest-reflection-status-text">{guestStatusMessage}</p>
+                    {/if}
+                  </div>
+                  {#if canEdit && !guestLockActive}
+                    <div class="reflection-options">
+                      <GhostButton
+                        type="button"
+                        size="sm"
+                        variant={(!currentBrew.yield_g || !currentBrew.rating) ? 'success' : 'accent'}
+                        ariaLabel="Open reflection"
+                        title="Open reflection"
+                        on:click={openReflection}
+                        disabled={loading}
+                      >
+                        <CheckCircle size={18} />
+                        {#if (!currentBrew.yield_g || !currentBrew.rating)}
+                          Complete reflection
+                        {:else}
+                          Review reflection
+                        {/if}
+                      </GhostButton>
+                      {#if guestState === 'none' && !brew.guest_submitted_at}
                         <GhostButton
                           type="button"
                           size="sm"
                           variant="neutral"
-                          ariaLabel="Copy guest link"
-                          title="Copy guest link"
-                          on:click={copyGuestShareLink}
-                          disabled={!guestShareUrl}
-                        >
-                          <ClipboardDocument size={18} />
-                        </GhostButton>
-                        <GhostButton
-                          type="button"
-                          size="sm"
-                          variant="danger"
-                          ariaLabel="Cancel guest reflection"
-                          title="Cancel guest reflection"
-                          on:click={handleCancelGuestReflection}
-                          disabled={guestCancelLoading}
-                        >
-                          <UserMinus size={18} />
-                        </GhostButton>
-                      </div>
-                    {:else}
-                      <div class="guest-request-action">
-                        <GhostButton
-                          type="button"
-                          size="sm"
-                          variant="neutral"
-                          ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
-                          title={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                          ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Invite guest reflection'}
+                          title={guestRequestLoading ? 'Preparing guest link...' : 'Invite guest reflection'}
                           on:click={handleRequestGuestReflection}
                           disabled={guestRequestLoading}
                         >
                           <QrCode size={18} />
-                          Begin guest reflection
+                          Invite guest reflection
                         </GhostButton>
-                      </div>
-                    {/if}
-                  </div>
-                {/if}
-              </div>
-              {#if guestShareError}
-                <div class="guest-reflection-error">{guestShareError}</div>
+                      {/if}
+                    </div>
+                  {/if}
+                  {#if canEdit && !brew.guest_submitted_at && guestState !== 'none'}
+                    <div class="guest-reflection-toolbar">
+                      {#if canShowGuestLinkActions}
+                        <div class="guest-link-actions">
+                          <GhostButton type="button" size="sm" variant="neutral" on:click={handleOpenGuestShare}>
+                            View Guest Link
+                          </GhostButton>
+                          <GhostButton
+                            type="button"
+                            size="sm"
+                            variant="neutral"
+                            ariaLabel="Copy guest link"
+                            title="Copy guest link"
+                            on:click={copyGuestShareLink}
+                            disabled={!guestShareUrl}
+                          >
+                            <ClipboardDocument size={18} />
+                          </GhostButton>
+                          <GhostButton
+                            type="button"
+                            size="sm"
+                            variant="danger"
+                            ariaLabel="Cancel guest reflection"
+                            title="Cancel guest reflection"
+                            on:click={handleCancelGuestReflection}
+                            disabled={guestCancelLoading}
+                          >
+                            <UserMinus size={18} />
+                          </GhostButton>
+                        </div>
+                      {:else}
+                        <div class="guest-request-action">
+                          <GhostButton
+                            type="button"
+                            size="sm"
+                            variant="neutral"
+                            ariaLabel={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                            title={guestRequestLoading ? 'Preparing guest link...' : 'Request guest reflection'}
+                            on:click={handleRequestGuestReflection}
+                            disabled={guestRequestLoading}
+                          >
+                            <QrCode size={18} />
+                            Begin guest reflection
+                          </GhostButton>
+                        </div>
+                      {/if}
+                    </div>
+                  {/if}
+                  {#if guestShareError}
+                    <div class="guest-reflection-error">{guestShareError}</div>
+                  {/if}
+                </div>
               {/if}
             </section>
           {/if}
@@ -1389,43 +1437,16 @@
   {:else}
     <div class="not-found">Brew not found</div>
   {/if}
-  {#if guestShareOpen && guestShareUrl}
-    <div class="guest-share-modal" role="dialog" aria-modal="true" aria-label="Guest reflection link">
-      <button class="guest-share-backdrop" type="button" on:click={handleCloseGuestShare} aria-label="Close"></button>
-      <div class="guest-share-panel">
-        <div class="guest-share-header">
-          <div>
-            <h2>Guest Reflection Link</h2>
-            <p class="guest-share-subtitle">Have your guest scan the QR code or copy the link to share it.</p>
-            {#if guestShareHelper}
-              <p class="guest-share-helper">{guestShareHelper}</p>
-            {/if}
-          </div>
-          <IconButton on:click={handleCloseGuestShare} ariaLabel="Close" title="Close" variant="neutral">
-            <XMark />
-          </IconButton>
-        </div>
-        <div class="guest-share-body">
-          {#if guestShareQrUrl}
-            <div class="guest-share-qr">
-              <img src={guestShareQrUrl} alt="Guest reflection QR code" />
-            </div>
-          {/if}
-          <div class="guest-share-details">
-            <div class="guest-share-actions">
-              <button class="btn-primary btn-with-icon" type="button" on:click={copyGuestShareLink}>
-                <ClipboardDocument size={18} />
-                {guestShareCopied ? 'Link copied' : 'Copy link'}
-              </button>
-              {#if guestShareCopyError}
-                <span class="guest-reflection-error">{guestShareCopyError}</span>
-              {/if}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  {/if}
+  <GuestReflectionModal
+    open={guestShareOpen}
+    {guestShareUrl}
+    {guestShareQrUrl}
+    {guestShareHelper}
+    {guestShareCopied}
+    {guestShareCopyError}
+    on:close={handleCloseGuestShare}
+    on:copy={copyGuestShareLink}
+  />
   </div>
 </AuthGuard>
 
@@ -1455,6 +1476,62 @@
   .actions {
     display: flex;
     gap: var(--actions-gap);
+  }
+
+  .action-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--detail-section-gap);
+  }
+
+  .action-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .action-section .action-heading h3 {
+    margin: 0;
+  }
+
+  .action-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .action-block {
+    border-top: 1px solid var(--detail-section-border);
+    padding-top: var(--detail-section-gap);
+  }
+
+  .reflection-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .reflection-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .reflection-status {
+    margin: 0;
+    color: var(--state-color);
+    font-family: var(--state-font-family);
+    font-size: var(--state-font-size);
+  }
+
+  .reflection-options {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
   }
 
   .guest-reflection-section {
@@ -1545,114 +1622,6 @@
     font-family: var(--state-font-family);
     font-size: var(--state-font-size);
     margin-bottom: 0.75rem;
-  }
-
-  .guest-share-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    min-width: 0;
-  }
-
-  .guest-share-qr img {
-    width: min(320px, 70vw);
-    height: min(320px, 70vw);
-    border-radius: var(--reflection-body-radius);
-    border: var(--reflection-body-border-width) var(--reflection-body-border-style) var(--reflection-body-border);
-  }
-
-  .guest-share-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 30;
-    display: grid;
-    place-items: center;
-    padding: 1.5rem;
-  }
-
-  .guest-share-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(43, 33, 24, 0.55);
-    border: none;
-  }
-
-  .guest-share-panel {
-    position: relative;
-    z-index: 1;
-    width: min(820px, 100%);
-    background: var(--detail-section-bg);
-    border: var(--detail-section-border-width) var(--detail-section-border-style) var(--detail-section-border);
-    border-radius: var(--detail-section-radius);
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    box-shadow: var(--card-shadow, 0 24px 48px rgba(35, 24, 16, 0.25));
-  }
-
-  .guest-share-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .guest-share-header h2 {
-    margin: 0;
-    font-family: var(--detail-title-family);
-    font-size: var(--detail-title-size);
-    font-weight: var(--detail-title-weight);
-    color: var(--detail-title-color);
-  }
-
-  .guest-share-subtitle {
-    margin: 0.35rem 0 0 0;
-    font-family: var(--state-font-family);
-    font-size: var(--state-font-size);
-    color: var(--state-color);
-  }
-
-  .guest-share-helper {
-    margin: 0.5rem 0 0 0;
-    font-family: var(--state-font-family);
-    font-size: var(--state-font-size);
-    color: var(--state-color);
-  }
-
-  .guest-share-body {
-    display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.2fr);
-    gap: 2rem;
-    align-items: center;
-  }
-
-  .guest-share-actions {
-    margin-top: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .btn-with-icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  @media (max-width: 720px) {
-    .guest-share-panel {
-      padding: 1.5rem;
-    }
-
-    .guest-share-body {
-      grid-template-columns: 1fr;
-    }
-
-    .guest-share-qr {
-      justify-self: center;
-    }
   }
 
   .link-button {
@@ -2050,21 +2019,6 @@
     color: var(--metric-value-color);
   }
 
-  .incomplete-notice {
-    background: var(--incomplete-bg);
-    border: var(--incomplete-border-width) var(--incomplete-border-style) var(--incomplete-border);
-    border-radius: var(--incomplete-radius);
-    padding: var(--incomplete-padding);
-    margin-top: 0;
-    margin-bottom: var(--detail-section-gap);
-    color: var(--incomplete-color);
-    font-family: var(--incomplete-font-family);
-    font-size: var(--incomplete-font-size);
-  }
-
-  .incomplete-notice p {
-    margin: 0;
-  }
 
   @media (max-width: 768px) {
     .metric-card--wide {

@@ -16,8 +16,12 @@
   let error = null;
   let isOnline = true;
   let prefillBagId: string | null = null;
+  let prefillFromBrewId: string | null = null;
+  let prefillFromBrew: PrefillData | null = null;
+  let prefillFromBrewError: string | null = null;
 
   $: prefillBagId = $page.url.searchParams.get('bag');
+  $: prefillFromBrewId = $page.url.searchParams.get('from');
 
   onMount(() => {
     // Set up connectivity monitoring
@@ -30,8 +34,33 @@
       }
     });
 
+    if (prefillFromBrewId) {
+      void loadPrefillFromBrew(prefillFromBrewId);
+    }
+
     return cleanup;
   });
+
+  async function loadPrefillFromBrew(brewId: string) {
+    try {
+      prefillFromBrewError = null;
+      const response = await apiClient.getBrew(brewId);
+      if (!response.data) {
+        throw new Error('Brew not found');
+      }
+      const source = response.data;
+      prefillFromBrew = {
+        machine_id: source.machine_id,
+        grinder_id: source.grinder_id,
+        bag_id: source.bag_id,
+        grind_setting: source.grind_setting ?? undefined,
+        dose_g: source.dose_g
+      };
+    } catch (err) {
+      prefillFromBrewError = err instanceof Error ? err.message : 'Failed to carry brew forward';
+      prefillFromBrew = null;
+    }
+  }
 
   async function syncPendingDrafts() {
     try {
@@ -116,7 +145,16 @@
       </div>
     {/if}
 
-    <BrewForm prefillBagId={prefillBagId} on:save={handleSave} on:cancel={handleCancel} />
+    {#if prefillFromBrewError}
+      <div class="notice warning">{prefillFromBrewError}</div>
+    {/if}
+
+    <BrewForm
+      prefillBagId={prefillBagId}
+      prefillDataOverride={prefillFromBrew}
+      on:save={handleSave}
+      on:cancel={handleCancel}
+    />
 
     {#if error}
       <div class="notice error">{error}</div>

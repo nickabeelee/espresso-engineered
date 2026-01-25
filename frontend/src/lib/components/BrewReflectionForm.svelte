@@ -2,7 +2,8 @@
   import { createEventDispatcher } from 'svelte';
   import Chip from '$lib/components/Chip.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { CheckCircle, XMark } from '$lib/icons';
+  import RatingSlider from '$lib/components/RatingSlider.svelte';
+  import { CheckCircle, StarMini, XMark } from '$lib/icons';
   import { editableField, formHelperText, formLabel, formSection } from '$lib/ui/components/form';
   import { colorCss } from '$lib/ui/foundations/color';
   import { textStyles } from '$lib/ui/foundations/typography';
@@ -18,7 +19,7 @@
     cancel: void;
   }>();
 
-  let rating: number | undefined = undefined;
+  let rating: number | null = null;
   let tasting_notes = '';
   let reflections = '';
   let validationErrors: Record<string, string> = {};
@@ -94,7 +95,7 @@
 
   $: if (brew && brew.id !== currentBrewId) {
     currentBrewId = brew.id;
-    rating = brew.rating ?? undefined;
+    rating = brew.rating ?? null;
     tasting_notes = brew.tasting_notes ?? '';
     reflections = brew.reflections ?? '';
     validationErrors = {};
@@ -145,7 +146,7 @@
 
   function validateForm(): boolean {
     validationErrors = {};
-    if (rating !== undefined && (rating < 1 || rating > 10)) {
+    if (rating !== null && rating !== undefined && (rating < 1 || rating > 10)) {
       validationErrors.rating = 'Rating must be between 1 and 10';
     }
     return Object.keys(validationErrors).length === 0;
@@ -157,7 +158,7 @@
     }
 
     dispatch('save', {
-      rating,
+      rating: rating ?? undefined,
       tasting_notes: tasting_notes.trim() || undefined,
       reflections: reflections.trim() || undefined
     });
@@ -167,11 +168,15 @@
     dispatch('cancel');
   }
 
-  $: missingRating = !rating;
+  $: missingRating = rating === null || rating === undefined;
   $: missingTastingNotes = !tasting_notes.trim();
   $: missingReflections = !reflections.trim();
   $: beanNotes = getSuggestionList(parseFlavorList(beanTastingNotes));
   $: genericNotes = getSuggestionList(coffeeCompassNotes);
+
+  function handleRatingInput(event: CustomEvent<number>) {
+    rating = event.detail;
+  }
 </script>
 
 <div class="reflection-form" style={style}>
@@ -182,19 +187,21 @@
       {/if}
 
       <div class="form-group" class:missing={missingRating}>
-        <label for="reflection-rating">Rating (1-10)</label>
-        <input
-          id="reflection-rating"
-          type="number"
-          inputmode="numeric"
-          bind:value={rating}
-          min="1"
-          max="10"
-          step="1"
-          placeholder="e.g., 8"
+        <label>Rating (1-10)</label>
+        <RatingSlider
+          value={rating}
+          min={1}
+          max={10}
+          step={1}
+          on:input={handleRatingInput}
+          ariaLabel="Set brew rating"
           disabled={reflectionLocked}
-          title={reflectionLocked ? lockMessage : undefined}
-        />
+        >
+          <span slot="label">
+            {rating ?? 'Not rated yet'}
+            <StarMini size={16} />
+          </span>
+        </RatingSlider>
         {#if validationErrors.rating}
           <span class="error-text">{validationErrors.rating}</span>
         {:else if missingRating}
@@ -340,7 +347,7 @@
     font-size: var(--form-label-size, 0.95rem);
   }
 
-  .form-group input,
+  .form-group input:not([type='range']),
   .form-group textarea {
     padding: var(--form-input-padding, 0.75rem);
     border: var(--form-input-border-width, 1px) solid var(--form-input-border, var(--border-subtle));
@@ -350,17 +357,35 @@
     background: var(--form-input-bg, var(--bg-surface-paper));
   }
 
-  .form-group input:focus,
+  .form-group input:not([type='range']):focus,
   .form-group textarea:focus {
     outline: none;
     border-color: var(--accent-primary);
     box-shadow: var(--form-input-focus, 0 0 0 2px rgba(176, 138, 90, 0.2));
   }
 
-  .form-group.missing input,
+  .form-group.missing input:not([type='range']),
   .form-group.missing textarea {
     border-color: rgba(176, 138, 90, 0.65);
     background: var(--form-input-bg-missing, var(--bg-surface-paper-secondary));
+  }
+
+  .rating-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: var(--text-ink-primary);
+    font-size: 1.05rem;
+  }
+
+  .rating-display.unrated {
+    color: var(--text-ink-muted);
+    font-weight: 500;
+  }
+
+  .rating-value {
+    font-size: 1.2rem;
   }
 
   .helper-text {

@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { onDestroy, createEventDispatcher } from "svelte";
+  import { onDestroy } from "svelte";
+  import { browser } from "$app/environment";
   import { apiClient } from "$lib/api-client";
   import { barista } from "$lib/auth";
   import ScatterPlot from "./ScatterPlot.svelte";
   import ErrorDisplay from "./ErrorDisplay.svelte";
   import BeanAnalysisFilters from "$lib/components/BeanAnalysisFilters.svelte";
+  import Popover from "$lib/components/Popover.svelte";
   import { ArrowTopRightOnSquareMini } from "$lib/icons";
   import type { Bean, Bag } from "@shared/types";
   import { recordListShell } from "$lib/ui/components/card";
@@ -25,11 +27,6 @@
   export let recencyFilter: RecencyPeriod = "M";
   export let showInlineFilters = true;
 
-  // Events
-  const dispatch = createEventDispatcher<{
-    openFilters: void;
-  }>();
-
   // Component state
   let loading = true;
   let error: string | null = null;
@@ -47,6 +44,10 @@
   };
 
   let analysisData: AnalysisPoint[] = [];
+  let hasLoadedOnce = false;
+  let isRefreshing = false;
+  let defaultsLoading = false;
+  let defaultsPromise: Promise<void> | null = null;
   let ratioChartCard: HTMLDivElement | null = null;
   let chartCardWidth = 0;
   let cardResizeObserver: ResizeObserver | null = null;
@@ -63,6 +64,7 @@
     Y: "the last year",
   };
   let analysisFilterSummary = "";
+  let filtersPopoverOpen = false;
 
   const sectionTitleStyle = toStyleString({
     ...textStyles.headingSecondary,
@@ -171,10 +173,15 @@
         analysisData = [];
         error = null;
         loading = false;
+        isRefreshing = false;
         return;
       }
 
-      loading = true;
+      if (analysisData.length > 0) {
+        isRefreshing = true;
+      } else {
+        loading = true;
+      }
       error = null;
 
       const params: any = { recency: recencyFilter };
@@ -190,12 +197,14 @@
         include_community: includeCommunity,
       });
       analysisData = response.data;
+      hasLoadedOnce = true;
     } catch (err) {
       error =
         err instanceof Error ? err.message : "Failed to load analysis data";
       console.error("Failed to load analysis data:", err);
     } finally {
       loading = false;
+      isRefreshing = false;
     }
   }
 
@@ -207,8 +216,43 @@
     }
   }
 
-  function requestFilters() {
-    dispatch("openFilters");
+  async function loadDefaultSelection() {
+    if (!$barista?.id) return;
+    defaultsLoading = true;
+    try {
+      const brewsResponse = await apiClient.getBrews(
+        { barista_id: $barista.id },
+        { limit: 1 },
+      );
+      const recentBrews = brewsResponse.data;
+      if (recentBrews.length === 0) return;
+      const mostRecentBrew = recentBrews[0];
+      if (!mostRecentBrew.bag_id) return;
+      const bagResponse = await apiClient.getBag(mostRecentBrew.bag_id);
+      const bag = bagResponse.data;
+      if (!bag) return;
+      selectedBag = bag;
+      if (bag.bean_id) {
+        const beanResponse = await apiClient.getBean(bag.bean_id);
+        if (beanResponse.data) {
+          selectedBean = beanResponse.data;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load default analysis selection:", err);
+    } finally {
+      defaultsLoading = false;
+    }
+  }
+
+  $: if (
+    browser &&
+    $barista?.id &&
+    !selectedBag &&
+    !selectedBean &&
+    !defaultsPromise
+  ) {
+    defaultsPromise = loadDefaultSelection();
   }
 
   function formatFilterSummary({
@@ -446,6 +490,10 @@
     recencyFilter,
     baristaId: $barista?.id ?? null,
   });
+
+  $: showBlockingLoading =
+    (loading && !hasLoadedOnce && analysisData.length === 0) ||
+    (defaultsLoading && !selectedBag && !selectedBean);
 </script>
 
 <section class="bean-analysis-section">
@@ -459,7 +507,7 @@
   </div>
 
   <div class="analysis-shell" style={analysisShellStyle}>
-    {#if loading}
+    {#if showBlockingLoading}
       <div class="analysis-loading">
         <div class="loading-circle" aria-hidden="true"></div>
         <p class="voice-text loading-message" style={voiceLineStyle}>
@@ -470,9 +518,37 @@
       <ErrorDisplay {error} />
     {:else}
       <div class="analysis-mobile-tools">
-        <button type="button" class="filter-trigger" on:click={requestFilters}
-          >Filters</button
+        <Popover
+          bind:open={filtersPopoverOpen}
+          align="start"
+          contentLabel="Analysis filters"
+          contentOverflow="visible"
         >
+          <svelte:fragment slot="trigger" let:toggle let:open>
+            <button
+              type="button"
+              class="filter-trigger"
+              aria-haspopup="dialog"
+              aria-expanded={open}
+              on:click={toggle}
+            >
+              Filters
+            </button>
+          </svelte:fragment>
+          <svelte:fragment slot="content">
+            <div class="analysis-popover-header">
+              <h3>Filters</h3>
+              <p>Refine the analysis view</p>
+            </div>
+            <BeanAnalysisFilters
+              variant="popover"
+              bind:selectedBean
+              bind:selectedBag
+              bind:includeCommunity
+              bind:recencyFilter
+            />
+          </svelte:fragment>
+        </Popover>
         <div class="chart-toggle" role="tablist" aria-label="Select chart">
           <button
             type="button"
@@ -690,6 +766,35 @@
     padding-bottom: 1.5rem;
   }
 
+  .analysis-popover-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .analysis-popover-header h3 {
+    margin: 0;
+    color: var(--text-ink-primary);
+    font-size: 1rem;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  .analysis-popover-header p {
+    margin: 0;
+    color: var(--text-ink-muted);
+    font-size: 0.85rem;
+    font-family:
+      "IBM Plex Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
   .filter-trigger {
     border: 1px solid var(--border-subtle);
     background: var(--bg-surface-paper-secondary);
@@ -749,6 +854,7 @@
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: clamp(1.25rem, 2vw, 2rem);
     align-items: stretch;
+    position: relative;
   }
 
   .chart-wrapper {

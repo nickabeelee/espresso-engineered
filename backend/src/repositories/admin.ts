@@ -72,12 +72,9 @@ export class AdminRepository {
     }
     if (filters.is_draft !== undefined) {
       if (filters.is_draft) {
-        query = query.or('rating.is.null,tasting_notes.is.null,reflections.is.null');
+        query = query.is('rating', null);
       } else {
-        query = query
-          .not('rating', 'is', null)
-          .not('tasting_notes', 'is', null)
-          .not('reflections', 'is', null);
+        query = query.not('rating', 'is', null);
       }
     }
 
