@@ -167,7 +167,16 @@
 
   function formatRoastDate(dateString?: string): string {
     if (!dateString) return "Not specified";
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const dateOnlyMatch = /^\d{4}-\d{2}-\d{2}$/;
+    const parsedDate = dateOnlyMatch.test(dateString)
+      ? (() => {
+          const [year, month, day] = dateString.split("-").map(Number);
+          if (!year || !month || !day) return null;
+          return new Date(year, month - 1, day);
+        })()
+      : new Date(dateString);
+    if (!parsedDate) return "Not specified";
+    return parsedDate.toLocaleDateString("en-US", {
       month: "2-digit",
       day: "2-digit",
       year: "2-digit",
@@ -229,7 +238,7 @@
         weight_g: undefined,
         price: undefined,
         purchase_location: "",
-        inventory_status: undefined,
+        inventory_status: "unopened",
       };
       nameTouched = false;
       isNameAuto = false;
@@ -901,37 +910,41 @@
             </div>
           </section>
 
-          <section class="bag-edit-section">
-            <h5>Inventory</h5>
-            <div class="bag-edit-grid">
-              <div class="bag-edit-field">
-                <label for="bag-status">Status</label>
-                <select
-                  id="bag-status"
-                  bind:value={formData.inventory_status}
-                  class="detail-select"
-                  disabled={isSaving}
-                >
-                  <option value="">Select status</option>
-                  <option value="unopened">Unopened</option>
-                  <option value="plenty">Plenty</option>
-                  <option value="getting_low">Getting Low</option>
-                  <option value="empty">Empty</option>
-                </select>
+          {#if !isNewBag}
+            <section class="bag-edit-section">
+              <h5>Inventory</h5>
+              <div class="bag-edit-grid">
+                <div class="bag-edit-field">
+                  <label for="bag-status">Status</label>
+                  <select
+                    id="bag-status"
+                    bind:value={formData.inventory_status}
+                    class="detail-select"
+                    disabled={isSaving}
+                  >
+                    <option value="">Select status</option>
+                    <option value="unopened">Unopened</option>
+                    <option value="plenty">Plenty</option>
+                    <option value="getting_low">Getting Low</option>
+                    <option value="empty">Empty</option>
+                  </select>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          {/if}
 
-          <section class="bag-edit-section">
-            <h5>Notes</h5>
-            <div class="bag-edit-notes">
-              {#if tastingNotes}
-                <p class="notes-preview">{tastingNotes}</p>
-              {:else}
-                <p class="detail-empty">No tasting notes for this bean.</p>
-              {/if}
-            </div>
-          </section>
+          {#if !isNewBag}
+            <section class="bag-edit-section">
+              <h5>Notes</h5>
+              <div class="bag-edit-notes">
+                {#if tastingNotes}
+                  <p class="notes-preview">{tastingNotes}</p>
+                {:else}
+                  <p class="detail-empty">No tasting notes for this bean.</p>
+                {/if}
+              </div>
+            </section>
+          {/if}
         </div>
 
         <div class="bag-actions-row">
