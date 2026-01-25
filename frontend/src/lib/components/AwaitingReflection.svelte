@@ -19,7 +19,16 @@
       error = null;
 
       const response = await apiClient.getDraftBrews();
-      draftBrews = response.data.filter(brew => typeof brew.rating !== 'number');
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      draftBrews = response.data.filter((brew) => {
+        if (typeof brew.rating === 'number') return false;
+        if (!brew.created_at) return false;
+        const brewedAt = new Date(brew.created_at);
+        if (Number.isNaN(brewedAt.getTime())) return false;
+        return brewedAt >= threeDaysAgo;
+      });
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load draft brews';
       console.error('Failed to load draft brews:', err);
