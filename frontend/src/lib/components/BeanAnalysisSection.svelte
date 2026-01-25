@@ -591,7 +591,7 @@
           <p class="voice-text" style={voiceLineStyle}>{emptyStateMessage}</p>
         </div>
       {:else}
-        <div class="charts-container" class:is-refreshing={isRefreshing}>
+        <div class="charts-container">
           <div
             class="chart-wrapper"
             class:is-hidden={activeChart !== "ratio"}
@@ -626,11 +626,6 @@
               highlightedBagId={selectedBag?.id || null}
             />
           </div>
-          {#if isRefreshing}
-            <div class="analysis-refresh-overlay" aria-hidden="true">
-              <div class="loading-circle" aria-hidden="true"></div>
-            </div>
-          {/if}
         </div>
 
         <div class="analysis-table">
@@ -872,21 +867,6 @@
     border-radius: var(--radius-md);
     border: 1px solid rgba(123, 94, 58, 0.2);
     background: var(--bg-surface-paper);
-  }
-
-  .charts-container.is-refreshing .chart-wrapper {
-    opacity: 0.45;
-  }
-
-  .analysis-refresh-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 250, 242, 0.65);
-    border-radius: var(--radius-md);
-    pointer-events: none;
   }
 
   .chart-header {
