@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { onDestroy, tick } from 'svelte';
+  import { onDestroy, onMount, tick } from 'svelte';
   import IconButton from '$lib/components/IconButton.svelte';
+  import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
   import { ChevronDown, ChevronLeft, ChevronRight } from '$lib/icons';
+  import { animations, gsap } from '$lib/ui/animations';
   import { recordListShell } from '$lib/ui/components/card';
   import { toStyleString } from '$lib/ui/style';
 
@@ -18,6 +20,8 @@
   export let expanded = false;
   export let expandLabel = 'Expand';
   export let collapseLabel = 'Collapse';
+  export let isLoading = false;
+  export let loadingMessage = 'Loading...';
 
   let scrollContainer: HTMLElement | null = null;
   let cardElements: HTMLElement[] = [];
@@ -26,6 +30,10 @@
   let resizeObserver: ResizeObserver | null = null;
   let scrollCleanup: (() => void) | null = null;
   let lastSignature = '';
+  let lastAnimatedSignature = '';
+  let prefersReducedMotion = false;
+  let reduceMotionQuery: MediaQueryList | null = null;
+  let reduceMotionListener: ((event: MediaQueryListEvent) => void) | null = null;
 
   const defaultShellStyle = toStyleString({
     '--record-list-bg': recordListShell.background,
@@ -38,6 +46,8 @@
 
   const getCards = () =>
     cardElements.filter((card): card is HTMLElement => Boolean(card));
+
+  const maxAnimatedCards = 6;
 
   function updateScrollButtons() {
     if (!scrollContainer) return;
@@ -76,6 +86,20 @@
     };
   }
 
+  function animateCards(signature: string) {
+    if (prefersReducedMotion || signature === lastAnimatedSignature) return;
+    const cards = getCards().slice(0, maxAnimatedCards);
+    if (cards.length === 0) return;
+
+    gsap.killTweensOf(cards);
+    animations.horizontalScroll(cards, {
+      duration: 0.26,
+      ease: 'power2.out',
+      stagger: 0.08
+    });
+    lastAnimatedSignature = signature;
+  }
+
   function scrollLeft() {
     if (!scrollContainer) return;
     const cards = getCards();
@@ -111,11 +135,33 @@
     }, 0);
   }
 
+  onMount(() => {
+    if (typeof window === 'undefined') return;
+    reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updateReducedMotion = (event?: MediaQueryListEvent) => {
+      prefersReducedMotion = event?.matches ?? reduceMotionQuery?.matches ?? false;
+    };
+    updateReducedMotion();
+    reduceMotionListener = updateReducedMotion;
+    if (reduceMotionQuery.addEventListener) {
+      reduceMotionQuery.addEventListener('change', updateReducedMotion);
+    } else {
+      reduceMotionQuery.addListener(updateReducedMotion);
+    }
+  });
+
   onDestroy(() => {
     scrollCleanup?.();
     scrollCleanup = null;
     resizeObserver?.disconnect();
     resizeObserver = null;
+    if (reduceMotionQuery && reduceMotionListener) {
+      if (reduceMotionQuery.removeEventListener) {
+        reduceMotionQuery.removeEventListener('change', reduceMotionListener);
+      } else {
+        reduceMotionQuery.removeListener(reduceMotionListener);
+      }
+    }
   });
 
   $: if (items.length > 0) {
@@ -127,6 +173,9 @@
       void tick().then(() => {
         initScrollTracking();
         updateScrollButtons();
+        if (!isLoading) {
+          animateCards(signature);
+        }
       });
     }
   }
@@ -135,12 +184,19 @@
     initScrollTracking();
     updateScrollButtons();
   }
+
+  $: if (!isLoading && lastSignature) {
+    void tick().then(() => {
+      animateCards(lastSignature);
+    });
+  }
 </script>
 
 <div
   class="rail-shell"
   class:edge-rail={edgeRail}
   style={shellStyle ?? defaultShellStyle}
+  aria-busy={isLoading}
 >
   {#if showControls || expandable}
     <div class="rail-header">
@@ -190,6 +246,15 @@
 
   <div class="rail-scroll" bind:this={scrollContainer}>
     <div class="rail-list">
+      {#if items.length === 0}
+        <div class="rail-placeholder">
+          {#if isLoading}
+            <LoadingIndicator variant="dots" size="sm" inline message={loadingMessage} />
+          {:else}
+            <slot name="empty" />
+          {/if}
+        </div>
+      {/if}
       {#each items as item, index (getKey(item, index))}
         <div
           class="rail-card"
@@ -300,6 +365,14 @@
     gap: 1.5rem;
     padding: 0.5rem 0;
     min-width: min-content;
+  }
+
+  .rail-placeholder {
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 0;
   }
 
   .rail-card {

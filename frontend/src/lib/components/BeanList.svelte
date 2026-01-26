@@ -353,13 +353,22 @@
   {/if}
 
   <!-- Bean Cards -->
-  {#if beans.length > 0}
-    {#if isRail}
-      <RailScroller items={sortedBeans} cardMinWidth={effectiveCardMinWidth} shellStyle={gridShellStyle} let:item>
+  {#if isRail}
+    {#if beans.length > 0 || $isLoading}
+      <RailScroller
+        items={sortedBeans}
+        cardMinWidth={effectiveCardMinWidth}
+        shellStyle={gridShellStyle}
+        isLoading={$isLoading}
+        loadingMessage="Loading beans..."
+        let:item
+      >
         {@const roasterRecord = roastersById[item.roaster_id] ?? item.roaster ?? null}
         <BeanCard bean={item} roaster={roasterRecord} variant="preview" />
       </RailScroller>
-    {:else}
+    {/if}
+  {:else}
+    {#if beans.length > 0}
       <div class="bean-grid-shell" style={gridShellStyle}>
         <div class="bean-grid">
           {#each sortedBeans as bean (bean.id)}
