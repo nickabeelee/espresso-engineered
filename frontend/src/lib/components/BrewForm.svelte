@@ -6,7 +6,7 @@
   import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
   import RatingSlider from '$lib/components/RatingSlider.svelte';
-  import { CheckCircle, ClipboardDocument, DocumentDuplicate, StarMini, XMark } from '$lib/icons';
+  import { CheckCircle, ChevronDown, ClipboardDocument, DocumentDuplicate, StarMini, XMark } from '$lib/icons';
   import { buildBrewName } from '$lib/utils/brew-naming';
   import { editableField, formHelperText, formLabel, formSection, readOnlyField } from '$lib/ui/components/form';
   import { toStyleString } from '$lib/ui/style';
@@ -598,7 +598,15 @@
 
     <!-- Evaluation -->
     <details class="form-section card evaluation-section">
-      <summary>Evaluation</summary>
+      <summary>
+        <span class="evaluation-toggle">
+          <span class="evaluation-icon" aria-hidden="true">
+            <ChevronDown size={18} />
+          </span>
+          <span>Evaluation</span>
+        </span>
+        <span class="evaluation-divider" aria-hidden="true"></span>
+      </summary>
       {#if reflectionLocked}
         <p class="voice-text lock-message">{lockMessage}</p>
         {#if showGuestLinkActions}
@@ -646,7 +654,7 @@
         {/if}
       </div>
 
-      <div class="form-group">
+      <div class="form-group tasting-notes-group">
         <label for="tasting_notes">Tasting Notes</label>
         <textarea
           id="tasting_notes"
@@ -659,7 +667,7 @@
         />
       </div>
 
-      <div class="form-group">
+      <div class="form-group reflections-group">
         <label for="reflections">Reflections</label>
         <textarea
           id="reflections"
@@ -717,6 +725,18 @@
     gap: 1rem;
   }
 
+  .evaluation-section {
+    gap: 1.25rem;
+  }
+
+  .evaluation-section .reflections-group {
+    margin-top: 0.5rem;
+  }
+
+  .evaluation-section .tasting-notes-group {
+    margin-top: 0.5rem;
+  }
+
   .form-section h3 {
     margin: 0;
     color: var(--form-section-title-color, var(--text-ink-secondary));
@@ -733,16 +753,47 @@
     color: var(--form-section-title-color, var(--text-ink-secondary));
     font-size: var(--form-section-title-size, 1.25rem);
     font-weight: var(--form-section-title-weight, 500);
-    border-bottom: var(--form-section-title-border-width, 1px) solid var(--form-section-title-border, var(--border-subtle));
-    padding-bottom: 0.5rem;
-    display: flex;
+    padding: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
 
   .evaluation-section summary::-webkit-details-marker {
     display: none;
+  }
+
+  .evaluation-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .evaluation-icon {
+    display: inline-flex;
+    align-items: center;
+    transition: transform 0.2s ease;
+  }
+
+  .evaluation-divider {
+    height: 1px;
+    width: 100%;
+    background: var(--form-section-title-border, var(--border-subtle));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .evaluation-section[open] summary .evaluation-icon {
+    transform: rotate(0deg);
+  }
+
+  .evaluation-section:not([open]) summary .evaluation-icon {
+    transform: rotate(-90deg);
+  }
+
+  .evaluation-section[open] summary .evaluation-divider {
+    opacity: 1;
   }
 
   .evaluation-section summary:focus-visible {
