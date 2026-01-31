@@ -4,6 +4,7 @@
   import LoadingIndicator from "./LoadingIndicator.svelte";
   import ErrorDisplay from "./ErrorDisplay.svelte";
   import IconButton from "$lib/components/IconButton.svelte";
+  import SectionBlock from "$lib/components/SectionBlock.svelte";
   import { ChevronLeft, ChevronRight, StarMini } from "$lib/icons";
   import { apiClient } from "$lib/api-client";
   import { animations, gsap } from "$lib/ui/animations";
@@ -47,12 +48,6 @@
   const stackAnimating = new Set<number>();
 
   const maxStackDepth = 3;
-
-  const sectionTitleStyle = toStyleString({
-    ...textStyles.headingSecondary,
-    color: colorCss.text.ink.primary,
-    margin: "0 0 0.5rem 0",
-  });
 
   const voiceLineStyle = toStyleString({
     ...textStyles.voice,
@@ -487,14 +482,13 @@
 </script>
 
 <section class="week-brewing-section">
-  <div class="section-header">
-    <div class="section-header-text">
-      <h2 class="section-title" style={sectionTitleStyle}>Week in Brewing</h2>
+  <SectionBlock title="Week in Brewing">
+    <span slot="voice">
       <p class="voice-text" style={voiceLineStyle}>
         Shared rhythms, small details.
       </p>
-    </div>
-    <div class="section-header-actions">
+    </span>
+    <span slot="headerActions">
       {#if !loading && !error && brewGroups.length > 0}
         <div class="scroll-header">
           <div class="scroll-controls">
@@ -519,8 +513,7 @@
           </div>
         </div>
       {/if}
-    </div>
-  </div>
+    </span>
 
   <div class="section-cta">
     <a class="section-link" href="/brews/new" style={actionLinkStyle}>
@@ -640,36 +633,12 @@
       </div>
     </div>
   {/if}
+  </SectionBlock>
 </section>
 
 <style>
   .week-brewing-section {
     padding: 0.5rem 0 0;
-  }
-
-  .section-header {
-    margin-bottom: 1.5rem;
-    text-align: left;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-  }
-
-  .section-header-text {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.35rem;
-  }
-
-  .section-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    justify-content: flex-end;
   }
 
   .section-link {

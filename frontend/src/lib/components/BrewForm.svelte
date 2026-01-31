@@ -5,7 +5,8 @@
   import { barista } from '$lib/auth';
   import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
-  import { CheckCircle, ClipboardDocument, DocumentDuplicate, XMark } from '$lib/icons';
+  import RatingSlider from '$lib/components/RatingSlider.svelte';
+  import { CheckCircle, ChevronDown, ClipboardDocument, DocumentDuplicate, StarMini, XMark } from '$lib/icons';
   import { buildBrewName } from '$lib/utils/brew-naming';
   import { editableField, formHelperText, formLabel, formSection, readOnlyField } from '$lib/ui/components/form';
   import { toStyleString } from '$lib/ui/style';
@@ -41,7 +42,7 @@
   let yield_g: number | undefined = undefined;
   let brew_time_s: number | undefined = undefined;
   let grind_setting = '';
-  let rating: number | undefined = undefined;
+  let rating: number | null = null;
   let tasting_notes = '';
   let reflections = '';
   let prefillData: PrefillData | null = null;
@@ -54,7 +55,7 @@
   let grindSettingInput: HTMLInputElement | null = null;
   let brewTimeInput: HTMLInputElement | null = null;
   let yieldInput: HTMLInputElement | null = null;
-  let ratingInput: HTMLInputElement | null = null;
+  let ratingSlider: RatingSlider | null = null;
   let tastingNotesInput: HTMLTextAreaElement | null = null;
   let reflectionsInput: HTMLTextAreaElement | null = null;
   let machineSelector: MachineSelector | null = null;
@@ -143,7 +144,7 @@
     yield_g = normalizeNumber(brewData.yield_g);
     brew_time_s = normalizeNumber(brewData.brew_time_s);
     grind_setting = brewData.grind_setting ?? '';
-    rating = normalizeNumber(brewData.rating);
+    rating = normalizeNumber(brewData.rating) ?? null;
     tasting_notes = brewData.tasting_notes ?? '';
     reflections = brewData.reflections ?? '';
   }
@@ -283,7 +284,7 @@
     if (brew_time_s !== undefined && brew_time_s <= 0) {
       validationErrors.brew_time_s = 'Brew time must be greater than 0';
     }
-    if (rating !== undefined && (rating < 1 || rating > 10)) {
+    if (rating !== null && rating !== undefined && (rating < 1 || rating > 10)) {
       validationErrors.rating = 'Rating must be between 1 and 10';
     }
 
@@ -307,7 +308,7 @@
       yield_g: normalizeNumber(yield_g),
       brew_time_s: normalizeNumber(brew_time_s),
       grind_setting: grind_setting.trim() || undefined,
-      rating: normalizeNumber(rating),
+      rating: rating ?? undefined,
       tasting_notes: tasting_notes.trim() || undefined,
       reflections: reflections.trim() || undefined
     };
@@ -330,6 +331,10 @@
 
   function handleBrewsLoaded(event: CustomEvent<{ brews: Brew[] }>) {
     brewHistory = event.detail.brews || [];
+  }
+
+  function handleRatingInput(event: CustomEvent<number>) {
+    rating = event.detail;
   }
 
   // Reactive statement to update auto name when bag changes
@@ -562,7 +567,7 @@
             min="0.1"
             placeholder="e.g., 36"
             disabled={loading}
-            on:keydown={(event) => handleEnterAdvance(event, () => ratingInput?.focus())}
+            on:keydown={(event) => handleEnterAdvance(event, () => ratingSlider?.focus())}
             enterkeyhint="next"
             bind:this={yieldInput}
           />
@@ -592,8 +597,16 @@
     </div>
 
     <!-- Evaluation -->
-    <div class="form-section card">
-      <h3>Evaluation</h3>
+    <details class="form-section card evaluation-section">
+      <summary>
+        <span class="evaluation-toggle">
+          <span class="evaluation-icon" aria-hidden="true">
+            <ChevronDown size={18} />
+          </span>
+          <span>Evaluation</span>
+        </span>
+        <span class="evaluation-divider" aria-hidden="true"></span>
+      </summary>
       {#if reflectionLocked}
         <p class="voice-text lock-message">{lockMessage}</p>
         {#if showGuestLinkActions}
@@ -620,27 +633,28 @@
       
       <div class="form-group">
         <label for="rating">Rating (1-10)</label>
-        <input
-          id="rating"
-          type="number"
-          inputmode="numeric"
-          bind:value={rating}
-          min="1"
-          max="10"
-          step="1"
-          placeholder="e.g., 8"
+        <RatingSlider
+          value={rating}
+          min={1}
+          max={10}
+          step={1}
+          on:input={handleRatingInput}
+          ariaLabel="Set brew rating"
           disabled={loading || reflectionLocked}
-          title={reflectionLocked ? lockMessage : undefined}
-          on:keydown={(event) => handleEnterAdvance(event, () => tastingNotesInput?.focus())}
-          enterkeyhint="next"
-          bind:this={ratingInput}
-        />
+          bind:this={ratingSlider}
+          id="rating"
+        >
+          <span slot="label">
+            {rating ?? 'Not rated yet'}
+            <StarMini size={16} />
+          </span>
+        </RatingSlider>
         {#if validationErrors.rating}
           <span class="error-text">{validationErrors.rating}</span>
         {/if}
       </div>
 
-      <div class="form-group">
+      <div class="form-group tasting-notes-group">
         <label for="tasting_notes">Tasting Notes</label>
         <textarea
           id="tasting_notes"
@@ -653,7 +667,7 @@
         />
       </div>
 
-      <div class="form-group">
+      <div class="form-group reflections-group">
         <label for="reflections">Reflections</label>
         <textarea
           id="reflections"
@@ -665,7 +679,7 @@
           bind:this={reflectionsInput}
         />
       </div>
-    </div>
+    </details>
 
     <!-- Form Actions -->
     <div class="form-actions">
@@ -711,6 +725,18 @@
     gap: 1rem;
   }
 
+  .evaluation-section {
+    gap: 1.25rem;
+  }
+
+  .evaluation-section .reflections-group {
+    margin-top: 0.5rem;
+  }
+
+  .evaluation-section .tasting-notes-group {
+    margin-top: 0.5rem;
+  }
+
   .form-section h3 {
     margin: 0;
     color: var(--form-section-title-color, var(--text-ink-secondary));
@@ -718,6 +744,62 @@
     font-weight: var(--form-section-title-weight, 500);
     border-bottom: var(--form-section-title-border-width, 1px) solid var(--form-section-title-border, var(--border-subtle));
     padding-bottom: 0.5rem;
+  }
+
+  .evaluation-section summary {
+    list-style: none;
+    cursor: pointer;
+    margin: 0;
+    color: var(--form-section-title-color, var(--text-ink-secondary));
+    font-size: var(--form-section-title-size, 1.25rem);
+    font-weight: var(--form-section-title-weight, 500);
+    padding: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .evaluation-section summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .evaluation-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .evaluation-icon {
+    display: inline-flex;
+    align-items: center;
+    transition: transform 0.2s ease;
+  }
+
+  .evaluation-divider {
+    height: 1px;
+    width: 100%;
+    background: var(--form-section-title-border, var(--border-subtle));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .evaluation-section[open] summary .evaluation-icon {
+    transform: rotate(0deg);
+  }
+
+  .evaluation-section:not([open]) summary .evaluation-icon {
+    transform: rotate(-90deg);
+  }
+
+  .evaluation-section[open] summary .evaluation-divider {
+    opacity: 1;
+  }
+
+  .evaluation-section summary:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(176, 138, 90, 0.25);
+    border-radius: var(--radius-sm);
   }
 
   .form-row {

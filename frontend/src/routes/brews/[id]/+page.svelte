@@ -7,6 +7,7 @@
   import BrewReflectionForm from '$lib/components/BrewReflectionForm.svelte';
   import CollapsibleSection from '$lib/components/CollapsibleSection.svelte';
   import GuestReflectionModal from '$lib/components/GuestReflectionModal.svelte';
+  import SectionBlock from '$lib/components/SectionBlock.svelte';
   import SectionCard from '$lib/components/SectionCard.svelte';
   import GhostButton from '$lib/components/GhostButton.svelte';
   import IconButton from '$lib/components/IconButton.svelte';
@@ -14,7 +15,7 @@
   import { adminService } from '$lib/admin-service';
   import { apiClient } from '$lib/api-client';
   import { barista } from '$lib/auth';
-  import { CheckCircle, ChevronDown, ClipboardDocument, DocumentDuplicate, LockClosed, PencilSquare, QrCode, Trash, UserMinus, XMark } from '$lib/icons';
+  import { CheckCircle, ClipboardDocument, DocumentDuplicate, LockClosed, PencilSquare, QrCode, Trash, UserMinus, XMark } from '$lib/icons';
   import { getTransformedImageUrl } from '$lib/utils/image-utils';
   import { imageFrame, imageSizes } from '$lib/ui/components/image';
   import { cardVariants, detailGrid, equipmentCard, recordCard, sectionSurface } from '$lib/ui/components/card';
@@ -896,16 +897,7 @@
               {/if}
             </section>
           {/if}
-          <details class="reference-section">
-            <summary>
-              <span class="reference-toggle">
-                <span class="reference-icon" aria-hidden="true">
-                  <ChevronDown size={18} />
-                </span>
-                <span>Reference details</span>
-              </span>
-              <span class="reference-divider" aria-hidden="true"></span>
-            </summary>
+          <SectionBlock title="Reference details" collapsible open={false} toggleLabel="Toggle reference details">
             <div class="detail-section">
               <h3>Equipment</h3>
               {#if equipmentLoading}
@@ -1073,7 +1065,7 @@
                 </div>
               </div>
             </div>
-          </details>
+          </SectionBlock>
         </div>
       {:else if editing}
         <BrewForm
@@ -1658,73 +1650,10 @@
     gap: var(--detail-section-gap);
   }
 
-  .reference-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--detail-section-gap);
-  }
-
-  .reference-section summary {
-    list-style: none;
-    cursor: pointer;
-    padding: 0;
-    background: none;
-    border: none;
-    font-weight: var(--detail-title-weight);
-    color: var(--detail-title-color);
-    font-size: var(--detail-title-size);
-    font-family: var(--detail-title-family);
-    line-height: var(--detail-title-line-height);
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .reference-section summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .reference-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
   .reference-lock {
     display: inline-flex;
     align-items: center;
     color: var(--state-color);
-  }
-
-  .reference-icon {
-    display: inline-flex;
-    align-items: center;
-    transition: transform 0.2s ease;
-  }
-
-  .reference-divider {
-    height: 1px;
-    width: 100%;
-    background: var(--detail-section-border);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  .reference-section[open] summary .reference-icon {
-    transform: rotate(0deg);
-  }
-
-  .reference-section:not([open]) summary .reference-icon {
-    transform: rotate(-90deg);
-  }
-
-  .reference-section[open] summary .reference-divider {
-    opacity: 1;
-  }
-
-  .reference-section .detail-section + .detail-section {
-    margin-top: var(--detail-section-gap);
   }
 
   .detail-section {
