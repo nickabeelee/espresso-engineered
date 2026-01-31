@@ -7,6 +7,7 @@
   import ErrorDisplay from "./ErrorDisplay.svelte";
   import BeanAnalysisFilters from "$lib/components/BeanAnalysisFilters.svelte";
   import Popover from "$lib/components/Popover.svelte";
+  import SectionBlock from "$lib/components/SectionBlock.svelte";
   import { ArrowTopRightOnSquareMini } from "$lib/icons";
   import type { Bean, Bag } from "@shared/types";
   import { recordListShell } from "$lib/ui/components/card";
@@ -65,12 +66,6 @@
   };
   let analysisFilterSummary = "";
   let filtersPopoverOpen = false;
-
-  const sectionTitleStyle = toStyleString({
-    ...textStyles.headingSecondary,
-    color: colorCss.text.ink.primary,
-    margin: "0 0 0.5rem 0",
-  });
 
   const voiceLineStyle = toStyleString({
     ...textStyles.voice,
@@ -497,16 +492,13 @@
 </script>
 
 <section class="bean-analysis-section">
-  <div class="section-header">
-    <div class="section-header-text">
-      <h2 style={sectionTitleStyle}>Bean Analysis</h2>
+  <SectionBlock title="Bean Analysis">
+    <span slot="voice">
       <p class="voice-text" style={voiceLineStyle}>
         Small shifts leave a trace.
       </p>
-    </div>
-  </div>
-
-  <div class="analysis-shell" style={analysisShellStyle}>
+    </span>
+    <div class="analysis-shell" style={analysisShellStyle}>
     {#if showBlockingLoading}
       <div class="analysis-loading">
         <div class="loading-circle" aria-hidden="true"></div>
@@ -686,7 +678,8 @@
         </div>
       {/if}
     {/if}
-  </div>
+    </div>
+  </SectionBlock>
 </section>
 
 <style>
@@ -735,21 +728,6 @@
     100% {
       transform: rotate(360deg);
     }
-  }
-
-  .section-header {
-    margin-bottom: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.35rem;
-  }
-
-  .section-header-text {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.35rem;
   }
 
   .analysis-mobile-tools {

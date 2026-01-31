@@ -17,3 +17,4 @@ export * from "./status";
 export * from "./sheet";
 export * from "./popover";
 export * from "./weight-input";
+export * from "./section";

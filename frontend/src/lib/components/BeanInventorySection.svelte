@@ -7,6 +7,7 @@
   import LoadingIndicator from "$lib/components/LoadingIndicator.svelte";
   import ErrorDisplay from "$lib/components/ErrorDisplay.svelte";
   import IconButton from "$lib/components/IconButton.svelte";
+  import SectionBlock from "$lib/components/SectionBlock.svelte";
   import { ChevronLeft, ChevronRight } from "$lib/icons";
   import { animations, animationUtils, gsap } from "$lib/ui/animations";
   import { recordListShell } from "$lib/ui/components/card";
@@ -41,12 +42,6 @@
   const getBagCards = () =>
     bagCards.filter((card): card is HTMLElement => Boolean(card));
 
-  const sectionTitleStyle = toStyleString({
-    ...textStyles.headingSecondary,
-    color: colorCss.text.ink.primary,
-    margin: "0 0 0.5rem 0",
-  });
-
   const voiceLineStyle = toStyleString({
     ...textStyles.voice,
     color: colorCss.text.ink.muted,
@@ -66,6 +61,7 @@
     ...textStyles.voice,
     color: colorCss.accent.primary,
   });
+
 
   onMount(() => {
     loadInventoryData();
@@ -304,16 +300,15 @@
 </script>
 
 <div class="bean-inventory-section">
-  <div class="section-header">
-    <div class="section-header-text">
-      <h2 style={sectionTitleStyle}>Your Coffee Shelf</h2>
+  <SectionBlock title="Your Coffee Shelf">
+    <span slot="voice">
       <p class="voice-text" style={voiceLineStyle}>
         Keep the bar stocked and the labels honest.
       </p>
-    </div>
-    {#if !loading && !error && bags.length > 0}
-      <div class="inventory-controls">
-        <div class="scroll-controls">
+    </span>
+    <span slot="headerActions" class="inventory-controls">
+      {#if !loading && !error && bags.length > 0}
+        <span class="scroll-controls">
           <IconButton
             on:click={scrollLeft}
             ariaLabel="Scroll left"
@@ -334,90 +329,75 @@
           >
             <ChevronRight />
           </IconButton>
-        </div>
+        </span>
+      {/if}
+    </span>
+
+    <div class="section-cta">
+      <a class="section-link" href="/beans?create=bean" style={actionLinkStyle}>
+        New bean
+      </a>
+      or
+      <button
+        class="section-link"
+        type="button"
+        style={actionLinkStyle}
+        on:click={() => dispatch("createBag")}
+      >
+        bag for your shelf
+      </button>
+      ?
+    </div>
+
+    {#if loading}
+      <div class="loading-container">
+        <LoadingIndicator />
+        <p class="voice-text" style={voiceLineStyle}>
+          Setting out your bar shelf...
+        </p>
       </div>
-    {/if}
-  </div>
-
-  <div class="section-cta">
-    <a class="section-link" href="/beans?create=bean" style={actionLinkStyle}>
-      New bean
-    </a>
-    or
-    <button
-      class="section-link"
-      type="button"
-      style={actionLinkStyle}
-      on:click={() => dispatch("createBag")}
-    >
-      bag for your shelf
-    </button>
-    ?
-  </div>
-
-  {#if loading}
-    <div class="loading-container">
-      <LoadingIndicator />
-      <p class="voice-text" style={voiceLineStyle}>
-        Setting out your bar shelf...
-      </p>
-    </div>
-  {:else if error}
-    <ErrorDisplay message={error} onRetry={loadInventoryData} />
-  {:else if bags.length === 0}
-    <div class="empty-state">
-      <p class="voice-text" style={voiceLineStyle}>Your shelf is quiet.</p>
-      <p class="voice-text" style={voiceLineStyle}>
-        Add a bag to start your bar shelf.
-      </p>
-    </div>
-  {:else}
-    <div class="inventory-shell edge-rail" style={inventoryShellStyle}>
-      <div class="inventory-container">
-        <div class="bag-scroll-container" bind:this={scrollContainer}>
-          <div class="bag-list">
-            {#each bags as bag, index (bag.id)}
-              <div class="bag-card-wrapper" bind:this={bagCards[index]}>
-                <BagCard
-                  variant="preview"
-                  {bag}
-                  beanName={bag.bean?.name || "Unknown Bean"}
-                  roasterName={bag.bean?.roaster?.name || null}
-                  beanImagePath={bag.bean?.image_path || null}
-                  beanRoastLevel={bag.bean?.roast_level || null}
-                  tastingNotes={bag.bean?.tasting_notes || null}
-                  {baristasById}
-                  on:inspect={() => requestInspect(bag)}
-                  on:brew={requestBrew}
-                />
-              </div>
-            {/each}
+    {:else if error}
+      <ErrorDisplay message={error} onRetry={loadInventoryData} />
+    {:else if bags.length === 0}
+      <div class="empty-state">
+        <p class="voice-text" style={voiceLineStyle}>Your shelf is quiet.</p>
+        <p class="voice-text" style={voiceLineStyle}>
+          Add a bag to start your bar shelf.
+        </p>
+      </div>
+    {:else}
+      <div class="inventory-shell edge-rail" style={inventoryShellStyle}>
+        <div class="inventory-container">
+          <div class="bag-scroll-container" bind:this={scrollContainer}>
+            <div class="bag-list">
+              {#each bags as bag, index (bag.id)}
+                <div class="bag-card-wrapper" bind:this={bagCards[index]}>
+                  <BagCard
+                    variant="preview"
+                    {bag}
+                    beanName={bag.bean?.name || "Unknown Bean"}
+                    roasterName={bag.bean?.roaster?.name || null}
+                    beanImagePath={bag.bean?.image_path || null}
+                    beanRoastLevel={bag.bean?.roast_level || null}
+                    tastingNotes={bag.bean?.tasting_notes || null}
+                    {baristasById}
+                    on:inspect={() => requestInspect(bag)}
+                    on:brew={requestBrew}
+                  />
+                </div>
+              {/each}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  {/if}
+    {/if}
+  </SectionBlock>
 </div>
 
 <style>
   .bean-inventory-section {
     width: 100%;
     padding-top: 0.5rem;
-  }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1.5rem;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-  }
-
-  .section-header-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
   }
 
   .section-cta {
@@ -546,13 +526,6 @@
 
   /* Responsive adjustments */
   @media (max-width: 768px) {
-    .section-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1rem;
-      margin-bottom: 0;
-    }
-
     .scroll-controls {
       display: none;
     }
