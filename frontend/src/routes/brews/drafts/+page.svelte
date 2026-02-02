@@ -35,7 +35,13 @@
         <Plus />
       </IconButton>
     </div>
-    <AwaitingReflection />
+    <section class="reflection-section" aria-labelledby="awaiting-reflection-title">
+      <header class="reflection-section-header">
+        <h2 id="awaiting-reflection-title">Awaiting Reflection</h2>
+        <p>Complete these brews by adding a rating.</p>
+      </header>
+      <AwaitingReflection />
+    </section>
   </div>
 </AuthGuard>
 
@@ -58,5 +64,24 @@
 
   .breadcrumb-link:hover {
     color: var(--breadcrumb-hover, var(--text-ink-secondary));
+  }
+
+  .reflection-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .reflection-section-header h2 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-ink-primary);
+    font-size: 1.75rem;
+    font-weight: 500;
+  }
+
+  .reflection-section-header p {
+    margin: 0;
+    color: var(--text-ink-muted);
+    font-size: 1rem;
   }
 </style>
