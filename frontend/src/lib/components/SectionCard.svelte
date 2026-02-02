@@ -26,20 +26,22 @@
 </script>
 
 <section class="section-card" style={style}>
-  <header class="section-header">
-    <div class="section-title">
-      {#if $$slots.title}
-        <slot name="title" />
-      {:else if title}
-        <h3>{title}</h3>
-      {/if}
-    </div>
-    {#if $$slots.headerActions}
-      <div class="section-header-actions">
-        <slot name="headerActions" />
+  {#if $$slots.title || title || $$slots.headerActions}
+    <header class="section-header">
+      <div class="section-title">
+        {#if $$slots.title}
+          <slot name="title" />
+        {:else if title}
+          <h3>{title}</h3>
+        {/if}
       </div>
-    {/if}
-  </header>
+      {#if $$slots.headerActions}
+        <div class="section-header-actions">
+          <slot name="headerActions" />
+        </div>
+      {/if}
+    </header>
+  {/if}
   <div class="section-body">
     <slot />
   </div>

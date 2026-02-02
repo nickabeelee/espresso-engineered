@@ -19,37 +19,22 @@
       error = null;
 
       const response = await apiClient.getDraftBrews();
-      draftBrews = response.data.filter(brew => typeof brew.rating !== 'number');
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      draftBrews = response.data.filter((brew) => {
+        if (typeof brew.rating === 'number') return false;
+        if (!brew.created_at) return false;
+        const brewedAt = new Date(brew.created_at);
+        if (Number.isNaN(brewedAt.getTime())) return false;
+        return brewedAt >= threeDaysAgo;
+      });
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to load draft brews';
       console.error('Failed to load draft brews:', err);
     } finally {
       loading = false;
     }
-  }
-
-  function formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString();
-  }
-
-  function formatTime(dateString: string): string {
-    return new Date(dateString).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  }
-
-  function getBrewTitle(brew: Brew): string {
-    if (brew.name) return brew.name;
-    return `Brew ${formatDate(brew.created_at)}`;
-  }
-
-  function getMissingFields(brew: Brew): string[] {
-    return typeof brew.rating === 'number' ? [] : ['Rating'];
-  }
-
-  function getCompletionPercentage(brew: Brew): number {
-    return typeof brew.rating === 'number' ? 100 : 0;
   }
 
   async function handleRatingSubmit(event: CustomEvent<{ brewId: string; rating: number }>) {
@@ -73,26 +58,27 @@
 </script>
 
 <div class="awaiting-reflection">
-  <div class="section-header">
-    <h2>Awaiting Reflection</h2>
-    <p>Complete these brews by adding a rating</p>
-  </div>
-
   {#if loading}
-    <div class="loading-state">
-      <div class="loading-spinner"></div>
-      <span>Loading incomplete brews...</span>
+    <div class="draft-list-shell">
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <span>Loading incomplete brews...</span>
+      </div>
     </div>
   {:else if error}
-    <div class="error-state">
-      <p>Error: {error}</p>
-      <button on:click={loadDraftBrews} class="btn-primary">
-        Try Again
-      </button>
+    <div class="draft-list-shell">
+      <div class="error-state">
+        <p>Error: {error}</p>
+        <button on:click={loadDraftBrews} class="btn-primary">
+          Try Again
+        </button>
+      </div>
     </div>
   {:else if draftBrews.length === 0}
-    <div class="empty-state">
-      <h3>{emptyMessage}</h3>
+    <div class="draft-list-shell">
+      <div class="empty-state">
+        <h3>{emptyMessage}</h3>
+      </div>
     </div>
   {:else}
     <div class="draft-list-shell">
@@ -105,41 +91,25 @@
           />
         {/each}
       </div>
-    </div>
 
-    <!-- Batch Actions -->
-    {#if draftBrews.length > 1}
-      <div class="batch-actions">
-        <p class="batch-text">
-          You have {draftBrews.length} brews awaiting a rating
-        </p>
-        <a href="/brews/drafts" class="btn-secondary">
-          View All Awaiting Ratings
-        </a>
-      </div>
-    {/if}
+      <!-- Batch Actions -->
+      {#if draftBrews.length > 1}
+        <div class="batch-actions">
+          <p class="batch-text">
+            You have {draftBrews.length} brews awaiting a rating
+          </p>
+          <a href="/brews/drafts" class="btn-secondary">
+            View All Awaiting Ratings
+          </a>
+        </div>
+      {/if}
+    </div>
   {/if}
 </div>
 
 <style>
   .awaiting-reflection {
     width: 100%;
-  }
-
-  .section-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .section-header h2 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text-ink-primary);
-    font-size: 1.75rem;
-  }
-
-  .section-header p {
-    margin: 0;
-    color: var(--text-ink-muted);
-    font-size: 1rem;
   }
 
   .loading-state,
